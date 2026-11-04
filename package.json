@@ -1,0 +1,22 @@
+{
+  "name": "erp",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Inauviet ERP: quotes, orders, design, production, delivery and payments",
+  "workspaces": ["api", "web"],
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "dev": "concurrently -n api,web -c blue,green \"npm run dev -w api\" \"npm run dev -w web\"",
+    "db:up": "docker compose up -d db",
+    "db:migrate": "npm run db:migrate -w api",
+    "db:seed": "npm run db:seed -w api",
+    "api:types": "npm run openapi -w api && npm run api:types -w web",
+    "test": "npm test -w api && npm test -w web",
+    "test:e2e": "npm run test:e2e -w api",
+    "build": "npm run build -w api && npm run build -w web",
+    "lint": "npm run typecheck -w api && npm run typecheck -w web"
+  },
+  "devDependencies": {
+    "concurrently": "9.2.5"
+  }
+}

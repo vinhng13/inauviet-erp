@@ -1,0 +1,37 @@
+# Môi trường LOCAL của ERP In Âu Việt
+# Chạy:  docker compose up -d
+# Mọi cổng chỉ mở cho chính máy này (127.0.0.1).
+name: ${COMPOSE_PROJECT_NAME:-erp}
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: erp
+      POSTGRES_PASSWORD: erp
+      POSTGRES_DB: erp
+      TZ: Asia/Ho_Chi_Minh
+    ports:
+      - "127.0.0.1:5433:5432"   # PostgreSQL (5433 để không đụng PostgreSQL cài sẵn trên máy)
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/10-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U erp -d erp"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  adminer:
+    image: adminer:5
+    restart: unless-stopped
+    depends_on:
+      - db
+    environment:
+      ADMINER_DEFAULT_SERVER: db
+    ports:
+      - "127.0.0.1:8082:8080"   # Adminer: http://localhost:8082 (hệ: PostgreSQL, máy chủ: db, user/pass: erp/erp)
+
+volumes:
+  db_data:

@@ -1,0 +1,6371 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/api/v1/health": {
+      "get": {
+        "operationId": "Health_check",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "For Docker and uptime monitors. No login needed.",
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "operationId": "Auth_login",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Sign in. Sets an HttpOnly session cookie. 5 wrong passwords lock the username for 15 minutes.",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "operationId": "Auth_logout",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/me": {
+      "get": {
+        "operationId": "Auth_me",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "The signed-in account, its group and permission keys",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/change-password": {
+      "post": {
+        "operationId": "Auth_changePassword",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "summary": "Change your own password. Signs out your other browsers.",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/accounts": {
+      "get": {
+        "operationId": "Accounts_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AccountDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "accounts"
+        ]
+      },
+      "post": {
+        "operationId": "Accounts_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAccountDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountWithPasswordDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Create an account by hand. Without a password, a temporary one is generated and returned once.",
+        "tags": [
+          "accounts"
+        ]
+      }
+    },
+    "/api/v1/accounts/{id}": {
+      "patch": {
+        "operationId": "Accounts_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAccountDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Edit details, change group, lock (isActive=false) or unlock",
+        "tags": [
+          "accounts"
+        ]
+      }
+    },
+    "/api/v1/accounts/{id}/reset-password": {
+      "post": {
+        "operationId": "Accounts_resetPassword",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetPasswordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountWithPasswordDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Set a new password (or generate a temporary one). The account must change it at next sign-in.",
+        "tags": [
+          "accounts"
+        ]
+      }
+    },
+    "/api/v1/accounts/{id}/sign-out": {
+      "post": {
+        "operationId": "Accounts_signOut",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignOutResultDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "End every session of this account",
+        "tags": [
+          "accounts"
+        ]
+      }
+    },
+    "/api/v1/permissions": {
+      "get": {
+        "operationId": "Roles_catalog",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PermissionModuleDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "Every module and action that can be granted, with Vietnamese labels",
+        "tags": [
+          "roles"
+        ]
+      }
+    },
+    "/api/v1/roles": {
+      "get": {
+        "operationId": "Roles_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RoleDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "Permission groups with their permissions and how many accounts use each",
+        "tags": [
+          "roles"
+        ]
+      },
+      "post": {
+        "operationId": "Roles_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveRoleDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "roles"
+        ]
+      }
+    },
+    "/api/v1/roles/{id}": {
+      "patch": {
+        "operationId": "Roles_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveRoleDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Changes take effect on the next request of every account in the group",
+        "tags": [
+          "roles"
+        ]
+      },
+      "delete": {
+        "operationId": "Roles_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "summary": "Only groups no account uses can be deleted",
+        "tags": [
+          "roles"
+        ]
+      }
+    },
+    "/api/v1/customers": {
+      "get": {
+        "operationId": "Customers_list",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "1-based page number",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "description": "Items per page (max 100)",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "description": "Free-text search",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerListDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Search by name, company, phone or code. Diacritics are ignored: \"nguyen\" finds \"Nguyễn\".",
+        "tags": [
+          "customers"
+        ]
+      },
+      "post": {
+        "operationId": "Customers_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCustomerDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "409 PHONE_EXISTS (with the existing customer in details) when the phone is already used",
+        "tags": [
+          "customers"
+        ]
+      }
+    },
+    "/api/v1/customers/lookup/{phone}": {
+      "get": {
+        "operationId": "Customers_lookup",
+        "parameters": [
+          {
+            "name": "phone",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Exact match by phone number; 404 when no customer has it",
+        "tags": [
+          "customers"
+        ]
+      }
+    },
+    "/api/v1/customers/{id}": {
+      "get": {
+        "operationId": "Customers_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerSummaryDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Customer profile with order count and balance",
+        "tags": [
+          "customers"
+        ]
+      },
+      "patch": {
+        "operationId": "Customers_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCustomerDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "customers"
+        ]
+      }
+    },
+    "/api/v1/products": {
+      "get": {
+        "operationId": "Products_list",
+        "parameters": [
+          {
+            "name": "active",
+            "required": false,
+            "in": "query",
+            "description": "true: only products on sale (the quote picker uses this)",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "description": "Name contains (diacritics matter)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProductDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "Product catalog. Prices are removed for accounts without money.view.",
+        "tags": [
+          "products"
+        ]
+      },
+      "post": {
+        "operationId": "Products_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProductDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "products"
+        ]
+      }
+    },
+    "/api/v1/products/{id}": {
+      "patch": {
+        "operationId": "Products_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProductDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Edit, change price, stop or resume selling. Existing quotes and orders keep their own prices.",
+        "tags": [
+          "products"
+        ]
+      }
+    },
+    "/api/v1/quotes": {
+      "get": {
+        "operationId": "Quotes_list",
+        "parameters": [
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/QuoteStatus"
+            }
+          },
+          {
+            "name": "customerId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "1-based page number",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "description": "Items per page (max 100)",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "description": "Free-text search",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuoteListDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Search quotes; counts per status come with every page",
+        "tags": [
+          "quotes"
+        ]
+      },
+      "post": {
+        "operationId": "Quotes_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveQuoteDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuoteDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "New quote (DRAFT). Lines from the catalog are priced on the server.",
+        "tags": [
+          "quotes"
+        ]
+      }
+    },
+    "/api/v1/quotes/{id}": {
+      "get": {
+        "operationId": "Quotes_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuoteDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "quotes"
+        ]
+      },
+      "put": {
+        "operationId": "Quotes_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveQuoteDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuoteDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Replace header and lines (DRAFT or SENT only)",
+        "tags": [
+          "quotes"
+        ]
+      }
+    },
+    "/api/v1/quotes/{id}/activity": {
+      "get": {
+        "operationId": "Quotes_history",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ActivityEntryDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "quotes"
+        ]
+      }
+    },
+    "/api/v1/quotes/{id}/send": {
+      "post": {
+        "operationId": "Quotes_send",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuoteDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "quotes"
+        ]
+      }
+    },
+    "/api/v1/quotes/{id}/lose": {
+      "post": {
+        "operationId": "Quotes_lose",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoseQuoteDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuoteDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "The customer did not order",
+        "tags": [
+          "quotes"
+        ]
+      }
+    },
+    "/api/v1/quotes/{id}/reopen": {
+      "post": {
+        "operationId": "Quotes_reopen",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuoteDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "quotes"
+        ]
+      }
+    },
+    "/api/v1/quotes/{id}/close": {
+      "post": {
+        "operationId": "Quotes_close",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CloseQuoteDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CloseQuoteResultDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "The customer agreed: create the order (DH-…) from this quote",
+        "tags": [
+          "quotes"
+        ]
+      }
+    },
+    "/api/v1/board": {
+      "get": {
+        "operationId": "Orders_board",
+        "parameters": [
+          {
+            "name": "due",
+            "required": false,
+            "in": "query",
+            "description": "week = due in the next 7 days, overdue = past due date",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "week",
+                "overdue"
+              ]
+            }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "description": "Search by order code, customer name or phone",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "hasUnplanned",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BoardDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Board of the 6 steps: open quotes, one column per order status, completed orders from the last 14 days",
+        "tags": [
+          "orders"
+        ]
+      }
+    },
+    "/api/v1/orders": {
+      "get": {
+        "operationId": "Orders_list",
+        "parameters": [
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/OrderStatus"
+            }
+          },
+          {
+            "name": "dueBefore",
+            "required": false,
+            "in": "query",
+            "description": "Due on or before this date",
+            "schema": {
+              "format": "date",
+              "example": "2026-11-02",
+              "type": "string"
+            }
+          },
+          {
+            "name": "customerId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "hasUnplanned",
+            "required": false,
+            "in": "query",
+            "description": "Only orders with quantity not yet planned for delivery",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "overdue",
+            "required": false,
+            "in": "query",
+            "description": "Only open orders past their due date",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "1-based page number",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "description": "Items per page (max 100)",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "description": "Free-text search",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderListDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Search and filter orders",
+        "tags": [
+          "orders"
+        ]
+      },
+      "post": {
+        "operationId": "Orders_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateOrderDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderDetailDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Create an order with its lines, an optional delivery plan and an optional deposit",
+        "tags": [
+          "orders"
+        ]
+      }
+    },
+    "/api/v1/orders/by-code/{code}": {
+      "get": {
+        "operationId": "Orders_byCode",
+        "parameters": [
+          {
+            "name": "code",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderDetailDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Find an order by its code, e.g. DH-2610-0042",
+        "tags": [
+          "orders"
+        ]
+      }
+    },
+    "/api/v1/orders/{id}": {
+      "get": {
+        "operationId": "Orders_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderDetailDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Everything about one order: lines, trips, payments, balance",
+        "tags": [
+          "orders"
+        ]
+      },
+      "patch": {
+        "operationId": "Orders_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateOrderDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderDetailDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Change dates or note",
+        "tags": [
+          "orders"
+        ]
+      }
+    },
+    "/api/v1/orders/{id}/lines": {
+      "put": {
+        "operationId": "Orders_replaceLines",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReplaceLinesDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderDetailDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Replace the order lines (quantities can't go below what is already planned)",
+        "tags": [
+          "orders"
+        ]
+      }
+    },
+    "/api/v1/orders/{id}/cancel": {
+      "post": {
+        "operationId": "Orders_cancel",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelOrderDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderDetailDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Cancel the order and its scheduled trips",
+        "tags": [
+          "orders"
+        ]
+      }
+    },
+    "/api/v1/orders/{id}/activity": {
+      "get": {
+        "operationId": "Orders_history",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ActivityEntryDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "History of the order, its trips and payments, newest first",
+        "tags": [
+          "orders"
+        ]
+      }
+    },
+    "/api/v1/orders/{id}/confirm": {
+      "post": {
+        "operationId": "Workflow_confirm",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmOrderDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderDetailDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Step 2 → 3, or straight to step 5 when the customer brings print-ready files",
+        "tags": [
+          "workflow"
+        ]
+      }
+    },
+    "/api/v1/design-queue": {
+      "get": {
+        "operationId": "Workflow_designQueue",
+        "parameters": [
+          {
+            "name": "mine",
+            "required": false,
+            "in": "query",
+            "description": "Only orders assigned to the signed-in designer",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DesignQueueItemDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "workflow"
+        ]
+      }
+    },
+    "/api/v1/designers": {
+      "get": {
+        "operationId": "Workflow_designers",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DesignerDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "Active accounts that can do design work",
+        "tags": [
+          "workflow"
+        ]
+      }
+    },
+    "/api/v1/orders/{id}/design": {
+      "patch": {
+        "operationId": "Workflow_assign",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignDesignerDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderDetailDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "workflow"
+        ]
+      }
+    },
+    "/api/v1/orders/{id}/design/versions": {
+      "post": {
+        "operationId": "Workflow_send",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendDesignDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderDetailDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Record that maket v(n+1) was sent to the customer",
+        "tags": [
+          "workflow"
+        ]
+      }
+    },
+    "/api/v1/orders/{id}/design/versions/{versionId}/feedback": {
+      "post": {
+        "operationId": "Workflow_feedback",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "versionId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DesignFeedbackDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderDetailDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "The customer's answer on the latest version: approved (→ step 4) or changes requested",
+        "tags": [
+          "workflow"
+        ]
+      }
+    },
+    "/api/v1/orders/{id}/design/approval": {
+      "patch": {
+        "operationId": "Workflow_approval",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateApprovalDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderDetailDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Step 4: approval channel / approver, print files finished",
+        "tags": [
+          "workflow"
+        ]
+      }
+    },
+    "/api/v1/orders/{id}/design/unapprove": {
+      "post": {
+        "operationId": "Workflow_unapprove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UnapproveDesignDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderDetailDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Step 4 → 3: the customer wants changes after approving",
+        "tags": [
+          "workflow"
+        ]
+      }
+    },
+    "/api/v1/orders/{id}/design/lock": {
+      "post": {
+        "operationId": "Workflow_lock",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderDetailDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Step 4 → 5: lock the approved design and create the work order",
+        "tags": [
+          "workflow"
+        ]
+      }
+    },
+    "/api/v1/production": {
+      "get": {
+        "operationId": "Workflow_production",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProductionItemDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "workflow"
+        ]
+      }
+    },
+    "/api/v1/orders/{id}/production": {
+      "patch": {
+        "operationId": "Workflow_updateProduction",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProductionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderDetailDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "workflow"
+        ]
+      }
+    },
+    "/api/v1/orders/{id}/production/advance": {
+      "post": {
+        "operationId": "Workflow_advance",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdvanceProductionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderDetailDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Next workshop stage (or the given one)",
+        "tags": [
+          "workflow"
+        ]
+      }
+    },
+    "/api/v1/orders/{id}/production/handover": {
+      "post": {
+        "operationId": "Workflow_handover",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderDetailDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Step 5 → 6: goods ready for delivery",
+        "tags": [
+          "workflow"
+        ]
+      }
+    },
+    "/api/v1/orders/{id}/accept": {
+      "post": {
+        "operationId": "Workflow_accept",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AcceptOrderDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderDetailDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "workflow"
+        ]
+      }
+    },
+    "/api/v1/deliveries": {
+      "get": {
+        "operationId": "Deliveries_list",
+        "parameters": [
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/DeliveryStatus"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "description": "Planned on or after",
+            "schema": {
+              "format": "date",
+              "example": "2026-11-02",
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "description": "Planned on or before",
+            "schema": {
+              "format": "date",
+              "example": "2026-11-02",
+              "type": "string"
+            }
+          },
+          {
+            "name": "overdue",
+            "required": false,
+            "in": "query",
+            "description": "Scheduled trips planned before today",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "1-based page number",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "description": "Items per page (max 100)",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "description": "Free-text search",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeliveryListDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Delivery schedule: filter by status and planned date range",
+        "tags": [
+          "deliveries"
+        ]
+      }
+    },
+    "/api/v1/deliveries/{id}": {
+      "get": {
+        "operationId": "Deliveries_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeliveryListItemDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "deliveries"
+        ]
+      },
+      "patch": {
+        "operationId": "Deliveries_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDeliveryDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeliveryListItemDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Change a scheduled trip: date, address, note or quantities",
+        "tags": [
+          "deliveries"
+        ]
+      }
+    },
+    "/api/v1/orders/{orderId}/deliveries": {
+      "post": {
+        "operationId": "Deliveries_create",
+        "parameters": [
+          {
+            "name": "orderId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDeliveryDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeliveryListItemDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Add a trip to an order. 409 PLANNED_QTY_EXCEEDS_ORDER if it plans more than ordered.",
+        "tags": [
+          "deliveries"
+        ]
+      }
+    },
+    "/api/v1/deliveries/{id}/deliver": {
+      "post": {
+        "operationId": "Deliveries_deliver",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeliverDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeliveryListItemDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Mark delivered, optionally with lower quantities and money collected",
+        "tags": [
+          "deliveries"
+        ]
+      }
+    },
+    "/api/v1/deliveries/{id}/reopen": {
+      "post": {
+        "operationId": "Deliveries_reopen",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelDeliveryDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeliveryListItemDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Set a delivered trip back to scheduled, to fix a mistake",
+        "tags": [
+          "deliveries"
+        ]
+      }
+    },
+    "/api/v1/deliveries/{id}/cancel": {
+      "post": {
+        "operationId": "Deliveries_cancel",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelDeliveryDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeliveryListItemDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Cancel a scheduled trip; its quantity returns to \"not yet planned\"",
+        "tags": [
+          "deliveries"
+        ]
+      }
+    },
+    "/api/v1/payments": {
+      "get": {
+        "operationId": "Payments_all",
+        "parameters": [
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "description": "Paid on or after",
+            "schema": {
+              "format": "date",
+              "example": "2026-11-02",
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "description": "Paid on or before",
+            "schema": {
+              "format": "date",
+              "example": "2026-11-02",
+              "type": "string"
+            }
+          },
+          {
+            "name": "method",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/PaymentMethod"
+            }
+          },
+          {
+            "name": "includeVoided",
+            "required": false,
+            "in": "query",
+            "description": "Include voided payments (default false)",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "1-based page number",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "description": "Items per page (max 100)",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "description": "Free-text search",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentListDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "All receipts across orders, newest first",
+        "tags": [
+          "payments"
+        ]
+      }
+    },
+    "/api/v1/receivables": {
+      "get": {
+        "operationId": "Payments_receivables",
+        "parameters": [
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "description": "Order code, customer name or phone",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "deliveredOnly",
+            "required": false,
+            "in": "query",
+            "description": "Only orders with at least one delivered trip",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReceivableListDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Orders that still owe money",
+        "tags": [
+          "payments"
+        ]
+      }
+    },
+    "/api/v1/orders/{orderId}/payments": {
+      "get": {
+        "operationId": "Payments_list",
+        "parameters": [
+          {
+            "name": "orderId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PaymentDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "payments"
+        ]
+      },
+      "post": {
+        "operationId": "Payments_create",
+        "parameters": [
+          {
+            "name": "orderId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePaymentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Record money received for an order, optionally linked to the trip it was collected on",
+        "tags": [
+          "payments"
+        ]
+      }
+    },
+    "/api/v1/payments/{id}/void": {
+      "post": {
+        "operationId": "Payments_void",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VoidPaymentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Void a payment entered by mistake. It stays in the history.",
+        "tags": [
+          "payments"
+        ]
+      }
+    },
+    "/api/v1/documents/{kind}/{id}": {
+      "get": {
+        "operationId": "Documents_one",
+        "parameters": [
+          {
+            "name": "kind",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "enum": [
+                "design",
+                "quote",
+                "order",
+                "lsx",
+                "acceptance",
+                "invoice"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "download",
+            "required": false,
+            "in": "query",
+            "description": "true: send as a file to save (Content-Disposition: attachment); default: open in the browser",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "One document. `id` is the quote id for \"quote\", the order id otherwise. Opens in the browser unless `download=true`.",
+        "tags": [
+          "documents"
+        ]
+      }
+    },
+    "/api/v1/orders/{id}/documents/zip": {
+      "get": {
+        "operationId": "Documents_orderZip",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "kinds",
+            "required": false,
+            "in": "query",
+            "description": "Comma-separated kinds to include, e.g. \"quote,order,invoice\". Default: every available document.",
+            "schema": {
+              "example": "quote,order,design,lsx,acceptance,invoice",
+              "type": "string",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "quote",
+                  "order",
+                  "design",
+                  "lsx",
+                  "acceptance",
+                  "invoice"
+                ]
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Every document of an order (and its quote) in one zip",
+        "tags": [
+          "documents"
+        ]
+      }
+    },
+    "/api/v1/customers/{id}/documents": {
+      "get": {
+        "operationId": "Documents_forCustomer",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerDocumentsDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "The customer's quotes and orders with the documents each one has",
+        "tags": [
+          "documents"
+        ]
+      }
+    },
+    "/api/v1/customers/{id}/documents/zip": {
+      "get": {
+        "operationId": "Documents_customerZip",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "kinds",
+            "required": false,
+            "in": "query",
+            "description": "Comma-separated kinds to include, e.g. \"quote,order,invoice\". Default: every available document.",
+            "schema": {
+              "example": "quote,order,design,lsx,acceptance,invoice",
+              "type": "string",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "quote",
+                  "order",
+                  "design",
+                  "lsx",
+                  "acceptance",
+                  "invoice"
+                ]
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Every document of the customer, one folder per order / quote",
+        "tags": [
+          "documents"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "Inauviet ERP API",
+    "description": "Orders, delivery trips and payments. Every error has the shape { statusCode, code, message, details? }. Sign in with POST /auth/login: the session is kept in the HttpOnly cookie erp_session. Each endpoint lists the permission it needs (e.g. orders.create); 403 PERMISSION_DENIED names what is missing.",
+    "version": "0.1.0",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [],
+  "components": {
+    "securitySchemes": {
+      "cookie": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "erp_session"
+      }
+    },
+    "schemas": {
+      "LoginDto": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string",
+            "maxLength": 50
+          },
+          "password": {
+            "type": "string",
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "username",
+          "password"
+        ]
+      },
+      "MeDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          },
+          "fullName": {
+            "type": "string"
+          },
+          "roleId": {
+            "type": "string"
+          },
+          "roleName": {
+            "type": "string"
+          },
+          "isAdmin": {
+            "type": "boolean",
+            "description": "Member of the built-in admin group (every permission)"
+          },
+          "permissions": {
+            "description": "Permission keys such as \"orders.create\"",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "mustChangePassword": {
+            "type": "boolean",
+            "description": "The account must set a new password before using the app"
+          }
+        },
+        "required": [
+          "id",
+          "username",
+          "fullName",
+          "roleId",
+          "roleName",
+          "isAdmin",
+          "permissions",
+          "mustChangePassword"
+        ]
+      },
+      "ChangePasswordDto": {
+        "type": "object",
+        "properties": {
+          "currentPassword": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "newPassword": {
+            "type": "string",
+            "description": "At least 8 characters, must not contain the username",
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "currentPassword",
+          "newPassword"
+        ]
+      },
+      "AccountDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          },
+          "fullName": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "phone": {
+            "type": "string",
+            "nullable": true
+          },
+          "roleId": {
+            "type": "string"
+          },
+          "roleName": {
+            "type": "string"
+          },
+          "isAdmin": {
+            "type": "boolean",
+            "description": "In the built-in admin group"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "hasPassword": {
+            "type": "boolean",
+            "description": "No password yet: cannot sign in until one is set"
+          },
+          "mustChangePassword": {
+            "type": "boolean"
+          },
+          "lastSeenAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "passwordChangedAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "username",
+          "fullName",
+          "email",
+          "phone",
+          "roleId",
+          "roleName",
+          "isAdmin",
+          "isActive",
+          "hasPassword",
+          "mustChangePassword",
+          "lastSeenAt",
+          "passwordChangedAt",
+          "createdAt"
+        ]
+      },
+      "CreateAccountDto": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string",
+            "description": "3–32 characters: lowercase letters, digits, dot, dash, underscore. Stored in lowercase.",
+            "minLength": 3,
+            "maxLength": 32
+          },
+          "fullName": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "email": {
+            "type": "string",
+            "maxLength": 200,
+            "format": "email"
+          },
+          "phone": {
+            "type": "string",
+            "maxLength": 20
+          },
+          "roleId": {
+            "type": "string",
+            "description": "Permission group",
+            "format": "uuid"
+          },
+          "password": {
+            "type": "string",
+            "description": "Initial password. Leave empty to generate a temporary one (shown once in the response).",
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "username",
+          "fullName",
+          "roleId"
+        ]
+      },
+      "AccountWithPasswordDto": {
+        "type": "object",
+        "properties": {
+          "account": {
+            "$ref": "#/components/schemas/AccountDto"
+          },
+          "temporaryPassword": {
+            "type": "string",
+            "nullable": true,
+            "description": "Only when the server generated the password. Shown once; give it to the person."
+          }
+        },
+        "required": [
+          "account",
+          "temporaryPassword"
+        ]
+      },
+      "UpdateAccountDto": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string",
+            "description": "3–32 characters: lowercase letters, digits, dot, dash, underscore. Stored in lowercase.",
+            "minLength": 3,
+            "maxLength": 32
+          },
+          "fullName": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "email": {
+            "type": "string",
+            "maxLength": 200,
+            "format": "email"
+          },
+          "phone": {
+            "type": "string",
+            "maxLength": 20
+          },
+          "roleId": {
+            "type": "string",
+            "description": "Permission group",
+            "format": "uuid"
+          },
+          "password": {
+            "type": "string",
+            "description": "Initial password. Leave empty to generate a temporary one (shown once in the response).",
+            "maxLength": 200
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "false = locked: cannot sign in, current sessions end immediately"
+          }
+        }
+      },
+      "ResetPasswordDto": {
+        "type": "object",
+        "properties": {
+          "password": {
+            "type": "string",
+            "description": "New password. Leave empty to generate a temporary one. The account must change it at next sign-in.",
+            "maxLength": 200
+          }
+        }
+      },
+      "SignOutResultDto": {
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "number",
+            "description": "Sessions ended"
+          }
+        },
+        "required": [
+          "count"
+        ]
+      },
+      "PermissionActionDto": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "e.g. \"create\""
+          },
+          "label": {
+            "type": "string",
+            "description": "e.g. \"Thêm\""
+          },
+          "description": {
+            "type": "string"
+          },
+          "permission": {
+            "type": "string",
+            "description": "Full permission key, e.g. \"orders.create\""
+          },
+          "implies": {
+            "description": "Permissions automatically granted with this one",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "description",
+          "permission",
+          "implies"
+        ]
+      },
+      "PermissionModuleDto": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PermissionActionDto"
+            }
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "actions"
+        ]
+      },
+      "RoleDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "permissions": {
+            "description": "For the built-in admin group this is every permission",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "isSystem": {
+            "type": "boolean",
+            "description": "Built-in admin group: cannot be edited or deleted"
+          },
+          "userCount": {
+            "type": "number"
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description",
+          "permissions",
+          "isSystem",
+          "userCount",
+          "createdAt"
+        ]
+      },
+      "SaveRoleDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 300
+          },
+          "permissions": {
+            "description": "Permission keys. Unknown keys are ignored; implied ones are added.",
+            "uniqueItems": true,
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "name",
+          "permissions"
+        ]
+      },
+      "CustomerDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string",
+            "description": "KH-0001"
+          },
+          "name": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "companyName": {
+            "type": "string",
+            "nullable": true
+          },
+          "taxCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "address": {
+            "type": "string",
+            "nullable": true
+          },
+          "note": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "name",
+          "phone",
+          "companyName",
+          "taxCode",
+          "address",
+          "note",
+          "createdAt"
+        ]
+      },
+      "CustomerListDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CustomerDto"
+            }
+          },
+          "total": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "items",
+          "total"
+        ]
+      },
+      "CustomerSummaryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string",
+            "description": "KH-0001"
+          },
+          "name": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "companyName": {
+            "type": "string",
+            "nullable": true
+          },
+          "taxCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "address": {
+            "type": "string",
+            "nullable": true
+          },
+          "note": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "orderCount": {
+            "type": "number"
+          },
+          "openOrderCount": {
+            "type": "number",
+            "description": "Orders that are not completed or cancelled"
+          },
+          "totalVnd": {
+            "type": "number",
+            "description": "Sum of order totals (priced orders, not cancelled)"
+          },
+          "paidVnd": {
+            "type": "number"
+          },
+          "balanceVnd": {
+            "type": "number",
+            "description": "totalVnd - paidVnd"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "name",
+          "phone",
+          "companyName",
+          "taxCode",
+          "address",
+          "note",
+          "createdAt",
+          "orderCount",
+          "openOrderCount",
+          "totalVnd",
+          "paidVnd",
+          "balanceVnd"
+        ]
+      },
+      "CreateCustomerDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "phone": {
+            "type": "string",
+            "description": "Any common format: 0903 123 456, +84903123456, 0903.123.456",
+            "maxLength": 20
+          },
+          "companyName": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "taxCode": {
+            "type": "string",
+            "description": "Mã số thuế, for VAT invoices",
+            "maxLength": 20
+          },
+          "address": {
+            "type": "string",
+            "description": "Default delivery address",
+            "maxLength": 500
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 2000
+          }
+        },
+        "required": [
+          "name",
+          "phone"
+        ]
+      },
+      "UpdateCustomerDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "phone": {
+            "type": "string",
+            "description": "Any common format: 0903 123 456, +84903123456, 0903.123.456",
+            "maxLength": 20
+          },
+          "companyName": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "taxCode": {
+            "type": "string",
+            "description": "Mã số thuế, for VAT invoices",
+            "maxLength": 20
+          },
+          "address": {
+            "type": "string",
+            "description": "Default delivery address",
+            "maxLength": 500
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 2000
+          }
+        }
+      },
+      "PricingMode": {
+        "type": "string",
+        "enum": [
+          "AREA",
+          "UNIT"
+        ]
+      },
+      "ProductDto": {
+        "type": "object",
+        "properties": {
+          "pricingMode": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PricingMode"
+              }
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "unitPriceVnd": {
+            "type": "number",
+            "description": "Hidden from accounts without money.view"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "note": {
+            "type": "string",
+            "nullable": true
+          },
+          "sortOrder": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "pricingMode",
+          "id",
+          "name",
+          "category",
+          "unit",
+          "isActive",
+          "note",
+          "sortOrder"
+        ]
+      },
+      "CreateProductDto": {
+        "type": "object",
+        "properties": {
+          "pricingMode": {
+            "description": "AREA: price per m², each line has a size. UNIT: price per unit.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PricingMode"
+              }
+            ]
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "category": {
+            "type": "string",
+            "description": "Decal, Bạt, Biển & hộp đèn, Standee, Ấn phẩm…",
+            "maxLength": 100
+          },
+          "unit": {
+            "type": "string",
+            "description": "UNIT products only (cái, bộ, hộp…). AREA products always use m².",
+            "maxLength": 20
+          },
+          "unitPriceVnd": {
+            "type": "number",
+            "description": "List price in đồng, per m² or per unit"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 1000
+          },
+          "sortOrder": {
+            "type": "number",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "pricingMode",
+          "name",
+          "category",
+          "unitPriceVnd"
+        ]
+      },
+      "UpdateProductDto": {
+        "type": "object",
+        "properties": {
+          "pricingMode": {
+            "description": "AREA: price per m², each line has a size. UNIT: price per unit.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PricingMode"
+              }
+            ]
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "category": {
+            "type": "string",
+            "description": "Decal, Bạt, Biển & hộp đèn, Standee, Ấn phẩm…",
+            "maxLength": 100
+          },
+          "unit": {
+            "type": "string",
+            "description": "UNIT products only (cái, bộ, hộp…). AREA products always use m².",
+            "maxLength": 20
+          },
+          "unitPriceVnd": {
+            "type": "number",
+            "description": "List price in đồng, per m² or per unit"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 1000
+          },
+          "sortOrder": {
+            "type": "number",
+            "minimum": 0
+          }
+        }
+      },
+      "QuoteStatus": {
+        "type": "string",
+        "enum": [
+          "DRAFT",
+          "SENT",
+          "WON",
+          "LOST"
+        ]
+      },
+      "QuoteCustomerDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "address": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "name",
+          "phone",
+          "address"
+        ]
+      },
+      "QuoteOrderRefDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "code"
+        ]
+      },
+      "QuoteListItemDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/QuoteStatus"
+              }
+            ]
+          },
+          "quoteDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "validUntil": {
+            "type": "string",
+            "format": "date"
+          },
+          "id": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string",
+            "description": "BG-2610-0012"
+          },
+          "customer": {
+            "$ref": "#/components/schemas/QuoteCustomerDto"
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "validDays": {
+            "type": "number"
+          },
+          "isExpired": {
+            "type": "boolean",
+            "description": "Still DRAFT or SENT after validUntil"
+          },
+          "totalVnd": {
+            "type": "number"
+          },
+          "lineCount": {
+            "type": "number"
+          },
+          "order": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/QuoteOrderRefDto"
+              }
+            ]
+          },
+          "createdByName": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "quoteDate",
+          "validUntil",
+          "id",
+          "code",
+          "customer",
+          "title",
+          "validDays",
+          "isExpired",
+          "lineCount",
+          "order",
+          "createdByName",
+          "createdAt"
+        ]
+      },
+      "QuoteCountsDto": {
+        "type": "object",
+        "properties": {
+          "DRAFT": {
+            "type": "number"
+          },
+          "SENT": {
+            "type": "number"
+          },
+          "WON": {
+            "type": "number"
+          },
+          "LOST": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "DRAFT",
+          "SENT",
+          "WON",
+          "LOST"
+        ]
+      },
+      "QuoteListDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QuoteListItemDto"
+            }
+          },
+          "total": {
+            "type": "number"
+          },
+          "counts": {
+            "description": "Per status, for the same search (ignores the status filter)",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/QuoteCountsDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "counts"
+        ]
+      },
+      "QuoteLineDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "productId": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string"
+          },
+          "spec": {
+            "type": "string",
+            "nullable": true
+          },
+          "unit": {
+            "type": "string"
+          },
+          "widthM": {
+            "type": "number",
+            "nullable": true
+          },
+          "heightM": {
+            "type": "number",
+            "nullable": true
+          },
+          "areaM2": {
+            "type": "number",
+            "nullable": true,
+            "description": "width × height × quantity, AREA lines only"
+          },
+          "areaPriceVnd": {
+            "type": "number",
+            "nullable": true,
+            "description": "Price per m², AREA lines only"
+          },
+          "quantity": {
+            "type": "number"
+          },
+          "unitPriceVnd": {
+            "type": "number",
+            "description": "Price of one piece / unit"
+          },
+          "lineTotalVnd": {
+            "type": "number"
+          },
+          "sortOrder": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "productId",
+          "description",
+          "spec",
+          "unit",
+          "widthM",
+          "heightM",
+          "areaM2",
+          "quantity",
+          "sortOrder"
+        ]
+      },
+      "QuoteDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/QuoteStatus"
+              }
+            ]
+          },
+          "quoteDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "validUntil": {
+            "type": "string",
+            "format": "date"
+          },
+          "id": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string",
+            "description": "BG-2610-0012"
+          },
+          "customer": {
+            "$ref": "#/components/schemas/QuoteCustomerDto"
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "validDays": {
+            "type": "number"
+          },
+          "isExpired": {
+            "type": "boolean",
+            "description": "Still DRAFT or SENT after validUntil"
+          },
+          "totalVnd": {
+            "type": "number"
+          },
+          "lineCount": {
+            "type": "number"
+          },
+          "order": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/QuoteOrderRefDto"
+              }
+            ]
+          },
+          "createdByName": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string",
+            "nullable": true
+          },
+          "sentAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "lostAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "lostReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "wonAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "updatedAt": {
+            "type": "string"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QuoteLineDto"
+            }
+          }
+        },
+        "required": [
+          "status",
+          "quoteDate",
+          "validUntil",
+          "id",
+          "code",
+          "customer",
+          "title",
+          "validDays",
+          "isExpired",
+          "lineCount",
+          "order",
+          "createdByName",
+          "createdAt",
+          "note",
+          "sentAt",
+          "lostAt",
+          "lostReason",
+          "wonAt",
+          "updatedAt",
+          "lines"
+        ]
+      },
+      "ActivityEntryDto": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": true,
+            "nullable": true
+          },
+          "id": {
+            "type": "string"
+          },
+          "entityType": {
+            "type": "string",
+            "description": "ORDER, DELIVERY or PAYMENT"
+          },
+          "entityId": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string",
+            "description": "e.g. ORDER_CREATED, STATUS_CHANGED, DELIVERY_DELIVERED, PAYMENT_RECORDED"
+          },
+          "fromValue": {
+            "type": "string",
+            "nullable": true
+          },
+          "toValue": {
+            "type": "string",
+            "nullable": true
+          },
+          "userName": {
+            "type": "string",
+            "nullable": true,
+            "description": "Staff member who made the change; null for system changes"
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "ISO timestamp"
+          }
+        },
+        "required": [
+          "data",
+          "id",
+          "entityType",
+          "entityId",
+          "action",
+          "fromValue",
+          "toValue",
+          "userName",
+          "createdAt"
+        ]
+      },
+      "QuoteLineInputDto": {
+        "type": "object",
+        "properties": {
+          "productId": {
+            "type": "string",
+            "nullable": true,
+            "description": "Catalog product; leave empty for a free-text line",
+            "format": "uuid"
+          },
+          "description": {
+            "type": "string",
+            "description": "Defaults to the product name",
+            "maxLength": 300
+          },
+          "spec": {
+            "type": "string",
+            "maxLength": 1000
+          },
+          "unit": {
+            "type": "string",
+            "description": "Free-text lines only (cái, bộ, gói…)",
+            "maxLength": 20
+          },
+          "widthM": {
+            "type": "number",
+            "nullable": true,
+            "description": "Metres, products priced per m²",
+            "minimum": 0.01,
+            "maximum": 100
+          },
+          "heightM": {
+            "type": "number",
+            "nullable": true,
+            "minimum": 0.01,
+            "maximum": 100
+          },
+          "quantity": {
+            "type": "number",
+            "description": "Pieces / units",
+            "minimum": 1
+          },
+          "unitPriceVnd": {
+            "type": "number",
+            "nullable": true,
+            "description": "Per m² for products priced per m², otherwise per unit. Defaults to the catalog price."
+          }
+        },
+        "required": [
+          "quantity"
+        ]
+      },
+      "SaveQuoteDto": {
+        "type": "object",
+        "properties": {
+          "customerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 300
+          },
+          "validDays": {
+            "type": "number",
+            "description": "Days the quote stays valid (default 7)",
+            "minimum": 1,
+            "maximum": 365
+          },
+          "note": {
+            "type": "string",
+            "description": "Printed on the quote",
+            "maxLength": 2000
+          },
+          "lines": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QuoteLineInputDto"
+            }
+          }
+        },
+        "required": [
+          "customerId",
+          "lines"
+        ]
+      },
+      "LoseQuoteDto": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "description": "Why the customer did not order",
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "reason"
+        ]
+      },
+      "CloseQuoteDto": {
+        "type": "object",
+        "properties": {
+          "dueDate": {
+            "type": "string",
+            "format": "date",
+            "example": "2026-11-02"
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 2000
+          }
+        }
+      },
+      "CloseQuoteResultDto": {
+        "type": "object",
+        "properties": {
+          "orderId": {
+            "type": "string"
+          },
+          "orderCode": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "orderId",
+          "orderCode"
+        ]
+      },
+      "BoardQuotesDto": {
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "number"
+          },
+          "sentCount": {
+            "type": "number",
+            "description": "Of which already sent to the customer"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QuoteListItemDto"
+            }
+          }
+        },
+        "required": [
+          "count",
+          "sentCount",
+          "items"
+        ]
+      },
+      "OrderStatus": {
+        "type": "string",
+        "enum": [
+          "CONFIRMED",
+          "DESIGNING",
+          "DESIGN_FINALIZING",
+          "IN_PRODUCTION",
+          "DELIVERING",
+          "COMPLETED",
+          "CANCELLED"
+        ]
+      },
+      "PaymentStatus": {
+        "type": "string",
+        "enum": [
+          "NONE",
+          "UNPAID",
+          "PARTLY_PAID",
+          "PAID"
+        ]
+      },
+      "DesignFeedback": {
+        "type": "string",
+        "enum": [
+          "PENDING",
+          "CHANGES_REQUESTED",
+          "APPROVED"
+        ]
+      },
+      "ProductionStage": {
+        "type": "string",
+        "enum": [
+          "RECEIVED",
+          "PRINTING",
+          "FINISHING",
+          "QC",
+          "DONE"
+        ]
+      },
+      "Priority": {
+        "type": "string",
+        "enum": [
+          "NORMAL",
+          "URGENT"
+        ]
+      },
+      "OrderQuoteRefDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "code"
+        ]
+      },
+      "OrderCardDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/OrderStatus"
+              }
+            ]
+          },
+          "orderDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "dueDate": {
+            "type": "string",
+            "nullable": true,
+            "format": "date"
+          },
+          "nextPlannedDate": {
+            "type": "string",
+            "nullable": true,
+            "format": "date"
+          },
+          "paymentStatus": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PaymentStatus"
+              }
+            ]
+          },
+          "lastDesignFeedback": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DesignFeedback"
+              }
+            ]
+          },
+          "productionStage": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ProductionStage"
+              }
+            ]
+          },
+          "productionDueDate": {
+            "type": "string",
+            "nullable": true,
+            "format": "date"
+          },
+          "productionPriority": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Priority"
+              }
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string",
+            "description": "DH-2610-0042"
+          },
+          "customerId": {
+            "type": "string"
+          },
+          "customerCode": {
+            "type": "string"
+          },
+          "customerName": {
+            "type": "string"
+          },
+          "customerPhone": {
+            "type": "string"
+          },
+          "isOverdue": {
+            "type": "boolean",
+            "description": "Open order past its due date"
+          },
+          "summary": {
+            "type": "string",
+            "description": "Short description of the lines, e.g. \"Banner hiflex 2×1 m, Decal PP 30×40 cm\""
+          },
+          "tripsTotal": {
+            "type": "number",
+            "description": "Trips not cancelled"
+          },
+          "tripsDelivered": {
+            "type": "number"
+          },
+          "unplannedQty": {
+            "type": "number",
+            "description": "Total quantity not yet planned for delivery, across all lines"
+          },
+          "totalVnd": {
+            "type": "number",
+            "nullable": true
+          },
+          "paidVnd": {
+            "type": "number"
+          },
+          "completedAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "needsDesign": {
+            "type": "boolean",
+            "nullable": true,
+            "description": "null until step 2 is confirmed"
+          },
+          "designerName": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastDesignVersion": {
+            "type": "number",
+            "nullable": true
+          },
+          "approvedVersion": {
+            "type": "number",
+            "nullable": true
+          },
+          "approvalChannel": {
+            "type": "string",
+            "nullable": true
+          },
+          "designFinalized": {
+            "type": "boolean"
+          },
+          "productionCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "fullyDelivered": {
+            "type": "boolean",
+            "description": "Every line delivered in full: waiting for the signed acceptance report"
+          },
+          "quote": {
+            "nullable": true,
+            "description": "Quote the order was closed from",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/OrderQuoteRefDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "status",
+          "orderDate",
+          "dueDate",
+          "nextPlannedDate",
+          "paymentStatus",
+          "lastDesignFeedback",
+          "productionStage",
+          "productionDueDate",
+          "productionPriority",
+          "id",
+          "code",
+          "customerId",
+          "customerCode",
+          "customerName",
+          "customerPhone",
+          "isOverdue",
+          "summary",
+          "tripsTotal",
+          "tripsDelivered",
+          "unplannedQty",
+          "totalVnd",
+          "paidVnd",
+          "completedAt",
+          "needsDesign",
+          "designerName",
+          "lastDesignVersion",
+          "approvedVersion",
+          "approvalChannel",
+          "designFinalized",
+          "productionCode",
+          "fullyDelivered",
+          "quote"
+        ]
+      },
+      "BoardColumnDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/OrderStatus"
+              }
+            ]
+          },
+          "count": {
+            "type": "number"
+          },
+          "orders": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrderCardDto"
+            }
+          }
+        },
+        "required": [
+          "status",
+          "count",
+          "orders"
+        ]
+      },
+      "BoardDto": {
+        "type": "object",
+        "properties": {
+          "quotes": {
+            "nullable": true,
+            "description": "Step 1: open quotes (DRAFT, SENT); null without quotes.view",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BoardQuotesDto"
+              }
+            ]
+          },
+          "columns": {
+            "description": "Steps 2–6 and recently completed orders",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BoardColumnDto"
+            }
+          },
+          "completedDays": {
+            "type": "number",
+            "description": "Completed orders are shown for this many days"
+          }
+        },
+        "required": [
+          "quotes",
+          "columns",
+          "completedDays"
+        ]
+      },
+      "OrderListDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrderCardDto"
+            }
+          },
+          "total": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "items",
+          "total"
+        ]
+      },
+      "OrderLineInputDto": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "e.g. \"Banner hiflex 2×1 m\"",
+            "maxLength": 300
+          },
+          "spec": {
+            "type": "string",
+            "description": "Material, finishing, print method",
+            "maxLength": 1000
+          },
+          "quantity": {
+            "type": "number",
+            "minimum": 1
+          },
+          "unitPriceVnd": {
+            "type": "number",
+            "nullable": true,
+            "description": "Optional unit price in đồng (price of one piece for lines priced per m²)"
+          },
+          "productId": {
+            "type": "string",
+            "nullable": true,
+            "description": "Catalog product. With a product priced per m², send widthM/heightM: the piece price is computed on the server.",
+            "format": "uuid"
+          },
+          "unit": {
+            "type": "string",
+            "nullable": true,
+            "description": "ĐVT (tấm, cái, bộ…)",
+            "maxLength": 20
+          },
+          "widthM": {
+            "type": "number",
+            "nullable": true,
+            "minimum": 0.01,
+            "maximum": 100
+          },
+          "heightM": {
+            "type": "number",
+            "nullable": true,
+            "minimum": 0.01,
+            "maximum": 100
+          },
+          "areaPriceVnd": {
+            "type": "number",
+            "nullable": true,
+            "description": "Price per m² for catalog products priced per m² (defaults to the stored or catalog price)"
+          }
+        },
+        "required": [
+          "description",
+          "quantity"
+        ]
+      },
+      "PlanLineByIndexDto": {
+        "type": "object",
+        "properties": {
+          "lineIndex": {
+            "type": "number",
+            "description": "Position of the line in `lines` (0-based)",
+            "minimum": 0
+          },
+          "plannedQty": {
+            "type": "number",
+            "minimum": 1
+          }
+        },
+        "required": [
+          "lineIndex",
+          "plannedQty"
+        ]
+      },
+      "PlannedTripDto": {
+        "type": "object",
+        "properties": {
+          "plannedDate": {
+            "type": "string",
+            "format": "date",
+            "example": "2026-11-02"
+          },
+          "address": {
+            "type": "string",
+            "description": "Defaults to the customer's address",
+            "maxLength": 500
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 1000
+          },
+          "lines": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlanLineByIndexDto"
+            }
+          }
+        },
+        "required": [
+          "plannedDate",
+          "lines"
+        ]
+      },
+      "PaymentMethod": {
+        "type": "string",
+        "enum": [
+          "CASH",
+          "BANK_TRANSFER",
+          "OTHER"
+        ]
+      },
+      "DepositDto": {
+        "type": "object",
+        "properties": {
+          "method": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PaymentMethod"
+              }
+            ]
+          },
+          "paidOn": {
+            "type": "string",
+            "description": "Defaults to the order date",
+            "format": "date",
+            "example": "2026-11-02"
+          },
+          "amountVnd": {
+            "type": "number"
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "method",
+          "amountVnd"
+        ]
+      },
+      "CreateOrderDto": {
+        "type": "object",
+        "properties": {
+          "orderDate": {
+            "type": "string",
+            "description": "Defaults to today",
+            "format": "date",
+            "example": "2026-11-02"
+          },
+          "dueDate": {
+            "type": "string",
+            "format": "date",
+            "example": "2026-11-02"
+          },
+          "customerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "lines": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrderLineInputDto"
+            }
+          },
+          "deliveries": {
+            "description": "Delivery plan: one or more trips. Can also be added later.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlannedTripDto"
+            }
+          },
+          "deposit": {
+            "description": "Optional deposit received with the order",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DepositDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "customerId",
+          "lines"
+        ]
+      },
+      "QuoteChangeDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "description": "CHANGED: product, size, quantity or price differs; ADDED: not on the quote; REMOVED: on the quote, dropped from the order",
+            "enum": [
+              "CHANGED",
+              "ADDED",
+              "REMOVED"
+            ],
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "description": "Current name (quote name for REMOVED)"
+          },
+          "fromDescription": {
+            "type": "string",
+            "nullable": true,
+            "description": "Quote name, when the product or size changed"
+          },
+          "fromQuantity": {
+            "type": "number",
+            "nullable": true
+          },
+          "toQuantity": {
+            "type": "number",
+            "nullable": true
+          },
+          "priceChanged": {
+            "type": "boolean"
+          },
+          "fromLineTotalVnd": {
+            "type": "number",
+            "nullable": true
+          },
+          "toLineTotalVnd": {
+            "type": "number",
+            "nullable": true
+          }
+        },
+        "required": [
+          "kind",
+          "description",
+          "fromDescription",
+          "fromQuantity",
+          "toQuantity",
+          "priceChanged"
+        ]
+      },
+      "OrderQuoteDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string",
+            "description": "BG-2610-0012"
+          },
+          "totalVnd": {
+            "type": "number"
+          },
+          "changes": {
+            "description": "What changed between the quote and the order (step 2: chốt báo giá)",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QuoteChangeDto"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "changes"
+        ]
+      },
+      "OrderLineDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "description": "Name shown everywhere, with the size for lines priced per m² (\"Decal PP 1,2×0,8 m\")"
+          },
+          "baseName": {
+            "type": "string",
+            "description": "description without the size: send this back as `description` when editing a line priced per m²"
+          },
+          "productId": {
+            "type": "string",
+            "nullable": true
+          },
+          "spec": {
+            "type": "string",
+            "nullable": true
+          },
+          "unit": {
+            "type": "string",
+            "nullable": true
+          },
+          "widthM": {
+            "type": "number",
+            "nullable": true
+          },
+          "heightM": {
+            "type": "number",
+            "nullable": true
+          },
+          "areaPriceVnd": {
+            "type": "number",
+            "nullable": true,
+            "description": "Price per m² for lines priced per m²"
+          },
+          "quantity": {
+            "type": "number"
+          },
+          "plannedQty": {
+            "type": "number",
+            "description": "Planned on scheduled trips plus already delivered"
+          },
+          "deliveredQty": {
+            "type": "number"
+          },
+          "unplannedQty": {
+            "type": "number",
+            "description": "quantity - plannedQty"
+          },
+          "unitPriceVnd": {
+            "type": "number",
+            "nullable": true
+          },
+          "lineTotalVnd": {
+            "type": "number",
+            "nullable": true
+          },
+          "sortOrder": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "description",
+          "baseName",
+          "productId",
+          "spec",
+          "unit",
+          "widthM",
+          "heightM",
+          "areaPriceVnd",
+          "quantity",
+          "plannedQty",
+          "deliveredQty",
+          "unplannedQty",
+          "unitPriceVnd",
+          "lineTotalVnd",
+          "sortOrder"
+        ]
+      },
+      "DeliveryStatus": {
+        "type": "string",
+        "enum": [
+          "SCHEDULED",
+          "DELIVERED",
+          "CANCELLED"
+        ]
+      },
+      "DeliveryLineDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "orderLineId": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "plannedQty": {
+            "type": "number"
+          },
+          "deliveredQty": {
+            "type": "number",
+            "nullable": true,
+            "description": "Set once the trip is delivered"
+          }
+        },
+        "required": [
+          "id",
+          "orderLineId",
+          "description",
+          "plannedQty",
+          "deliveredQty"
+        ]
+      },
+      "DeliveryDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DeliveryStatus"
+              }
+            ]
+          },
+          "plannedDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "id": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string",
+            "description": "GH-2610-0011"
+          },
+          "orderId": {
+            "type": "string"
+          },
+          "isOverdue": {
+            "type": "boolean",
+            "description": "Scheduled and planned before today"
+          },
+          "deliveredAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "address": {
+            "type": "string",
+            "nullable": true
+          },
+          "receiverName": {
+            "type": "string",
+            "nullable": true
+          },
+          "note": {
+            "type": "string",
+            "nullable": true
+          },
+          "cancelReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "valueVnd": {
+            "type": "number",
+            "nullable": true,
+            "description": "Value of the goods on this trip (delivered qty once delivered); null without prices"
+          },
+          "collectedVnd": {
+            "type": "number",
+            "description": "Payments collected on this trip"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DeliveryLineDto"
+            }
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "plannedDate",
+          "id",
+          "code",
+          "orderId",
+          "isOverdue",
+          "deliveredAt",
+          "address",
+          "receiverName",
+          "note",
+          "cancelReason",
+          "valueVnd",
+          "collectedVnd",
+          "lines",
+          "createdAt"
+        ]
+      },
+      "PaymentDto": {
+        "type": "object",
+        "properties": {
+          "method": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PaymentMethod"
+              }
+            ]
+          },
+          "paidOn": {
+            "type": "string",
+            "format": "date"
+          },
+          "id": {
+            "type": "string"
+          },
+          "orderId": {
+            "type": "string"
+          },
+          "deliveryId": {
+            "type": "string",
+            "nullable": true
+          },
+          "deliveryCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "amountVnd": {
+            "type": "number"
+          },
+          "isDeposit": {
+            "type": "boolean"
+          },
+          "note": {
+            "type": "string",
+            "nullable": true
+          },
+          "recordedByName": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "voidedAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "voidReason": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "method",
+          "paidOn",
+          "id",
+          "orderId",
+          "deliveryId",
+          "deliveryCode",
+          "amountVnd",
+          "isDeposit",
+          "note",
+          "recordedByName",
+          "createdAt",
+          "voidedAt",
+          "voidReason"
+        ]
+      },
+      "PersonRefDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "fullName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "fullName"
+        ]
+      },
+      "DesignVersionDto": {
+        "type": "object",
+        "properties": {
+          "feedback": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DesignFeedback"
+              }
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "version": {
+            "type": "number"
+          },
+          "sentAt": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string",
+            "nullable": true
+          },
+          "feedbackAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "feedbackNote": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdByName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "feedback",
+          "id",
+          "version",
+          "sentAt",
+          "note",
+          "feedbackAt",
+          "feedbackNote",
+          "createdByName"
+        ]
+      },
+      "OrderDesignDto": {
+        "type": "object",
+        "properties": {
+          "designer": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PersonRefDto"
+              }
+            ]
+          },
+          "versions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DesignVersionDto"
+            }
+          },
+          "approvedAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "approvedVersion": {
+            "type": "number",
+            "nullable": true
+          },
+          "approvalChannel": {
+            "type": "string",
+            "nullable": true
+          },
+          "approvedByName": {
+            "type": "string",
+            "nullable": true
+          },
+          "finalizedAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "lockedAt": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "designer",
+          "versions",
+          "approvedAt",
+          "approvedVersion",
+          "approvalChannel",
+          "approvedByName",
+          "finalizedAt",
+          "lockedAt"
+        ]
+      },
+      "OrderProductionDto": {
+        "type": "object",
+        "properties": {
+          "stage": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ProductionStage"
+              }
+            ]
+          },
+          "dueDate": {
+            "type": "string",
+            "nullable": true,
+            "format": "date"
+          },
+          "priority": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Priority"
+              }
+            ]
+          },
+          "code": {
+            "type": "string",
+            "nullable": true,
+            "description": "LSX-2610-0014; null for orders started before work orders existed"
+          },
+          "note": {
+            "type": "string",
+            "nullable": true
+          },
+          "startedAt": {
+            "type": "string"
+          },
+          "doneAt": {
+            "type": "string",
+            "nullable": true,
+            "description": "Handed over to delivery"
+          }
+        },
+        "required": [
+          "stage",
+          "dueDate",
+          "priority",
+          "code",
+          "note",
+          "startedAt",
+          "doneAt"
+        ]
+      },
+      "OrderAcceptanceDto": {
+        "type": "object",
+        "properties": {
+          "acceptedAt": {
+            "type": "string"
+          },
+          "acceptedByName": {
+            "type": "string",
+            "nullable": true
+          },
+          "note": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "acceptedAt",
+          "acceptedByName",
+          "note"
+        ]
+      },
+      "OrderDetailDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/OrderStatus"
+              }
+            ]
+          },
+          "orderDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "dueDate": {
+            "type": "string",
+            "nullable": true,
+            "format": "date"
+          },
+          "paymentStatus": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PaymentStatus"
+              }
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "quote": {
+            "nullable": true,
+            "description": "Quote this order was closed from; null for orders entered directly",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/OrderQuoteDto"
+              }
+            ]
+          },
+          "isOverdue": {
+            "type": "boolean"
+          },
+          "note": {
+            "type": "string",
+            "nullable": true
+          },
+          "cancelReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "customer": {
+            "$ref": "#/components/schemas/CustomerDto"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrderLineDto"
+            }
+          },
+          "deliveries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DeliveryDto"
+            }
+          },
+          "payments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PaymentDto"
+            }
+          },
+          "unplannedQty": {
+            "type": "number"
+          },
+          "totalVnd": {
+            "type": "number",
+            "nullable": true
+          },
+          "paidVnd": {
+            "type": "number"
+          },
+          "balanceVnd": {
+            "type": "number",
+            "nullable": true,
+            "description": "totalVnd - paidVnd; null when the order has no prices"
+          },
+          "productionStartedAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "confirmedAt": {
+            "type": "string",
+            "nullable": true,
+            "description": "Step 2 confirmed with the customer"
+          },
+          "needsDesign": {
+            "type": "boolean",
+            "nullable": true,
+            "description": "Chosen at step 2: true = design steps 3–4, false = customer files go straight to production"
+          },
+          "design": {
+            "$ref": "#/components/schemas/OrderDesignDto"
+          },
+          "production": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/OrderProductionDto"
+              }
+            ]
+          },
+          "fullyDelivered": {
+            "type": "boolean",
+            "description": "Every line delivered in full: the acceptance report can be signed"
+          },
+          "acceptance": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/OrderAcceptanceDto"
+              }
+            ]
+          },
+          "completedAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "cancelledAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "orderDate",
+          "dueDate",
+          "paymentStatus",
+          "id",
+          "code",
+          "quote",
+          "isOverdue",
+          "note",
+          "cancelReason",
+          "customer",
+          "lines",
+          "deliveries",
+          "payments",
+          "unplannedQty",
+          "totalVnd",
+          "paidVnd",
+          "balanceVnd",
+          "productionStartedAt",
+          "confirmedAt",
+          "needsDesign",
+          "design",
+          "production",
+          "fullyDelivered",
+          "acceptance",
+          "completedAt",
+          "cancelledAt",
+          "createdAt"
+        ]
+      },
+      "UpdateOrderDto": {
+        "type": "object",
+        "properties": {
+          "orderDate": {
+            "type": "string",
+            "format": "date",
+            "example": "2026-11-02"
+          },
+          "dueDate": {
+            "type": "string",
+            "nullable": true,
+            "description": "Send null to clear",
+            "format": "date",
+            "example": "2026-11-02"
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 2000
+          }
+        }
+      },
+      "ReplaceLineDto": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "e.g. \"Banner hiflex 2×1 m\"",
+            "maxLength": 300
+          },
+          "spec": {
+            "type": "string",
+            "description": "Material, finishing, print method",
+            "maxLength": 1000
+          },
+          "quantity": {
+            "type": "number",
+            "minimum": 1
+          },
+          "unitPriceVnd": {
+            "type": "number",
+            "nullable": true,
+            "description": "Optional unit price in đồng (price of one piece for lines priced per m²)"
+          },
+          "productId": {
+            "type": "string",
+            "nullable": true,
+            "description": "Catalog product. With a product priced per m², send widthM/heightM: the piece price is computed on the server.",
+            "format": "uuid"
+          },
+          "unit": {
+            "type": "string",
+            "nullable": true,
+            "description": "ĐVT (tấm, cái, bộ…)",
+            "maxLength": 20
+          },
+          "widthM": {
+            "type": "number",
+            "nullable": true,
+            "minimum": 0.01,
+            "maximum": 100
+          },
+          "heightM": {
+            "type": "number",
+            "nullable": true,
+            "minimum": 0.01,
+            "maximum": 100
+          },
+          "areaPriceVnd": {
+            "type": "number",
+            "nullable": true,
+            "description": "Price per m² for catalog products priced per m² (defaults to the stored or catalog price)"
+          },
+          "id": {
+            "type": "string",
+            "description": "Existing line id; omit for a new line",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "description",
+          "quantity"
+        ]
+      },
+      "ReplaceLinesDto": {
+        "type": "object",
+        "properties": {
+          "lines": {
+            "description": "The complete new list. Lines left out are removed (only allowed if they have no deliveries).",
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReplaceLineDto"
+            }
+          }
+        },
+        "required": [
+          "lines"
+        ]
+      },
+      "CancelOrderDto": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "reason"
+        ]
+      },
+      "ConfirmOrderDto": {
+        "type": "object",
+        "properties": {
+          "needsDesign": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "needsDesign"
+        ]
+      },
+      "DesignQueueItemDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/OrderStatus"
+              }
+            ]
+          },
+          "dueDate": {
+            "type": "string",
+            "nullable": true,
+            "format": "date"
+          },
+          "lastFeedback": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DesignFeedback"
+              }
+            ]
+          },
+          "state": {
+            "description": "TODO: chưa gửi, WAITING: chờ khách, CHANGES: cần sửa, FINAL: đã duyệt / hoàn thiện",
+            "enum": [
+              "TODO",
+              "WAITING",
+              "CHANGES",
+              "FINAL"
+            ],
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "customerId": {
+            "type": "string"
+          },
+          "customerName": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "isOverdue": {
+            "type": "boolean"
+          },
+          "designer": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PersonRefDto"
+              }
+            ]
+          },
+          "lastVersion": {
+            "type": "number",
+            "nullable": true,
+            "description": "Latest version sent, null when none yet"
+          },
+          "lastSentAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "approvedVersion": {
+            "type": "number",
+            "nullable": true
+          },
+          "finalized": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "status",
+          "dueDate",
+          "lastFeedback",
+          "state",
+          "id",
+          "code",
+          "customerId",
+          "customerName",
+          "summary",
+          "isOverdue",
+          "designer",
+          "lastVersion",
+          "lastSentAt",
+          "approvedVersion",
+          "finalized"
+        ]
+      },
+      "DesignerDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "fullName": {
+            "type": "string"
+          },
+          "openOrders": {
+            "type": "number",
+            "description": "Orders currently in design (steps 3–4)"
+          }
+        },
+        "required": [
+          "id",
+          "fullName",
+          "openOrders"
+        ]
+      },
+      "AssignDesignerDto": {
+        "type": "object",
+        "properties": {
+          "designerId": {
+            "type": "string",
+            "nullable": true,
+            "description": "null removes the designer",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "designerId"
+        ]
+      },
+      "SendDesignDto": {
+        "type": "object",
+        "properties": {
+          "note": {
+            "type": "string",
+            "description": "What was sent and how, e.g. \"Gửi maket qua Zalo\"",
+            "maxLength": 1000
+          }
+        }
+      },
+      "DesignFeedbackDto": {
+        "type": "object",
+        "properties": {
+          "approved": {
+            "type": "boolean",
+            "description": "true: customer approved this version (step 4); false: customer asked for changes"
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 1000
+          },
+          "channel": {
+            "type": "string",
+            "description": "How the customer approved: Zalo, Email, Trực tiếp… (approval only, default Zalo)",
+            "maxLength": 50
+          },
+          "approvedByName": {
+            "type": "string",
+            "description": "Who approved on the customer side (approval only, default the customer name)",
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "approved"
+        ]
+      },
+      "UpdateApprovalDto": {
+        "type": "object",
+        "properties": {
+          "channel": {
+            "type": "string",
+            "maxLength": 50
+          },
+          "approvedByName": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "finalized": {
+            "type": "boolean",
+            "description": "Print files are finished from the approved version (needed before locking)"
+          }
+        }
+      },
+      "UnapproveDesignDto": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "reason"
+        ]
+      },
+      "ProductionLineDto": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "spec": {
+            "type": "string",
+            "nullable": true
+          },
+          "quantity": {
+            "type": "number"
+          },
+          "unit": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "description",
+          "spec",
+          "quantity",
+          "unit"
+        ]
+      },
+      "ProductionItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "customerId": {
+            "type": "string"
+          },
+          "customerName": {
+            "type": "string"
+          },
+          "production": {
+            "$ref": "#/components/schemas/OrderProductionDto"
+          },
+          "source": {
+            "type": "string",
+            "description": "What the workshop prints from: \"File khách gửi\" or \"Maket v2 đã duyệt\""
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProductionLineDto"
+            }
+          },
+          "isLate": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "customerId",
+          "customerName",
+          "production",
+          "source",
+          "lines",
+          "isLate"
+        ]
+      },
+      "UpdateProductionDto": {
+        "type": "object",
+        "properties": {
+          "dueDate": {
+            "type": "string",
+            "format": "date",
+            "example": "2026-11-02"
+          },
+          "priority": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Priority"
+              }
+            ]
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 1000
+          }
+        }
+      },
+      "AdvanceProductionDto": {
+        "type": "object",
+        "properties": {
+          "stage": {
+            "description": "Move to this stage; omitted = the next one",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ProductionStage"
+              }
+            ]
+          }
+        }
+      },
+      "AcceptOrderDto": {
+        "type": "object",
+        "properties": {
+          "signedBy": {
+            "type": "string",
+            "description": "Who signed on the customer side",
+            "maxLength": 200
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 1000
+          }
+        },
+        "required": [
+          "signedBy"
+        ]
+      },
+      "DeliveryListItemDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DeliveryStatus"
+              }
+            ]
+          },
+          "plannedDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "orderStatus": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/OrderStatus"
+              }
+            ]
+          },
+          "orderCode": {
+            "type": "string"
+          },
+          "customerName": {
+            "type": "string"
+          },
+          "customerPhone": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string",
+            "description": "GH-2610-0011"
+          },
+          "orderId": {
+            "type": "string"
+          },
+          "isOverdue": {
+            "type": "boolean",
+            "description": "Scheduled and planned before today"
+          },
+          "deliveredAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "address": {
+            "type": "string",
+            "nullable": true
+          },
+          "receiverName": {
+            "type": "string",
+            "nullable": true
+          },
+          "note": {
+            "type": "string",
+            "nullable": true
+          },
+          "cancelReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "valueVnd": {
+            "type": "number",
+            "nullable": true,
+            "description": "Value of the goods on this trip (delivered qty once delivered); null without prices"
+          },
+          "collectedVnd": {
+            "type": "number",
+            "description": "Payments collected on this trip"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DeliveryLineDto"
+            }
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "plannedDate",
+          "orderStatus",
+          "orderCode",
+          "customerName",
+          "customerPhone",
+          "id",
+          "code",
+          "orderId",
+          "isOverdue",
+          "deliveredAt",
+          "address",
+          "receiverName",
+          "note",
+          "cancelReason",
+          "valueVnd",
+          "collectedVnd",
+          "lines",
+          "createdAt"
+        ]
+      },
+      "DeliveryListDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DeliveryListItemDto"
+            }
+          },
+          "total": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "items",
+          "total"
+        ]
+      },
+      "PlanLineDto": {
+        "type": "object",
+        "properties": {
+          "orderLineId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "plannedQty": {
+            "type": "number",
+            "minimum": 1
+          }
+        },
+        "required": [
+          "orderLineId",
+          "plannedQty"
+        ]
+      },
+      "CreateDeliveryDto": {
+        "type": "object",
+        "properties": {
+          "plannedDate": {
+            "type": "string",
+            "format": "date",
+            "example": "2026-11-02"
+          },
+          "address": {
+            "type": "string",
+            "description": "Defaults to the customer's address",
+            "maxLength": 500
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 1000
+          },
+          "lines": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlanLineDto"
+            }
+          }
+        },
+        "required": [
+          "plannedDate",
+          "lines"
+        ]
+      },
+      "UpdateDeliveryDto": {
+        "type": "object",
+        "properties": {
+          "plannedDate": {
+            "type": "string",
+            "format": "date",
+            "example": "2026-11-02"
+          },
+          "address": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 1000
+          },
+          "lines": {
+            "description": "Replaces the trip's lines",
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlanLineDto"
+            }
+          }
+        }
+      },
+      "DeliverLineDto": {
+        "type": "object",
+        "properties": {
+          "orderLineId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "deliveredQty": {
+            "type": "number",
+            "description": "0 up to the planned quantity. Anything less than planned returns to \"not yet planned\".",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "orderLineId",
+          "deliveredQty"
+        ]
+      },
+      "CollectPaymentDto": {
+        "type": "object",
+        "properties": {
+          "method": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PaymentMethod"
+              }
+            ]
+          },
+          "amountVnd": {
+            "type": "number"
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "method",
+          "amountVnd"
+        ]
+      },
+      "DeliverDto": {
+        "type": "object",
+        "properties": {
+          "deliveredAt": {
+            "type": "string",
+            "description": "ISO timestamp; defaults to now"
+          },
+          "receiverName": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "lines": {
+            "description": "Omit to deliver exactly what was planned",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DeliverLineDto"
+            }
+          },
+          "payment": {
+            "description": "Money collected on this trip; recorded as a payment linked to it",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CollectPaymentDto"
+              }
+            ]
+          }
+        }
+      },
+      "CancelDeliveryDto": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "reason"
+        ]
+      },
+      "PaymentListItemDto": {
+        "type": "object",
+        "properties": {
+          "method": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PaymentMethod"
+              }
+            ]
+          },
+          "paidOn": {
+            "type": "string",
+            "format": "date"
+          },
+          "orderStatus": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/OrderStatus"
+              }
+            ]
+          },
+          "orderCode": {
+            "type": "string"
+          },
+          "customerId": {
+            "type": "string"
+          },
+          "customerName": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "orderId": {
+            "type": "string"
+          },
+          "deliveryId": {
+            "type": "string",
+            "nullable": true
+          },
+          "deliveryCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "amountVnd": {
+            "type": "number"
+          },
+          "isDeposit": {
+            "type": "boolean"
+          },
+          "note": {
+            "type": "string",
+            "nullable": true
+          },
+          "recordedByName": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "voidedAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "voidReason": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "method",
+          "paidOn",
+          "orderStatus",
+          "orderCode",
+          "customerId",
+          "customerName",
+          "id",
+          "orderId",
+          "deliveryId",
+          "deliveryCode",
+          "amountVnd",
+          "isDeposit",
+          "note",
+          "recordedByName",
+          "createdAt",
+          "voidedAt",
+          "voidReason"
+        ]
+      },
+      "PaymentListDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PaymentListItemDto"
+            }
+          },
+          "total": {
+            "type": "number"
+          },
+          "sumVnd": {
+            "type": "number",
+            "description": "Sum of the matching payments that are not voided"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "sumVnd"
+        ]
+      },
+      "ReceivableDto": {
+        "type": "object",
+        "properties": {
+          "orderStatus": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/OrderStatus"
+              }
+            ]
+          },
+          "orderDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "orderId": {
+            "type": "string"
+          },
+          "orderCode": {
+            "type": "string"
+          },
+          "customerId": {
+            "type": "string"
+          },
+          "customerName": {
+            "type": "string"
+          },
+          "customerPhone": {
+            "type": "string"
+          },
+          "totalVnd": {
+            "type": "number"
+          },
+          "paidVnd": {
+            "type": "number"
+          },
+          "balanceVnd": {
+            "type": "number"
+          },
+          "delivered": {
+            "type": "boolean",
+            "description": "At least one trip delivered: money is due now"
+          },
+          "firstDeliveredAt": {
+            "type": "string",
+            "nullable": true,
+            "description": "Date of the first delivered trip"
+          }
+        },
+        "required": [
+          "orderStatus",
+          "orderDate",
+          "orderId",
+          "orderCode",
+          "customerId",
+          "customerName",
+          "customerPhone",
+          "totalVnd",
+          "paidVnd",
+          "balanceVnd",
+          "delivered",
+          "firstDeliveredAt"
+        ]
+      },
+      "ReceivableListDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReceivableDto"
+            }
+          },
+          "deliveredBalanceVnd": {
+            "type": "number",
+            "description": "Balance of orders already (partly) delivered"
+          },
+          "upcomingBalanceVnd": {
+            "type": "number",
+            "description": "Balance of orders not delivered yet"
+          },
+          "depositsHeldVnd": {
+            "type": "number",
+            "description": "Money received on open orders with nothing delivered yet (deposits held)"
+          }
+        },
+        "required": [
+          "items",
+          "deliveredBalanceVnd",
+          "upcomingBalanceVnd",
+          "depositsHeldVnd"
+        ]
+      },
+      "CreatePaymentDto": {
+        "type": "object",
+        "properties": {
+          "method": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PaymentMethod"
+              }
+            ]
+          },
+          "paidOn": {
+            "type": "string",
+            "description": "Defaults to today",
+            "format": "date",
+            "example": "2026-11-02"
+          },
+          "amountVnd": {
+            "type": "number"
+          },
+          "isDeposit": {
+            "type": "boolean"
+          },
+          "deliveryId": {
+            "type": "string",
+            "description": "The trip this money was collected on (must belong to the same order)",
+            "format": "uuid"
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "method",
+          "amountVnd"
+        ]
+      },
+      "VoidPaymentDto": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "reason"
+        ]
+      },
+      "DocKind": {
+        "type": "string",
+        "enum": [
+          "quote",
+          "order",
+          "design",
+          "lsx",
+          "acceptance",
+          "invoice"
+        ]
+      },
+      "DocumentFileDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DocKind"
+              }
+            ]
+          },
+          "sourceId": {
+            "type": "string",
+            "description": "Quote id for kind \"quote\", order id otherwise"
+          },
+          "label": {
+            "type": "string",
+            "description": "Short label, e.g. \"Báo giá\""
+          },
+          "fileName": {
+            "type": "string",
+            "description": "BG-2610-0004_BaoGia.pdf"
+          }
+        },
+        "required": [
+          "kind",
+          "sourceId",
+          "label",
+          "fileName"
+        ]
+      },
+      "CustomerDocumentRowDto": {
+        "type": "object",
+        "properties": {
+          "orderStatus": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/OrderStatus"
+              }
+            ]
+          },
+          "quoteStatus": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/QuoteStatus"
+              }
+            ]
+          },
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "key": {
+            "type": "string",
+            "description": "Order id, or quote id when the quote never became an order"
+          },
+          "orderId": {
+            "type": "string",
+            "nullable": true
+          },
+          "orderCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "quoteId": {
+            "type": "string",
+            "nullable": true
+          },
+          "quoteCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "description": "Quote title, or the order's first lines"
+          },
+          "totalVnd": {
+            "type": "number",
+            "nullable": true
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DocumentFileDto"
+            }
+          }
+        },
+        "required": [
+          "orderStatus",
+          "quoteStatus",
+          "date",
+          "key",
+          "orderId",
+          "orderCode",
+          "quoteId",
+          "quoteCode",
+          "title",
+          "totalVnd",
+          "files"
+        ]
+      },
+      "CustomerDocumentsDto": {
+        "type": "object",
+        "properties": {
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CustomerDocumentRowDto"
+            }
+          },
+          "zipName": {
+            "type": "string",
+            "description": "Name of the zip with every document"
+          }
+        },
+        "required": [
+          "rows",
+          "zipName"
+        ]
+      }
+    }
+  }
+}

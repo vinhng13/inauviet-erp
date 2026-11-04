@@ -1,0 +1,404 @@
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  previewFeatures     = ["postgresqlExtensions"]
+  moduleFormat        = "cjs"
+  importFileExtension = ""
+}
+
+datasource db {
+  provider   = "postgresql"
+  extensions = [pg_trgm]
+  // Prisma 7: the connection URL lives in prisma.config.ts
+}
+
+/// The 6-step process (step 1 is the quote): CONFIRMED (step 2) → DESIGNING (3) → DESIGN_FINALIZING (4)
+/// → IN_PRODUCTION (5) → DELIVERING (6) → COMPLETED once the customer signs the acceptance report.
+enum OrderStatus {
+  CONFIRMED
+  DESIGNING
+  DESIGN_FINALIZING
+  IN_PRODUCTION
+  DELIVERING
+  COMPLETED
+  CANCELLED
+}
+
+/// Workshop stages of a work order (lệnh sản xuất)
+enum ProductionStage {
+  RECEIVED
+  PRINTING
+  FINISHING
+  QC
+  DONE
+}
+
+enum Priority {
+  NORMAL
+  URGENT
+}
+
+/// Customer feedback on one maket version
+enum DesignFeedback {
+  PENDING
+  CHANGES_REQUESTED
+  APPROVED
+}
+
+enum DeliveryStatus {
+  SCHEDULED
+  DELIVERED
+  CANCELLED
+}
+
+enum PricingMode {
+  AREA // price per m²; each line has width × height (m) and a piece count
+  UNIT // price per unit (cái, bộ, hộp…)
+}
+
+enum QuoteStatus {
+  DRAFT
+  SENT
+  WON  // closed into an order
+  LOST
+}
+
+enum PaymentMethod {
+  CASH
+  BANK_TRANSFER
+  OTHER
+}
+
+/// A staff account. Signs in with username + password; what it may do comes from its permission group.
+model User {
+  id                 String    @id @default(uuid()) @db.Uuid
+  username           String    @unique // lowercase letters, digits, dot, dash, underscore
+  passwordHash       String? // scrypt; null = cannot sign in until a password is set
+  mustChangePassword Boolean   @default(true)
+  passwordChangedAt  DateTime?
+  fullName           String
+  email              String?   @unique
+  phone              String?
+  roleId             String    @db.Uuid
+  isActive           Boolean   @default(true)
+  lastSeenAt         DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  role              Role          @relation(fields: [roleId], references: [id])
+  sessions          Session[]
+  activity          ActivityLog[]
+  quotesCreated     Quote[]
+  ordersDesigned    Order[]       @relation("OrderDesigner")
+  designVersions    DesignVersion[]
+  ordersCreated     Order[]       @relation("OrderCreatedBy")
+  deliveriesCreated Delivery[]
+  paymentsRecorded  Payment[]
+
+  @@index([roleId])
+}
+
+/// Permission group ("Nhóm quyền"). permissions holds keys like "orders.create" (see src/access/permissions.ts).
+model Role {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @unique
+  description String?
+  permissions String[] @default([])
+  isSystem    Boolean  @default(false) // the built-in admin group: always has every permission, cannot be edited or deleted
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users User[]
+}
+
+/// A signed-in browser. The cookie holds a random token; only its SHA-256 hash is stored.
+model Session {
+  id         String    @id @default(uuid()) @db.Uuid
+  userId     String    @db.Uuid
+  tokenHash  String    @unique
+  userAgent  String?
+  ip         String?
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime  @default(now())
+  expiresAt  DateTime
+  revokedAt  DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Customer {
+  id          String    @id @default(uuid()) @db.Uuid
+  code        String    @unique                 // KH-0001
+  name        String
+  phone       String    @unique                 // normalized 0xxxxxxxxx
+  companyName String?
+  taxCode     String?
+  address     String?                           // default delivery address
+  note        String?
+  searchText  String                            // name + phone + company, diacritics removed
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  archivedAt  DateTime?
+
+  orders Order[]
+  quotes Quote[]
+
+  @@index([searchText(ops: raw("gin_trgm_ops"))], type: Gin, map: "Customer_searchText_trgm_idx")
+}
+
+/// Catalog item quoted to customers ("Danh mục sản phẩm").
+model Product {
+  id           String      @id @default(uuid()) @db.Uuid
+  name         String      @unique
+  category     String // Decal, Bạt, Biển & hộp đèn, Standee, Ấn phẩm…
+  pricingMode  PricingMode
+  unit         String // AREA: always m²; UNIT: cái, bộ, hộp…
+  unitPriceVnd BigInt // list price per m² (AREA) or per unit (UNIT)
+  isActive     Boolean     @default(true) // inactive products are hidden when quoting
+  note         String?
+  sortOrder    Int         @default(0)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  quoteLines QuoteLine[]
+  orderLines OrderLine[]
+
+  @@index([isActive, category])
+}
+
+/// Step 1 of the process: a price offer. Closing it creates the order (step 2).
+model Quote {
+  id          String      @id @default(uuid()) @db.Uuid
+  code        String      @unique // BG-2610-0012
+  customerId  String      @db.Uuid
+  title       String? // "Biển hiệu mặt tiền + decal kính"
+  status      QuoteStatus @default(DRAFT)
+  quoteDate   DateTime    @db.Date
+  validDays   Int         @default(7)
+  note        String? // printed on the quote
+  totalVnd    BigInt      @default(0)
+  sentAt      DateTime?
+  lostAt      DateTime?
+  lostReason  String?
+  wonAt       DateTime?
+  createdById String      @db.Uuid
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  customer  Customer    @relation(fields: [customerId], references: [id])
+  createdBy User        @relation(fields: [createdById], references: [id])
+  lines     QuoteLine[]
+  order     Order?
+
+  @@index([customerId])
+  @@index([status, quoteDate])
+}
+
+/// AREA lines: unitPriceVnd = price of one piece = round(width × height × areaPriceVnd); lineTotal = quantity × unitPrice.
+model QuoteLine {
+  id           String   @id @default(uuid()) @db.Uuid
+  quoteId      String   @db.Uuid
+  productId    String?  @db.Uuid // null for a free-text line
+  description  String
+  spec         String?
+  unit         String // ĐVT printed: "tấm" for AREA lines, product unit otherwise
+  widthM       Decimal? @db.Decimal(8, 2)
+  heightM      Decimal? @db.Decimal(8, 2)
+  areaPriceVnd BigInt? // price per m² (AREA lines)
+  quantity     Int
+  unitPriceVnd BigInt
+  lineTotalVnd BigInt
+  sortOrder    Int      @default(0)
+
+  quote   Quote    @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id])
+
+  @@index([quoteId])
+}
+
+model Order {
+  id                  String      @id @default(uuid()) @db.Uuid
+  code                String      @unique // DH-2610-0042
+  quoteId             String?     @unique @db.Uuid // the quote this order was closed from
+  customerId          String      @db.Uuid
+  status              OrderStatus @default(CONFIRMED)
+  orderDate           DateTime    @db.Date
+  dueDate             DateTime?   @db.Date
+  totalVnd            BigInt? // sum of priced lines; null if no line has a price
+  paidVnd             BigInt      @default(0) // sum of non-voided payments
+  note                String?
+  cancelReason        String?
+  productionStartedAt DateTime?
+  // Step 2: confirmed with the customer; needsDesign = false when the customer brings print-ready files
+  confirmedAt         DateTime?
+  needsDesign         Boolean?
+  // Steps 3–4: design
+  designerId          String?     @db.Uuid
+  designApprovedAt    DateTime?
+  approvedVersion     Int?
+  approvalChannel     String? // Zalo, Email, Trực tiếp…
+  approvedByName      String? // who approved on the customer side
+  designFinalizedAt   DateTime? // print files finished from the approved version
+  designLockedAt      DateTime?
+  // Step 5: work order (lệnh sản xuất)
+  productionCode      String?          @unique // LSX-2610-0014
+  productionStage     ProductionStage?
+  productionDueDate   DateTime?        @db.Date
+  productionPriority  Priority         @default(NORMAL)
+  productionNote      String?
+  productionDoneAt    DateTime?
+  // Step 6: acceptance report signed by the customer
+  acceptedAt          DateTime?
+  acceptedByName      String?
+  acceptanceNote      String?
+  createdById         String      @db.Uuid
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+  completedAt         DateTime?
+  cancelledAt         DateTime?
+
+  customer   Customer    @relation(fields: [customerId], references: [id])
+  quote      Quote?      @relation(fields: [quoteId], references: [id])
+  createdBy  User        @relation("OrderCreatedBy", fields: [createdById], references: [id])
+  designer   User?       @relation("OrderDesigner", fields: [designerId], references: [id])
+  lines      OrderLine[]
+  designs    DesignVersion[]
+  deliveries Delivery[]
+  payments   Payment[]
+
+  @@index([customerId])
+  @@index([status])
+  @@index([dueDate])
+  @@index([designerId])
+}
+
+/// One maket sent to the customer (v1, v2…) and the customer's answer. Files are not stored yet.
+model DesignVersion {
+  id          String         @id @default(uuid()) @db.Uuid
+  orderId     String         @db.Uuid
+  version     Int
+  sentAt      DateTime       @default(now())
+  note        String? // what was sent, through which channel
+  feedback    DesignFeedback @default(PENDING)
+  feedbackAt  DateTime?
+  feedbackNote String?
+  createdById String         @db.Uuid
+
+  order     Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  createdBy User  @relation(fields: [createdById], references: [id])
+
+  @@unique([orderId, version])
+}
+
+model OrderLine {
+  id           String  @id @default(uuid()) @db.Uuid
+  orderId      String  @db.Uuid
+  productId    String? @db.Uuid                 // catalog item, when the line came from the catalog
+  quoteLineId  String? @db.Uuid                 // the quote line it was created from (to show what changed at closing)
+  description  String                           // "Banner hiflex 2×1 m"
+  spec         String?                          // material, finishing
+  unit         String?                          // ĐVT: tấm, cái, bộ…
+  widthM       Decimal? @db.Decimal(8, 2)       // AREA lines
+  heightM      Decimal? @db.Decimal(8, 2)
+  areaPriceVnd BigInt?                          // price per m² (AREA lines); unitPriceVnd is then the price of one piece
+  quantity     Int
+  plannedQty   Int     @default(0)              // cached: sum of planned qty on SCHEDULED deliveries + delivered qty on DELIVERED ones
+  deliveredQty Int     @default(0)              // cached: sum of delivered qty on DELIVERED deliveries
+  unitPriceVnd BigInt?                          // optional
+  lineTotalVnd BigInt?                          // quantity × unit price, null if no price
+  sortOrder    Int     @default(0)
+
+  order         Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product       Product?       @relation(fields: [productId], references: [id])
+  deliveryLines DeliveryLine[]
+
+  @@index([orderId])
+}
+
+model Delivery {
+  id           String         @id @default(uuid()) @db.Uuid
+  code         String         @unique           // GH-2610-0011
+  orderId      String         @db.Uuid
+  status       DeliveryStatus @default(SCHEDULED)
+  plannedDate  DateTime       @db.Date
+  deliveredAt  DateTime?
+  address      String?                          // defaults to customer address
+  receiverName String?
+  note         String?
+  cancelReason String?
+  createdById  String         @db.Uuid
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  order     Order          @relation(fields: [orderId], references: [id])
+  createdBy User           @relation(fields: [createdById], references: [id])
+  lines     DeliveryLine[]
+  payments  Payment[]
+
+  @@index([orderId])
+  @@index([status, plannedDate])
+}
+
+model DeliveryLine {
+  id           String @id @default(uuid()) @db.Uuid
+  deliveryId   String @db.Uuid
+  orderLineId  String @db.Uuid
+  plannedQty   Int
+  deliveredQty Int?                              // set when the delivery is marked DELIVERED
+
+  delivery  Delivery  @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+  orderLine OrderLine @relation(fields: [orderLineId], references: [id])
+
+  @@unique([deliveryId, orderLineId])
+}
+
+model Payment {
+  id           String        @id @default(uuid()) @db.Uuid
+  orderId      String        @db.Uuid
+  deliveryId   String?       @db.Uuid           // set when collected at a delivery
+  amountVnd    BigInt                           // > 0
+  method       PaymentMethod
+  paidOn       DateTime      @db.Date
+  isDeposit    Boolean       @default(false)
+  note         String?
+  recordedById String        @db.Uuid
+  createdAt    DateTime      @default(now())
+  voidedAt     DateTime?
+  voidReason   String?
+
+  order      Order     @relation(fields: [orderId], references: [id])
+  delivery   Delivery? @relation(fields: [deliveryId], references: [id])
+  recordedBy User      @relation(fields: [recordedById], references: [id])
+
+  @@index([orderId])
+  @@index([deliveryId])
+  @@index([paidOn])
+}
+
+model DocumentSequence {
+  prefix String                                  // KH, BG, DH, LSX, GH
+  period String                                  // "2610"; "" for KH
+  lastNo Int    @default(0)
+
+  @@id([prefix, period])
+}
+
+model ActivityLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  orderId    String?  @db.Uuid                  // every order-related entry carries its order, for the order timeline
+  entityType String                             // ORDER, QUOTE, DELIVERY, PAYMENT, USER, CUSTOMER, PRODUCT
+  entityId   String   @db.Uuid
+  action     String                             // CREATED, STATUS_CHANGED, DELIVERED, PAYMENT_RECORDED, VOIDED…
+  fromValue  String?
+  toValue    String?
+  data       Json?
+  userId     String?  @db.Uuid
+  createdAt  DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([entityType, entityId])
+  @@index([orderId, createdAt])
+}
