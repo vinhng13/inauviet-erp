@@ -1,46 +1,20 @@
-import {
-  AppstoreOutlined,
-  BgColorsOutlined,
-  DollarOutlined,
-  ToolOutlined,
-  CarOutlined,
-  FileDoneOutlined,
-  ShopOutlined,
-  FileTextOutlined,
-  KeyOutlined,
-  LogoutOutlined,
-  MenuOutlined,
-  SafetyCertificateOutlined,
-  TeamOutlined,
-  UserOutlined,
-} from '@ant-design/icons';
+import { AppstoreOutlined, DownOutlined, KeyOutlined, LogoutOutlined, MenuOutlined, UserOutlined } from '@ant-design/icons';
 import { Button, Drawer, Dropdown, Grid, Input, Layout, Menu, Modal, Space, Typography, theme } from 'antd';
-import { useState, type ReactNode } from 'react';
+import { useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router';
 import { useAuthActions, useMe } from '../api/hooks';
 import { ChangePasswordForm } from '../components/ChangePasswordForm';
 import { useCan, type Permission } from '../lib/access';
+import { allowedModules, navItemOf, type AppModule } from '../lib/modules';
 
 const { Header, Sider, Content } = Layout;
 
-const NAV: Array<{ key: string; icon: ReactNode; label: string; permission: Permission; group?: string }> = [
-  { key: '/board', icon: <AppstoreOutlined />, label: 'Bảng điều phối', permission: 'orders.view' },
-  { key: '/quotes', icon: <FileDoneOutlined />, label: 'Báo giá', permission: 'quotes.view' },
-  { key: '/orders', icon: <FileTextOutlined />, label: 'Đơn hàng', permission: 'orders.view' },
-  { key: '/design', icon: <BgColorsOutlined />, label: 'Thiết kế', permission: 'design.view' },
-  { key: '/production', icon: <ToolOutlined />, label: 'Sản xuất', permission: 'production.view' },
-  { key: '/deliveries', icon: <CarOutlined />, label: 'Giao hàng', permission: 'deliveries.view' },
-  { key: '/payments', icon: <DollarOutlined />, label: 'Thanh toán & công nợ', permission: 'payments.view', group: 'accounting' },
-  { key: '/customers', icon: <TeamOutlined />, label: 'Khách hàng', permission: 'customers.view' },
-  { key: '/products', icon: <ShopOutlined />, label: 'Sản phẩm', permission: 'products.view' },
-  { key: '/accounts', icon: <UserOutlined />, label: 'Tài khoản', permission: 'accounts.view', group: 'admin' },
-  { key: '/roles', icon: <SafetyCertificateOutlined />, label: 'Nhóm quyền', permission: 'roles.view', group: 'admin' },
-];
-
-export function firstAllowedPath(can: (p: Permission) => boolean): string | null {
-  return NAV.find((n) => can(n.permission))?.key ?? null;
+/** First page of a module this account may open */
+export function firstPathOf(module: AppModule, can: (p: Permission) => boolean): string | null {
+  return module.nav.find((n) => can(n.permission))?.key ?? null;
 }
 
+/** Layout inside a module: its own menu only, a switcher to the other modules the account may use. */
 export function AppLayout() {
   const can = useCan();
   const location = useLocation();
@@ -49,25 +23,51 @@ export function AppLayout() {
   const [drawer, setDrawer] = useState(false);
   const { token } = theme.useToken();
 
-  const allowed = NAV.filter((n) => can(n.permission));
-  const work = allowed.filter((n) => !n.group);
-  const admin = allowed.filter((n) => n.group === 'admin');
-  const accounting = allowed.filter((n) => n.group === 'accounting');
-  const toItem = (n: (typeof NAV)[number]) => ({ key: n.key, icon: n.icon, label: <Link to={n.key}>{n.label}</Link> });
-  const items = [
-    ...work.map(toItem),
-    ...(accounting.length ? [{ type: 'group' as const, key: 'accounting', label: 'Kế toán', children: accounting.map(toItem) }] : []),
-    ...(admin.length ? [{ type: 'group' as const, key: 'admin', label: 'Quản trị', children: admin.map(toItem) }] : []),
-  ];
-  const selected = allowed.find((i) => location.pathname.startsWith(i.key))?.key ?? '';
+  const modules = allowedModules(can);
+  const current = navItemOf(location.pathname);
+  const module = modules.find((m) => m.key === current?.module.key) ?? modules[0];
+  const items = (module?.allowed ?? []).map((n) => ({ key: n.key, icon: n.icon, label: <Link to={n.key}>{n.label}</Link> }));
+  const selected = current?.item.key ?? '';
   const menu = <Menu mode="inline" selectedKeys={[selected]} items={items} onClick={() => setDrawer(false)} style={{ borderInlineEnd: 0 }} />;
   const compact = !screens.lg;
+
+  const switcher = module && (
+    <div style={{ padding: '0 12px 8px' }}>
+      <Dropdown
+        trigger={['click']}
+        menu={{
+          selectedKeys: [module.key],
+          items: [
+            ...modules.map((m) => ({ key: m.key, icon: m.icon, label: m.name })),
+            { type: 'divider' as const },
+            { key: 'home', icon: <AppstoreOutlined />, label: 'Màn hình chọn module' },
+          ],
+          onClick: ({ key }) => {
+            setDrawer(false);
+            if (key === 'home') return navigate('/');
+            const m = modules.find((x) => x.key === key);
+            const path = m && firstPathOf(m, can);
+            if (path) navigate(path);
+          },
+        }}
+      >
+        <Button block style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderColor: module.color, color: module.color }} aria-label="Đổi module">
+          <Space size={8}>
+            {module.icon}
+            <strong>{module.name}</strong>
+          </Space>
+          <DownOutlined style={{ fontSize: 11 }} />
+        </Button>
+      </Dropdown>
+    </div>
+  );
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
       {!compact && (
-        <Sider width={220} theme="light" style={{ borderInlineEnd: `1px solid ${token.colorBorderSecondary}` }}>
+        <Sider width={232} theme="light" style={{ borderInlineEnd: `1px solid ${token.colorBorderSecondary}` }}>
           <Brand />
+          {switcher}
           {menu}
         </Sider>
       )}
@@ -86,7 +86,7 @@ export function AppLayout() {
           }}
         >
           {compact && <Button type="text" icon={<MenuOutlined />} aria-label="Mở menu" onClick={() => setDrawer(true)} />}
-          {can('orders.view') && (
+          {module?.key === 'crm' && can('orders.view') && (
             <Input.Search
               id="global-search"
               placeholder="Tìm mã đơn, khách hàng, số điện thoại"
@@ -102,14 +102,15 @@ export function AppLayout() {
           <Outlet />
         </Content>
       </Layout>
-      <Drawer open={drawer} onClose={() => setDrawer(false)} placement="left" size={260} title={<Brand inline />}>
+      <Drawer open={drawer} onClose={() => setDrawer(false)} placement="left" size={272} title={<Brand inline />}>
+        {switcher}
         {menu}
       </Drawer>
     </Layout>
   );
 }
 
-function Brand({ inline }: { inline?: boolean }) {
+export function Brand({ inline }: { inline?: boolean }) {
   return (
     <div style={{ padding: inline ? 0 : '18px 20px 12px', display: 'flex', alignItems: 'center', gap: 10 }}>
       <img src="/favicon.svg" width={26} height={26} alt="" />
@@ -117,15 +118,16 @@ function Brand({ inline }: { inline?: boolean }) {
         <Typography.Text strong style={{ fontSize: 15 }}>
           In Âu Việt
         </Typography.Text>
-        <div style={{ fontSize: 12, opacity: 0.65, lineHeight: 1.2 }}>ERP · báo giá → nghiệm thu</div>
+        <div style={{ fontSize: 12, opacity: 0.65, lineHeight: 1.2 }}>ERP · CRM · Kế toán</div>
       </div>
     </div>
   );
 }
 
-function UserMenu() {
+export function UserMenu() {
   const { data: me } = useMe();
   const { logout } = useAuthActions();
+  const navigate = useNavigate();
   const [changing, setChanging] = useState(false);
   return (
     <>
@@ -146,6 +148,7 @@ function UserMenu() {
               ),
             },
             { type: 'divider' },
+            { key: 'modules', icon: <AppstoreOutlined />, label: 'Chọn module', onClick: () => navigate('/') },
             { key: 'password', icon: <KeyOutlined />, label: 'Đổi mật khẩu', onClick: () => setChanging(true) },
             { key: 'logout', icon: <LogoutOutlined />, label: 'Đăng xuất', onClick: () => logout.mutate() },
           ],

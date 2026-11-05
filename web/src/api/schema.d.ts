@@ -1003,6 +1003,524 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/accounting/accounts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["Accounting_accounts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/accounting/periods": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["Accounting_periods"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/accounting/periods/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start the books at a month (once) */
+        post: operations["Accounting_start"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/accounting/periods/{id}/steps/{step}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["Accounting_runStep"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/accounting/periods/{id}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["Accounting_close"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/accounting/periods/{id}/reopen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["Accounting_reopen"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/accounting/periods/{id}/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["Accounting_overview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/accounting/periods/{id}/journal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["Accounting_journal"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/accounting/periods/{id}/cash": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["Accounting_cash"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/accounting/periods/{id}/debts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["Accounting_debts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/accounting/periods/{id}/stock": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["Accounting_stock"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/accounting/periods/{id}/tax": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["Accounting_tax"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/accounting/periods/{id}/assets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["Accounting_assets"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/accounting/periods/{id}/ledger": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["Accounting_ledger"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/accounting/reports/pnl": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["Accounting_pnl"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/accounting/openings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["Accounting_openings"];
+        put: operations["Accounting_saveOpenings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/accounting/openings/stock": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["Accounting_saveStockOpenings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/accounting/suppliers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["Accounting_suppliers"];
+        put?: never;
+        post: operations["Accounting_createSupplier"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/accounting/suppliers/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["Accounting_updateSupplier"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/accounting/materials": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["Accounting_materials"];
+        put?: never;
+        post: operations["Accounting_createMaterial"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/accounting/materials/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["Accounting_updateMaterial"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/accounting/categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["Accounting_createCategory"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/accounting/categories/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["Accounting_updateCategory"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/accounting/receipts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["Accounting_createReceipt"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/accounting/receipts/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["Accounting_deleteReceipt"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/accounting/issues": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Phiếu xuất kho: Dr 154, Cr 152 at the provisional price; re-valued at month end */
+        post: operations["Accounting_createIssue"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/accounting/issues/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["Accounting_deleteIssue"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/accounting/cash-payments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Phiếu chi: an expense split by its category, or a payment to a supplier */
+        post: operations["Accounting_createCashPayment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/accounting/assets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["Accounting_createAsset"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/accounting/assets/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["Accounting_deleteAsset"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/accounting/entries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Bút toán khác (PKT) */
+        post: operations["Accounting_createEntry"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/accounting/entries/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Change a manual entry, or an automatic one with a reason (the original lines are kept) */
+        put: operations["Accounting_updateEntry"];
+        post?: never;
+        /** Delete a manual entry or a voucher (receipt, issue, payment, asset purchase) with its entry */
+        delete: operations["Accounting_deleteEntry"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2028,6 +2546,501 @@ export interface components {
             rows: components["schemas"]["CustomerDocumentRowDto"][];
             /** @description Name of the zip with every document */
             zipName: string;
+        };
+        LedgerAccountDto: {
+            code: string;
+            name: string;
+            isCredit: boolean;
+        };
+        /** @enum {string} */
+        PeriodStatus: "OPEN" | "CLOSED";
+        /**
+         * @description Month-end steps done, in order
+         * @enum {string}
+         */
+        ClosingStep: "price" | "depreciation" | "allocation" | "vat" | "transfer";
+        PeriodDto: {
+            status: components["schemas"]["PeriodStatus"];
+            /** @description Month-end steps done, in order */
+            stepsDone: components["schemas"]["ClosingStep"][];
+            id: string;
+            /** @description "2026-10" */
+            month: string;
+            closedAt: string | null;
+            closedByName: string | null;
+            /** @description Saved at closing, or worked out so far for an open month */
+            revenueVnd: number;
+            profitVnd: number;
+            provisional: boolean;
+            /** @description An earlier month is still open: steps and closing wait for it */
+            previousOpen: boolean;
+            /** @description First month of the books: openings can be edited */
+            isFirst: boolean;
+            canReopen: boolean;
+        };
+        PeriodLogDto: {
+            id: string;
+            action: string;
+            text: string;
+            userName: string | null;
+            createdAt: string;
+        };
+        PeriodsDto: {
+            periods: components["schemas"]["PeriodDto"][];
+            log: components["schemas"]["PeriodLogDto"][];
+        };
+        StartBooksDto: {
+            /** @description First month kept in the books, e.g. "2026-10" */
+            month: string;
+        };
+        IdDto: {
+            id: string;
+        };
+        OverviewKpiDto: {
+            cashVnd: number;
+            bankVnd: number;
+            receivableVnd: number;
+            payableVnd: number;
+            stockVnd: number;
+            profitVnd: number;
+        };
+        StepStatusDto: {
+            step: components["schemas"]["ClosingStep"];
+            done: boolean;
+            doneAt: string | null;
+            /** @description What the step will post or posted, e.g. "Khấu hao 4.250.000 đ · 4 tài sản" */
+            summary: string;
+            canRun: boolean;
+        };
+        PendingIssueDto: {
+            orderId: string;
+            orderCode: string;
+            productionCode: string | null;
+            customerName: string;
+            summary: string;
+        };
+        OverviewDto: {
+            period: components["schemas"]["PeriodDto"];
+            kpi: components["schemas"]["OverviewKpiDto"];
+            steps: components["schemas"]["StepStatusDto"][];
+            canClose: boolean;
+            /** @description Orders in production or later with no materials issued yet */
+            pendingIssues: components["schemas"]["PendingIssueDto"][];
+        };
+        ReopenPeriodDto: {
+            reason: string;
+        };
+        /** @enum {string} */
+        EntryKind: "CUSTOMER_RECEIPT" | "RECEIPT_VOID" | "REVENUE" | "COGS" | "PURCHASE" | "ISSUE" | "EXPENSE" | "SUPPLIER_PAYMENT" | "ASSET_PURCHASE" | "DEPRECIATION" | "ALLOCATION" | "VAT_OFFSET" | "CLOSING" | "MANUAL";
+        /** @enum {string} */
+        EntrySource: "AUTO" | "MANUAL";
+        JournalLineDto: {
+            account: string;
+            accountName: string;
+            debitVnd: number;
+            creditVnd: number;
+        };
+        JournalEntryDto: {
+            /** Format: date */
+            date: string;
+            kind: components["schemas"]["EntryKind"];
+            source: components["schemas"]["EntrySource"];
+            id: string;
+            code: string;
+            description: string;
+            edited: boolean;
+            editReason: string | null;
+            editedByName: string | null;
+            /** @description Lines as first posted, for an automatic entry changed by hand */
+            originalLines: components["schemas"]["JournalLineDto"][] | null;
+            note: string | null;
+            orderCode: string | null;
+            lines: components["schemas"]["JournalLineDto"][];
+            totalVnd: number;
+            /** @description Open month, not a month-end entry */
+            canEdit: boolean;
+            canDelete: boolean;
+        };
+        TrialBalanceRowDto: {
+            account: string;
+            name: string;
+            openingVnd: number;
+            debitVnd: number;
+            creditVnd: number;
+            closingVnd: number;
+        };
+        JournalDto: {
+            entries: components["schemas"]["JournalEntryDto"][];
+            /** @description Bảng cân đối số phát sinh: debit-positive balances */
+            trialBalance: components["schemas"]["TrialBalanceRowDto"][];
+        };
+        CashRowDto: {
+            /** Format: date */
+            date: string;
+            entryId: string;
+            code: string;
+            description: string;
+            account: string;
+            inVnd: number;
+            outVnd: number;
+            balanceVnd: number;
+            orderCode: string | null;
+        };
+        SplitPartDto: {
+            /** @enum {string} */
+            account: "154" | "6421" | "6422";
+            percent: number;
+        };
+        CategorySumDto: {
+            id: string;
+            name: string;
+            split: components["schemas"]["SplitPartDto"][];
+            isActive: boolean;
+            amountVnd: number;
+        };
+        CashBookDto: {
+            openingVnd: number;
+            closingVnd: number;
+            inVnd: number;
+            outVnd: number;
+            rows: components["schemas"]["CashRowDto"][];
+            categories: components["schemas"]["CategorySumDto"][];
+        };
+        ReceivableRowDto: {
+            /**
+             * Format: date
+             * @description Oldest unpaid revenue date
+             */
+            oldestDate: string | null;
+            customerId: string | null;
+            customerName: string;
+            /** @description Owed by the customer (VAT included) */
+            oweVnd: number;
+            /** @description Paid in advance */
+            advanceVnd: number;
+            overdue30: boolean;
+        };
+        PayableRowDto: {
+            supplierId: string | null;
+            supplierName: string;
+            boughtVnd: number;
+            paidVnd: number;
+            balanceVnd: number;
+        };
+        DebtsDto: {
+            receivables: components["schemas"]["ReceivableRowDto"][];
+            payables: components["schemas"]["PayableRowDto"][];
+            receivableTotalVnd: number;
+            payableTotalVnd: number;
+        };
+        StockRowDto: {
+            materialId: string;
+            code: string;
+            name: string;
+            unit: string;
+            openQty: number;
+            openPriceVnd: number;
+            inQty: number;
+            inVnd: number;
+            outQty: number;
+            outVnd: number;
+            endQty: number;
+            endVnd: number;
+            /** @description Weighted average once priced, provisional price before */
+            priceVnd: number;
+            isActive: boolean;
+        };
+        /** @enum {string} */
+        PayMethod: "CASH" | "BANK" | "CREDIT";
+        ReceiptLineDto: {
+            materialId: string;
+            materialName: string;
+            unit: string;
+            qty: number;
+            priceVnd: number;
+            valueVnd: number;
+        };
+        ReceiptDto: {
+            /** Format: date */
+            date: string;
+            payMethod: components["schemas"]["PayMethod"];
+            id: string;
+            code: string;
+            supplierId: string;
+            supplierName: string;
+            vatRate: number;
+            valueVnd: number;
+            vatVnd: number;
+            note: string | null;
+            lines: components["schemas"]["ReceiptLineDto"][];
+        };
+        IssueDto: {
+            /** Format: date */
+            date: string;
+            id: string;
+            code: string;
+            orderId: string | null;
+            orderCode: string | null;
+            customerName: string | null;
+            valueVnd: number;
+            note: string | null;
+            lines: components["schemas"]["ReceiptLineDto"][];
+        };
+        StockDto: {
+            priced: boolean;
+            rows: components["schemas"]["StockRowDto"][];
+            receipts: components["schemas"]["ReceiptDto"][];
+            issues: components["schemas"]["IssueDto"][];
+            editable: boolean;
+        };
+        TaxRowDto: {
+            /** Format: date */
+            date: string;
+            entryId: string;
+            code: string;
+            description: string;
+            baseVnd: number;
+            vatVnd: number;
+        };
+        TaxDto: {
+            output: components["schemas"]["TaxRowDto"][];
+            input: components["schemas"]["TaxRowDto"][];
+            outputVnd: number;
+            inputVnd: number;
+            /** @description 1331 brought forward from earlier months */
+            carriedInVnd: number;
+            payableVnd: number;
+            carryForwardVnd: number;
+        };
+        /** @enum {string} */
+        AssetKind: "FIXED_ASSET" | "TOOL";
+        AssetRowDto: {
+            kind: components["schemas"]["AssetKind"];
+            id: string;
+            code: string;
+            name: string;
+            costVnd: number;
+            startMonth: string;
+            months: number;
+            expenseAccount: string;
+            /** @description Charge of the selected month */
+            monthlyVnd: number;
+            /** @description Charged through the selected month (this month counted once its step ran) */
+            chargedVnd: number;
+            remainingVnd: number;
+            monthsCharged: number;
+        };
+        AssetsDto: {
+            assets: components["schemas"]["AssetRowDto"][];
+            tools: components["schemas"]["AssetRowDto"][];
+            depreciationVnd: number;
+            allocationVnd: number;
+        };
+        GlRowDto: {
+            /** Format: date */
+            date: string;
+            entryId: string;
+            code: string;
+            description: string;
+            contra: string;
+            debitVnd: number;
+            creditVnd: number;
+            balanceVnd: number;
+        };
+        GlDto: {
+            account: string;
+            name: string;
+            isCredit: boolean;
+            openingVnd: number;
+            debitVnd: number;
+            creditVnd: number;
+            closingVnd: number;
+            rows: components["schemas"]["GlRowDto"][];
+            /** @description Accounts with an opening balance or a movement this month */
+            usedAccounts: components["schemas"]["LedgerAccountDto"][];
+        };
+        PnlColumnDto: {
+            label: string;
+            provisional: boolean;
+            revenueVnd: number;
+            cogsVnd: number;
+            sellingVnd: number;
+            adminVnd: number;
+            otherNetVnd: number;
+            profitVnd: number;
+        };
+        PnlDto: {
+            columns: components["schemas"]["PnlColumnDto"][];
+        };
+        OpeningsDto: {
+            lines: components["schemas"]["TrialBalanceRowDto"][];
+            /** @description Σ debit − Σ credit: must be 0 */
+            differenceVnd: number;
+            editable: boolean;
+        };
+        OpeningLineDto: {
+            account: string;
+            debitVnd: number;
+            creditVnd: number;
+        };
+        SaveOpeningsDto: {
+            lines: components["schemas"]["OpeningLineDto"][];
+        };
+        StockOpeningLineDto: {
+            /** Format: uuid */
+            materialId: string;
+            qty: number;
+            priceVnd: number;
+        };
+        SaveStockOpeningsDto: {
+            lines: components["schemas"]["StockOpeningLineDto"][];
+        };
+        SupplierDto: {
+            id: string;
+            code: string;
+            name: string;
+            phone: string | null;
+            taxCode: string | null;
+            address: string | null;
+            isActive: boolean;
+        };
+        SaveSupplierDto: {
+            name: string;
+            phone?: string;
+            taxCode?: string;
+            address?: string;
+            isActive?: boolean;
+        };
+        MaterialDto: {
+            id: string;
+            code: string;
+            name: string;
+            unit: string;
+            isActive: boolean;
+        };
+        SaveMaterialDto: {
+            code: string;
+            name: string;
+            unit: string;
+            isActive?: boolean;
+        };
+        SaveCategoryDto: {
+            name: string;
+            split: components["schemas"]["SplitPartDto"][];
+            isActive?: boolean;
+        };
+        ReceiptLineInputDto: {
+            /** Format: uuid */
+            materialId: string;
+            qty: number;
+            /** @description Unit price before VAT */
+            priceVnd: number;
+        };
+        CreateReceiptDto: {
+            /**
+             * Format: date
+             * @example 2026-11-02
+             */
+            date: string;
+            payMethod: components["schemas"]["PayMethod"];
+            /** Format: uuid */
+            supplierId: string;
+            /** @enum {number} */
+            vatRate: 0 | 5 | 8 | 10;
+            note?: string;
+            lines: components["schemas"]["ReceiptLineInputDto"][];
+        };
+        IssueLineInputDto: {
+            /** Format: uuid */
+            materialId: string;
+            qty: number;
+        };
+        CreateIssueDto: {
+            /**
+             * Format: date
+             * @example 2026-11-02
+             */
+            date: string;
+            /**
+             * Format: uuid
+             * @description The order the materials go to (its work order)
+             */
+            orderId?: string;
+            note?: string;
+            lines: components["schemas"]["IssueLineInputDto"][];
+        };
+        CreateCashPaymentDto: {
+            /**
+             * Format: date
+             * @example 2026-11-02
+             */
+            date: string;
+            /** @enum {string} */
+            method: "CASH" | "BANK";
+            description: string;
+            /**
+             * Format: uuid
+             * @description An expense: its category (exactly one of categoryId / supplierId)
+             */
+            categoryId?: string;
+            /**
+             * Format: uuid
+             * @description A payment to a supplier for what was bought on credit
+             */
+            supplierId?: string;
+            /** @description Amount before VAT (the whole amount for a supplier payment) */
+            amountVnd: number;
+            /**
+             * @description VAT on an expense invoice; 0 when there is none
+             * @enum {number}
+             */
+            vatRate: 0 | 5 | 8 | 10;
+        };
+        AssetPurchaseDto: {
+            /**
+             * Format: date
+             * @example 2026-11-02
+             */
+            date: string;
+            method: components["schemas"]["PayMethod"];
+            /** @enum {number} */
+            vatRate: 0 | 5 | 8 | 10;
+            /** Format: uuid */
+            supplierId?: string;
+        };
+        CreateAssetDto: {
+            kind: components["schemas"]["AssetKind"];
+            name: string;
+            /** @description Cost before VAT */
+            costVnd: number;
+            /** @description First month charged */
+            startMonth: string;
+            months: number;
+            /** @enum {string} */
+            expenseAccount: "154" | "6421" | "6422";
+            /** @description Bought now: posts Dr 211 / 242 (+ 1331), Cr cash, bank or 331. Omitted: owned before the books started. */
+            purchase?: components["schemas"]["AssetPurchaseDto"];
+        };
+        EntryLineInputDto: {
+            account: string;
+            debitVnd: number;
+            creditVnd: number;
+        };
+        CreateManualEntryDto: {
+            /**
+             * Format: date
+             * @example 2026-11-02
+             */
+            date: string;
+            description: string;
+            lines: components["schemas"]["EntryLineInputDto"][];
+        };
+        UpdateEntryDto: {
+            lines: components["schemas"]["EntryLineInputDto"][];
+            /** @description Manual entries only */
+            description?: string;
+            /** @description Required when changing an automatic entry */
+            reason?: string;
         };
     };
     responses: never;
@@ -3634,6 +4647,8 @@ export interface operations {
             query?: {
                 /** @description Comma-separated kinds to include, e.g. "quote,order,invoice". Default: every available document. */
                 kinds?: string;
+                /** @description true: send as a file to save (Content-Disposition: attachment); default: open in the browser */
+                download?: boolean;
             };
             header?: never;
             path: {
@@ -3677,6 +4692,8 @@ export interface operations {
             query?: {
                 /** @description Comma-separated kinds to include, e.g. "quote,order,invoice". Default: every available document. */
                 kinds?: string;
+                /** @description true: send as a file to save (Content-Disposition: attachment); default: open in the browser */
+                download?: boolean;
             };
             header?: never;
             path: {
@@ -3687,6 +4704,789 @@ export interface operations {
         requestBody?: never;
         responses: {
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    Accounting_accounts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LedgerAccountDto"][];
+                };
+            };
+        };
+    };
+    Accounting_periods: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PeriodsDto"];
+                };
+            };
+        };
+    };
+    Accounting_start: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StartBooksDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IdDto"];
+                };
+            };
+        };
+    };
+    Accounting_runStep: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                step: components["schemas"]["ClosingStep"];
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OverviewDto"];
+                };
+            };
+        };
+    };
+    Accounting_close: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OverviewDto"];
+                };
+            };
+        };
+    };
+    Accounting_reopen: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReopenPeriodDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OverviewDto"];
+                };
+            };
+        };
+    };
+    Accounting_overview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OverviewDto"];
+                };
+            };
+        };
+    };
+    Accounting_journal: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JournalDto"];
+                };
+            };
+        };
+    };
+    Accounting_cash: {
+        parameters: {
+            query?: {
+                account?: "all" | "111" | "112";
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CashBookDto"];
+                };
+            };
+        };
+    };
+    Accounting_debts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DebtsDto"];
+                };
+            };
+        };
+    };
+    Accounting_stock: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StockDto"];
+                };
+            };
+        };
+    };
+    Accounting_tax: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaxDto"];
+                };
+            };
+        };
+    };
+    Accounting_assets: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssetsDto"];
+                };
+            };
+        };
+    };
+    Accounting_ledger: {
+        parameters: {
+            query: {
+                account: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GlDto"];
+                };
+            };
+        };
+    };
+    Accounting_pnl: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PnlDto"];
+                };
+            };
+        };
+    };
+    Accounting_openings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OpeningsDto"];
+                };
+            };
+        };
+    };
+    Accounting_saveOpenings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveOpeningsDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OpeningsDto"];
+                };
+            };
+        };
+    };
+    Accounting_saveStockOpenings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveStockOpeningsDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OpeningsDto"];
+                };
+            };
+        };
+    };
+    Accounting_suppliers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupplierDto"][];
+                };
+            };
+        };
+    };
+    Accounting_createSupplier: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveSupplierDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IdDto"];
+                };
+            };
+        };
+    };
+    Accounting_updateSupplier: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveSupplierDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IdDto"];
+                };
+            };
+        };
+    };
+    Accounting_materials: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MaterialDto"][];
+                };
+            };
+        };
+    };
+    Accounting_createMaterial: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveMaterialDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IdDto"];
+                };
+            };
+        };
+    };
+    Accounting_updateMaterial: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveMaterialDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IdDto"];
+                };
+            };
+        };
+    };
+    Accounting_createCategory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveCategoryDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IdDto"];
+                };
+            };
+        };
+    };
+    Accounting_updateCategory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveCategoryDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IdDto"];
+                };
+            };
+        };
+    };
+    Accounting_createReceipt: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateReceiptDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IdDto"];
+                };
+            };
+        };
+    };
+    Accounting_deleteReceipt: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    Accounting_createIssue: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateIssueDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IdDto"];
+                };
+            };
+        };
+    };
+    Accounting_deleteIssue: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    Accounting_createCashPayment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateCashPaymentDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IdDto"];
+                };
+            };
+        };
+    };
+    Accounting_createAsset: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateAssetDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IdDto"];
+                };
+            };
+        };
+    };
+    Accounting_deleteAsset: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    Accounting_createEntry: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateManualEntryDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IdDto"];
+                };
+            };
+        };
+    };
+    Accounting_updateEntry: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateEntryDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IdDto"];
+                };
+            };
+        };
+    };
+    Accounting_deleteEntry: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -3,6 +3,10 @@
 {
 	admin off
 	auto_https off
+	# Tin X-Forwarded-For từ proxy trong mạng riêng (Nginx của CloudPanel, cloudflared) để API thấy IP thật của người dùng
+	servers {
+		trusted_proxies static private_ranges
+	}
 }
 
 :80 {

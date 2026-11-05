@@ -2639,6 +2639,15 @@
                 ]
               }
             }
+          },
+          {
+            "name": "download",
+            "required": false,
+            "in": "query",
+            "description": "true: send as a file to save (Content-Disposition: attachment); default: open in the browser",
+            "schema": {
+              "type": "boolean"
+            }
           }
         ],
         "responses": {
@@ -2715,6 +2724,15 @@
                 ]
               }
             }
+          },
+          {
+            "name": "download",
+            "required": false,
+            "in": "query",
+            "description": "true: send as a file to save (Content-Disposition: attachment); default: open in the browser",
+            "schema": {
+              "type": "boolean"
+            }
           }
         ],
         "responses": {
@@ -2725,6 +2743,1102 @@
         "summary": "Every document of the customer, one folder per order / quote",
         "tags": [
           "documents"
+        ]
+      }
+    },
+    "/api/v1/accounting/accounts": {
+      "get": {
+        "operationId": "Accounting_accounts",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LedgerAccountDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "accounting"
+        ]
+      }
+    },
+    "/api/v1/accounting/periods": {
+      "get": {
+        "operationId": "Accounting_periods",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PeriodsDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "accounting"
+        ]
+      }
+    },
+    "/api/v1/accounting/periods/start": {
+      "post": {
+        "operationId": "Accounting_start",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartBooksDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IdDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Start the books at a month (once)",
+        "tags": [
+          "accounting"
+        ]
+      }
+    },
+    "/api/v1/accounting/periods/{id}/steps/{step}": {
+      "post": {
+        "operationId": "Accounting_runStep",
+        "parameters": [
+          {
+            "name": "step",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "$ref": "#/components/schemas/ClosingStep"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OverviewDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "accounting"
+        ]
+      }
+    },
+    "/api/v1/accounting/periods/{id}/close": {
+      "post": {
+        "operationId": "Accounting_close",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OverviewDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "accounting"
+        ]
+      }
+    },
+    "/api/v1/accounting/periods/{id}/reopen": {
+      "post": {
+        "operationId": "Accounting_reopen",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReopenPeriodDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OverviewDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "accounting"
+        ]
+      }
+    },
+    "/api/v1/accounting/periods/{id}/overview": {
+      "get": {
+        "operationId": "Accounting_overview",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OverviewDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "accounting"
+        ]
+      }
+    },
+    "/api/v1/accounting/periods/{id}/journal": {
+      "get": {
+        "operationId": "Accounting_journal",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JournalDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "accounting"
+        ]
+      }
+    },
+    "/api/v1/accounting/periods/{id}/cash": {
+      "get": {
+        "operationId": "Accounting_cash",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "account",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "all",
+                "111",
+                "112"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CashBookDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "accounting"
+        ]
+      }
+    },
+    "/api/v1/accounting/periods/{id}/debts": {
+      "get": {
+        "operationId": "Accounting_debts",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DebtsDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "accounting"
+        ]
+      }
+    },
+    "/api/v1/accounting/periods/{id}/stock": {
+      "get": {
+        "operationId": "Accounting_stock",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StockDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "accounting"
+        ]
+      }
+    },
+    "/api/v1/accounting/periods/{id}/tax": {
+      "get": {
+        "operationId": "Accounting_tax",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaxDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "accounting"
+        ]
+      }
+    },
+    "/api/v1/accounting/periods/{id}/assets": {
+      "get": {
+        "operationId": "Accounting_assets",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssetsDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "accounting"
+        ]
+      }
+    },
+    "/api/v1/accounting/periods/{id}/ledger": {
+      "get": {
+        "operationId": "Accounting_ledger",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "account",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GlDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "accounting"
+        ]
+      }
+    },
+    "/api/v1/accounting/reports/pnl": {
+      "get": {
+        "operationId": "Accounting_pnl",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PnlDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "accounting"
+        ]
+      }
+    },
+    "/api/v1/accounting/openings": {
+      "get": {
+        "operationId": "Accounting_openings",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OpeningsDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "accounting"
+        ]
+      },
+      "put": {
+        "operationId": "Accounting_saveOpenings",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveOpeningsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OpeningsDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "accounting"
+        ]
+      }
+    },
+    "/api/v1/accounting/openings/stock": {
+      "put": {
+        "operationId": "Accounting_saveStockOpenings",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveStockOpeningsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OpeningsDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "accounting"
+        ]
+      }
+    },
+    "/api/v1/accounting/suppliers": {
+      "get": {
+        "operationId": "Accounting_suppliers",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SupplierDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "accounting"
+        ]
+      },
+      "post": {
+        "operationId": "Accounting_createSupplier",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveSupplierDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IdDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "accounting"
+        ]
+      }
+    },
+    "/api/v1/accounting/suppliers/{id}": {
+      "put": {
+        "operationId": "Accounting_updateSupplier",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveSupplierDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IdDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "accounting"
+        ]
+      }
+    },
+    "/api/v1/accounting/materials": {
+      "get": {
+        "operationId": "Accounting_materials",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MaterialDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "accounting"
+        ]
+      },
+      "post": {
+        "operationId": "Accounting_createMaterial",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveMaterialDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IdDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "accounting"
+        ]
+      }
+    },
+    "/api/v1/accounting/materials/{id}": {
+      "put": {
+        "operationId": "Accounting_updateMaterial",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveMaterialDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IdDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "accounting"
+        ]
+      }
+    },
+    "/api/v1/accounting/categories": {
+      "post": {
+        "operationId": "Accounting_createCategory",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveCategoryDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IdDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "accounting"
+        ]
+      }
+    },
+    "/api/v1/accounting/categories/{id}": {
+      "put": {
+        "operationId": "Accounting_updateCategory",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveCategoryDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IdDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "accounting"
+        ]
+      }
+    },
+    "/api/v1/accounting/receipts": {
+      "post": {
+        "operationId": "Accounting_createReceipt",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateReceiptDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IdDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "accounting"
+        ]
+      }
+    },
+    "/api/v1/accounting/receipts/{id}": {
+      "delete": {
+        "operationId": "Accounting_deleteReceipt",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "accounting"
+        ]
+      }
+    },
+    "/api/v1/accounting/issues": {
+      "post": {
+        "operationId": "Accounting_createIssue",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateIssueDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IdDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Phiếu xuất kho: Dr 154, Cr 152 at the provisional price; re-valued at month end",
+        "tags": [
+          "accounting"
+        ]
+      }
+    },
+    "/api/v1/accounting/issues/{id}": {
+      "delete": {
+        "operationId": "Accounting_deleteIssue",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "accounting"
+        ]
+      }
+    },
+    "/api/v1/accounting/cash-payments": {
+      "post": {
+        "operationId": "Accounting_createCashPayment",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCashPaymentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IdDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Phiếu chi: an expense split by its category, or a payment to a supplier",
+        "tags": [
+          "accounting"
+        ]
+      }
+    },
+    "/api/v1/accounting/assets": {
+      "post": {
+        "operationId": "Accounting_createAsset",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAssetDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IdDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "accounting"
+        ]
+      }
+    },
+    "/api/v1/accounting/assets/{id}": {
+      "delete": {
+        "operationId": "Accounting_deleteAsset",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "accounting"
+        ]
+      }
+    },
+    "/api/v1/accounting/entries": {
+      "post": {
+        "operationId": "Accounting_createEntry",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateManualEntryDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IdDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Bút toán khác (PKT)",
+        "tags": [
+          "accounting"
+        ]
+      }
+    },
+    "/api/v1/accounting/entries/{id}": {
+      "put": {
+        "operationId": "Accounting_updateEntry",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateEntryDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IdDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Change a manual entry, or an automatic one with a reason (the original lines are kept)",
+        "tags": [
+          "accounting"
+        ]
+      },
+      "delete": {
+        "operationId": "Accounting_deleteEntry",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "summary": "Delete a manual entry or a voucher (receipt, issue, payment, asset purchase) with its entry",
+        "tags": [
+          "accounting"
         ]
       }
     }
@@ -6364,6 +7478,1870 @@
         "required": [
           "rows",
           "zipName"
+        ]
+      },
+      "LedgerAccountDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "isCredit": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "code",
+          "name",
+          "isCredit"
+        ]
+      },
+      "PeriodStatus": {
+        "type": "string",
+        "enum": [
+          "OPEN",
+          "CLOSED"
+        ]
+      },
+      "ClosingStep": {
+        "type": "string",
+        "enum": [
+          "price",
+          "depreciation",
+          "allocation",
+          "vat",
+          "transfer"
+        ],
+        "description": "Month-end steps done, in order"
+      },
+      "PeriodDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PeriodStatus"
+              }
+            ]
+          },
+          "stepsDone": {
+            "type": "array",
+            "description": "Month-end steps done, in order",
+            "items": {
+              "$ref": "#/components/schemas/ClosingStep"
+            }
+          },
+          "id": {
+            "type": "string"
+          },
+          "month": {
+            "type": "string",
+            "description": "\"2026-10\""
+          },
+          "closedAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "closedByName": {
+            "type": "string",
+            "nullable": true
+          },
+          "revenueVnd": {
+            "type": "number",
+            "description": "Saved at closing, or worked out so far for an open month"
+          },
+          "profitVnd": {
+            "type": "number"
+          },
+          "provisional": {
+            "type": "boolean"
+          },
+          "previousOpen": {
+            "type": "boolean",
+            "description": "An earlier month is still open: steps and closing wait for it"
+          },
+          "isFirst": {
+            "type": "boolean",
+            "description": "First month of the books: openings can be edited"
+          },
+          "canReopen": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "status",
+          "stepsDone",
+          "id",
+          "month",
+          "closedAt",
+          "closedByName",
+          "revenueVnd",
+          "profitVnd",
+          "provisional",
+          "previousOpen",
+          "isFirst",
+          "canReopen"
+        ]
+      },
+      "PeriodLogDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "userName": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "action",
+          "text",
+          "userName",
+          "createdAt"
+        ]
+      },
+      "PeriodsDto": {
+        "type": "object",
+        "properties": {
+          "periods": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PeriodDto"
+            }
+          },
+          "log": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PeriodLogDto"
+            }
+          }
+        },
+        "required": [
+          "periods",
+          "log"
+        ]
+      },
+      "StartBooksDto": {
+        "type": "object",
+        "properties": {
+          "month": {
+            "type": "string",
+            "description": "First month kept in the books, e.g. \"2026-10\""
+          }
+        },
+        "required": [
+          "month"
+        ]
+      },
+      "IdDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "OverviewKpiDto": {
+        "type": "object",
+        "properties": {
+          "cashVnd": {
+            "type": "number"
+          },
+          "bankVnd": {
+            "type": "number"
+          },
+          "receivableVnd": {
+            "type": "number"
+          },
+          "payableVnd": {
+            "type": "number"
+          },
+          "stockVnd": {
+            "type": "number"
+          },
+          "profitVnd": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "cashVnd",
+          "bankVnd",
+          "receivableVnd",
+          "payableVnd",
+          "stockVnd",
+          "profitVnd"
+        ]
+      },
+      "StepStatusDto": {
+        "type": "object",
+        "properties": {
+          "step": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ClosingStep"
+              }
+            ]
+          },
+          "done": {
+            "type": "boolean"
+          },
+          "doneAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "summary": {
+            "type": "string",
+            "description": "What the step will post or posted, e.g. \"Khấu hao 4.250.000 đ · 4 tài sản\""
+          },
+          "canRun": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "step",
+          "done",
+          "doneAt",
+          "summary",
+          "canRun"
+        ]
+      },
+      "PendingIssueDto": {
+        "type": "object",
+        "properties": {
+          "orderId": {
+            "type": "string"
+          },
+          "orderCode": {
+            "type": "string"
+          },
+          "productionCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "customerName": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "orderId",
+          "orderCode",
+          "productionCode",
+          "customerName",
+          "summary"
+        ]
+      },
+      "OverviewDto": {
+        "type": "object",
+        "properties": {
+          "period": {
+            "$ref": "#/components/schemas/PeriodDto"
+          },
+          "kpi": {
+            "$ref": "#/components/schemas/OverviewKpiDto"
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StepStatusDto"
+            }
+          },
+          "canClose": {
+            "type": "boolean"
+          },
+          "pendingIssues": {
+            "description": "Orders in production or later with no materials issued yet",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PendingIssueDto"
+            }
+          }
+        },
+        "required": [
+          "period",
+          "kpi",
+          "steps",
+          "canClose",
+          "pendingIssues"
+        ]
+      },
+      "ReopenPeriodDto": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "reason"
+        ]
+      },
+      "EntryKind": {
+        "type": "string",
+        "enum": [
+          "CUSTOMER_RECEIPT",
+          "RECEIPT_VOID",
+          "REVENUE",
+          "COGS",
+          "PURCHASE",
+          "ISSUE",
+          "EXPENSE",
+          "SUPPLIER_PAYMENT",
+          "ASSET_PURCHASE",
+          "DEPRECIATION",
+          "ALLOCATION",
+          "VAT_OFFSET",
+          "CLOSING",
+          "MANUAL"
+        ]
+      },
+      "EntrySource": {
+        "type": "string",
+        "enum": [
+          "AUTO",
+          "MANUAL"
+        ]
+      },
+      "JournalLineDto": {
+        "type": "object",
+        "properties": {
+          "account": {
+            "type": "string"
+          },
+          "accountName": {
+            "type": "string"
+          },
+          "debitVnd": {
+            "type": "number"
+          },
+          "creditVnd": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "account",
+          "accountName",
+          "debitVnd",
+          "creditVnd"
+        ]
+      },
+      "JournalEntryDto": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "kind": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EntryKind"
+              }
+            ]
+          },
+          "source": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EntrySource"
+              }
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "edited": {
+            "type": "boolean"
+          },
+          "editReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "editedByName": {
+            "type": "string",
+            "nullable": true
+          },
+          "originalLines": {
+            "nullable": true,
+            "description": "Lines as first posted, for an automatic entry changed by hand",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JournalLineDto"
+            }
+          },
+          "note": {
+            "type": "string",
+            "nullable": true
+          },
+          "orderCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JournalLineDto"
+            }
+          },
+          "totalVnd": {
+            "type": "number"
+          },
+          "canEdit": {
+            "type": "boolean",
+            "description": "Open month, not a month-end entry"
+          },
+          "canDelete": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "date",
+          "kind",
+          "source",
+          "id",
+          "code",
+          "description",
+          "edited",
+          "editReason",
+          "editedByName",
+          "originalLines",
+          "note",
+          "orderCode",
+          "lines",
+          "totalVnd",
+          "canEdit",
+          "canDelete"
+        ]
+      },
+      "TrialBalanceRowDto": {
+        "type": "object",
+        "properties": {
+          "account": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "openingVnd": {
+            "type": "number"
+          },
+          "debitVnd": {
+            "type": "number"
+          },
+          "creditVnd": {
+            "type": "number"
+          },
+          "closingVnd": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "account",
+          "name",
+          "openingVnd",
+          "debitVnd",
+          "creditVnd",
+          "closingVnd"
+        ]
+      },
+      "JournalDto": {
+        "type": "object",
+        "properties": {
+          "entries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JournalEntryDto"
+            }
+          },
+          "trialBalance": {
+            "description": "Bảng cân đối số phát sinh: debit-positive balances",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TrialBalanceRowDto"
+            }
+          }
+        },
+        "required": [
+          "entries",
+          "trialBalance"
+        ]
+      },
+      "CashRowDto": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "entryId": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "account": {
+            "type": "string"
+          },
+          "inVnd": {
+            "type": "number"
+          },
+          "outVnd": {
+            "type": "number"
+          },
+          "balanceVnd": {
+            "type": "number"
+          },
+          "orderCode": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "date",
+          "entryId",
+          "code",
+          "description",
+          "account",
+          "inVnd",
+          "outVnd",
+          "balanceVnd",
+          "orderCode"
+        ]
+      },
+      "SplitPartDto": {
+        "type": "object",
+        "properties": {
+          "account": {
+            "type": "string",
+            "enum": [
+              "154",
+              "6421",
+              "6422"
+            ]
+          },
+          "percent": {
+            "type": "number",
+            "minimum": 0.01,
+            "maximum": 100
+          }
+        },
+        "required": [
+          "account",
+          "percent"
+        ]
+      },
+      "CategorySumDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "split": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SplitPartDto"
+            }
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "amountVnd": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "split",
+          "isActive",
+          "amountVnd"
+        ]
+      },
+      "CashBookDto": {
+        "type": "object",
+        "properties": {
+          "openingVnd": {
+            "type": "number"
+          },
+          "closingVnd": {
+            "type": "number"
+          },
+          "inVnd": {
+            "type": "number"
+          },
+          "outVnd": {
+            "type": "number"
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CashRowDto"
+            }
+          },
+          "categories": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CategorySumDto"
+            }
+          }
+        },
+        "required": [
+          "openingVnd",
+          "closingVnd",
+          "inVnd",
+          "outVnd",
+          "rows",
+          "categories"
+        ]
+      },
+      "ReceivableRowDto": {
+        "type": "object",
+        "properties": {
+          "oldestDate": {
+            "type": "string",
+            "nullable": true,
+            "description": "Oldest unpaid revenue date",
+            "format": "date"
+          },
+          "customerId": {
+            "type": "string",
+            "nullable": true
+          },
+          "customerName": {
+            "type": "string"
+          },
+          "oweVnd": {
+            "type": "number",
+            "description": "Owed by the customer (VAT included)"
+          },
+          "advanceVnd": {
+            "type": "number",
+            "description": "Paid in advance"
+          },
+          "overdue30": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "oldestDate",
+          "customerId",
+          "customerName",
+          "oweVnd",
+          "advanceVnd",
+          "overdue30"
+        ]
+      },
+      "PayableRowDto": {
+        "type": "object",
+        "properties": {
+          "supplierId": {
+            "type": "string",
+            "nullable": true
+          },
+          "supplierName": {
+            "type": "string"
+          },
+          "boughtVnd": {
+            "type": "number"
+          },
+          "paidVnd": {
+            "type": "number"
+          },
+          "balanceVnd": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "supplierId",
+          "supplierName",
+          "boughtVnd",
+          "paidVnd",
+          "balanceVnd"
+        ]
+      },
+      "DebtsDto": {
+        "type": "object",
+        "properties": {
+          "receivables": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReceivableRowDto"
+            }
+          },
+          "payables": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PayableRowDto"
+            }
+          },
+          "receivableTotalVnd": {
+            "type": "number"
+          },
+          "payableTotalVnd": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "receivables",
+          "payables",
+          "receivableTotalVnd",
+          "payableTotalVnd"
+        ]
+      },
+      "StockRowDto": {
+        "type": "object",
+        "properties": {
+          "materialId": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "openQty": {
+            "type": "number"
+          },
+          "openPriceVnd": {
+            "type": "number"
+          },
+          "inQty": {
+            "type": "number"
+          },
+          "inVnd": {
+            "type": "number"
+          },
+          "outQty": {
+            "type": "number"
+          },
+          "outVnd": {
+            "type": "number"
+          },
+          "endQty": {
+            "type": "number"
+          },
+          "endVnd": {
+            "type": "number"
+          },
+          "priceVnd": {
+            "type": "number",
+            "description": "Weighted average once priced, provisional price before"
+          },
+          "isActive": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "materialId",
+          "code",
+          "name",
+          "unit",
+          "openQty",
+          "openPriceVnd",
+          "inQty",
+          "inVnd",
+          "outQty",
+          "outVnd",
+          "endQty",
+          "endVnd",
+          "priceVnd",
+          "isActive"
+        ]
+      },
+      "PayMethod": {
+        "type": "string",
+        "enum": [
+          "CASH",
+          "BANK",
+          "CREDIT"
+        ]
+      },
+      "ReceiptLineDto": {
+        "type": "object",
+        "properties": {
+          "materialId": {
+            "type": "string"
+          },
+          "materialName": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "qty": {
+            "type": "number"
+          },
+          "priceVnd": {
+            "type": "number"
+          },
+          "valueVnd": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "materialId",
+          "materialName",
+          "unit",
+          "qty",
+          "priceVnd",
+          "valueVnd"
+        ]
+      },
+      "ReceiptDto": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "payMethod": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PayMethod"
+              }
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "supplierId": {
+            "type": "string"
+          },
+          "supplierName": {
+            "type": "string"
+          },
+          "vatRate": {
+            "type": "number"
+          },
+          "valueVnd": {
+            "type": "number"
+          },
+          "vatVnd": {
+            "type": "number"
+          },
+          "note": {
+            "type": "string",
+            "nullable": true
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReceiptLineDto"
+            }
+          }
+        },
+        "required": [
+          "date",
+          "payMethod",
+          "id",
+          "code",
+          "supplierId",
+          "supplierName",
+          "vatRate",
+          "valueVnd",
+          "vatVnd",
+          "note",
+          "lines"
+        ]
+      },
+      "IssueDto": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "id": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "orderId": {
+            "type": "string",
+            "nullable": true
+          },
+          "orderCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "customerName": {
+            "type": "string",
+            "nullable": true
+          },
+          "valueVnd": {
+            "type": "number"
+          },
+          "note": {
+            "type": "string",
+            "nullable": true
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReceiptLineDto"
+            }
+          }
+        },
+        "required": [
+          "date",
+          "id",
+          "code",
+          "orderId",
+          "orderCode",
+          "customerName",
+          "valueVnd",
+          "note",
+          "lines"
+        ]
+      },
+      "StockDto": {
+        "type": "object",
+        "properties": {
+          "priced": {
+            "type": "boolean"
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StockRowDto"
+            }
+          },
+          "receipts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReceiptDto"
+            }
+          },
+          "issues": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IssueDto"
+            }
+          },
+          "editable": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "priced",
+          "rows",
+          "receipts",
+          "issues",
+          "editable"
+        ]
+      },
+      "TaxRowDto": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "entryId": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "baseVnd": {
+            "type": "number"
+          },
+          "vatVnd": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "date",
+          "entryId",
+          "code",
+          "description",
+          "baseVnd",
+          "vatVnd"
+        ]
+      },
+      "TaxDto": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TaxRowDto"
+            }
+          },
+          "input": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TaxRowDto"
+            }
+          },
+          "outputVnd": {
+            "type": "number"
+          },
+          "inputVnd": {
+            "type": "number"
+          },
+          "carriedInVnd": {
+            "type": "number",
+            "description": "1331 brought forward from earlier months"
+          },
+          "payableVnd": {
+            "type": "number"
+          },
+          "carryForwardVnd": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "output",
+          "input",
+          "outputVnd",
+          "inputVnd",
+          "carriedInVnd",
+          "payableVnd",
+          "carryForwardVnd"
+        ]
+      },
+      "AssetKind": {
+        "type": "string",
+        "enum": [
+          "FIXED_ASSET",
+          "TOOL"
+        ]
+      },
+      "AssetRowDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AssetKind"
+              }
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "costVnd": {
+            "type": "number"
+          },
+          "startMonth": {
+            "type": "string"
+          },
+          "months": {
+            "type": "number"
+          },
+          "expenseAccount": {
+            "type": "string"
+          },
+          "monthlyVnd": {
+            "type": "number",
+            "description": "Charge of the selected month"
+          },
+          "chargedVnd": {
+            "type": "number",
+            "description": "Charged through the selected month (this month counted once its step ran)"
+          },
+          "remainingVnd": {
+            "type": "number"
+          },
+          "monthsCharged": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "kind",
+          "id",
+          "code",
+          "name",
+          "costVnd",
+          "startMonth",
+          "months",
+          "expenseAccount",
+          "monthlyVnd",
+          "chargedVnd",
+          "remainingVnd",
+          "monthsCharged"
+        ]
+      },
+      "AssetsDto": {
+        "type": "object",
+        "properties": {
+          "assets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AssetRowDto"
+            }
+          },
+          "tools": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AssetRowDto"
+            }
+          },
+          "depreciationVnd": {
+            "type": "number"
+          },
+          "allocationVnd": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "assets",
+          "tools",
+          "depreciationVnd",
+          "allocationVnd"
+        ]
+      },
+      "GlRowDto": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "entryId": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "contra": {
+            "type": "string"
+          },
+          "debitVnd": {
+            "type": "number"
+          },
+          "creditVnd": {
+            "type": "number"
+          },
+          "balanceVnd": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "date",
+          "entryId",
+          "code",
+          "description",
+          "contra",
+          "debitVnd",
+          "creditVnd",
+          "balanceVnd"
+        ]
+      },
+      "GlDto": {
+        "type": "object",
+        "properties": {
+          "account": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "isCredit": {
+            "type": "boolean"
+          },
+          "openingVnd": {
+            "type": "number"
+          },
+          "debitVnd": {
+            "type": "number"
+          },
+          "creditVnd": {
+            "type": "number"
+          },
+          "closingVnd": {
+            "type": "number"
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GlRowDto"
+            }
+          },
+          "usedAccounts": {
+            "description": "Accounts with an opening balance or a movement this month",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LedgerAccountDto"
+            }
+          }
+        },
+        "required": [
+          "account",
+          "name",
+          "isCredit",
+          "openingVnd",
+          "debitVnd",
+          "creditVnd",
+          "closingVnd",
+          "rows",
+          "usedAccounts"
+        ]
+      },
+      "PnlColumnDto": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "provisional": {
+            "type": "boolean"
+          },
+          "revenueVnd": {
+            "type": "number"
+          },
+          "cogsVnd": {
+            "type": "number"
+          },
+          "sellingVnd": {
+            "type": "number"
+          },
+          "adminVnd": {
+            "type": "number"
+          },
+          "otherNetVnd": {
+            "type": "number"
+          },
+          "profitVnd": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "label",
+          "provisional",
+          "revenueVnd",
+          "cogsVnd",
+          "sellingVnd",
+          "adminVnd",
+          "otherNetVnd",
+          "profitVnd"
+        ]
+      },
+      "PnlDto": {
+        "type": "object",
+        "properties": {
+          "columns": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PnlColumnDto"
+            }
+          }
+        },
+        "required": [
+          "columns"
+        ]
+      },
+      "OpeningsDto": {
+        "type": "object",
+        "properties": {
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TrialBalanceRowDto"
+            }
+          },
+          "differenceVnd": {
+            "type": "number",
+            "description": "Σ debit − Σ credit: must be 0"
+          },
+          "editable": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "lines",
+          "differenceVnd",
+          "editable"
+        ]
+      },
+      "OpeningLineDto": {
+        "type": "object",
+        "properties": {
+          "account": {
+            "type": "string"
+          },
+          "debitVnd": {
+            "type": "number"
+          },
+          "creditVnd": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "account",
+          "debitVnd",
+          "creditVnd"
+        ]
+      },
+      "SaveOpeningsDto": {
+        "type": "object",
+        "properties": {
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OpeningLineDto"
+            }
+          }
+        },
+        "required": [
+          "lines"
+        ]
+      },
+      "StockOpeningLineDto": {
+        "type": "object",
+        "properties": {
+          "materialId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "qty": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1000000000
+          },
+          "priceVnd": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "materialId",
+          "qty",
+          "priceVnd"
+        ]
+      },
+      "SaveStockOpeningsDto": {
+        "type": "object",
+        "properties": {
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StockOpeningLineDto"
+            }
+          }
+        },
+        "required": [
+          "lines"
+        ]
+      },
+      "SupplierDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string",
+            "nullable": true
+          },
+          "taxCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "address": {
+            "type": "string",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "name",
+          "phone",
+          "taxCode",
+          "address",
+          "isActive"
+        ]
+      },
+      "SaveSupplierDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "phone": {
+            "type": "string",
+            "maxLength": 30
+          },
+          "taxCode": {
+            "type": "string",
+            "maxLength": 30
+          },
+          "address": {
+            "type": "string",
+            "maxLength": 300
+          },
+          "isActive": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "MaterialDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "isActive": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "name",
+          "unit",
+          "isActive"
+        ]
+      },
+      "SaveMaterialDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "maxLength": 30
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "unit": {
+            "type": "string",
+            "maxLength": 20
+          },
+          "isActive": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "code",
+          "name",
+          "unit"
+        ]
+      },
+      "SaveCategoryDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "split": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SplitPartDto"
+            }
+          },
+          "isActive": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name",
+          "split"
+        ]
+      },
+      "ReceiptLineInputDto": {
+        "type": "object",
+        "properties": {
+          "materialId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "qty": {
+            "type": "number",
+            "minimum": 0.001,
+            "maximum": 1000000000
+          },
+          "priceVnd": {
+            "type": "number",
+            "description": "Unit price before VAT"
+          }
+        },
+        "required": [
+          "materialId",
+          "qty",
+          "priceVnd"
+        ]
+      },
+      "CreateReceiptDto": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "example": "2026-11-02"
+          },
+          "payMethod": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PayMethod"
+              }
+            ]
+          },
+          "supplierId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "vatRate": {
+            "type": "number",
+            "enum": [
+              0,
+              5,
+              8,
+              10
+            ]
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "lines": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReceiptLineInputDto"
+            }
+          }
+        },
+        "required": [
+          "date",
+          "payMethod",
+          "supplierId",
+          "vatRate",
+          "lines"
+        ]
+      },
+      "IssueLineInputDto": {
+        "type": "object",
+        "properties": {
+          "materialId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "qty": {
+            "type": "number",
+            "minimum": 0.001,
+            "maximum": 1000000000
+          }
+        },
+        "required": [
+          "materialId",
+          "qty"
+        ]
+      },
+      "CreateIssueDto": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "example": "2026-11-02"
+          },
+          "orderId": {
+            "type": "string",
+            "description": "The order the materials go to (its work order)",
+            "format": "uuid"
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "lines": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IssueLineInputDto"
+            }
+          }
+        },
+        "required": [
+          "date",
+          "lines"
+        ]
+      },
+      "CreateCashPaymentDto": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "example": "2026-11-02"
+          },
+          "method": {
+            "enum": [
+              "CASH",
+              "BANK"
+            ],
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 300
+          },
+          "categoryId": {
+            "type": "string",
+            "description": "An expense: its category (exactly one of categoryId / supplierId)",
+            "format": "uuid"
+          },
+          "supplierId": {
+            "type": "string",
+            "description": "A payment to a supplier for what was bought on credit",
+            "format": "uuid"
+          },
+          "amountVnd": {
+            "type": "number",
+            "description": "Amount before VAT (the whole amount for a supplier payment)"
+          },
+          "vatRate": {
+            "type": "number",
+            "description": "VAT on an expense invoice; 0 when there is none",
+            "enum": [
+              0,
+              5,
+              8,
+              10
+            ]
+          }
+        },
+        "required": [
+          "date",
+          "method",
+          "description",
+          "amountVnd",
+          "vatRate"
+        ]
+      },
+      "AssetPurchaseDto": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "example": "2026-11-02"
+          },
+          "method": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PayMethod"
+              }
+            ]
+          },
+          "vatRate": {
+            "type": "number",
+            "enum": [
+              0,
+              5,
+              8,
+              10
+            ]
+          },
+          "supplierId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "date",
+          "method",
+          "vatRate"
+        ]
+      },
+      "CreateAssetDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AssetKind"
+              }
+            ]
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "costVnd": {
+            "type": "number",
+            "description": "Cost before VAT"
+          },
+          "startMonth": {
+            "type": "string",
+            "description": "First month charged"
+          },
+          "months": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 600
+          },
+          "expenseAccount": {
+            "type": "string",
+            "enum": [
+              "154",
+              "6421",
+              "6422"
+            ]
+          },
+          "purchase": {
+            "description": "Bought now: posts Dr 211 / 242 (+ 1331), Cr cash, bank or 331. Omitted: owned before the books started.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AssetPurchaseDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "kind",
+          "name",
+          "costVnd",
+          "startMonth",
+          "months",
+          "expenseAccount"
+        ]
+      },
+      "EntryLineInputDto": {
+        "type": "object",
+        "properties": {
+          "account": {
+            "type": "string"
+          },
+          "debitVnd": {
+            "type": "number"
+          },
+          "creditVnd": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "account",
+          "debitVnd",
+          "creditVnd"
+        ]
+      },
+      "CreateManualEntryDto": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "example": "2026-11-02"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 300
+          },
+          "lines": {
+            "minItems": 2,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EntryLineInputDto"
+            }
+          }
+        },
+        "required": [
+          "date",
+          "description",
+          "lines"
+        ]
+      },
+      "UpdateEntryDto": {
+        "type": "object",
+        "properties": {
+          "lines": {
+            "minItems": 2,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EntryLineInputDto"
+            }
+          },
+          "description": {
+            "type": "string",
+            "description": "Manual entries only",
+            "maxLength": 300
+          },
+          "reason": {
+            "type": "string",
+            "description": "Required when changing an automatic entry",
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "lines"
         ]
       }
     }

@@ -1,0 +1,11 @@
+# Bổ sung cho docker-compose.prod.yml khi chạy trên VPS có CloudPanel:
+# Nginx của CloudPanel giữ cổng 80/443 và chứng chỉ SSL của erp.inquangcaoauviet.com,
+# rồi chuyển tiếp tới Caddy (service web) ở 127.0.0.1:${WEB_PORT:-8090}. Không dùng Cloudflare Tunnel.
+#
+#   docker compose -f docker-compose.prod.yml -f deploy/docker-compose.cloudpanel.yml --env-file .env.prod up -d --build
+#
+# Trong .env.prod đặt TUNNEL_TOKEN=khong-dung (biến này bắt buộc có giá trị trong file gốc, nhưng tunnel không chạy).
+services:
+  tunnel:
+    # Tắt tunnel: service chỉ chạy khi gọi thêm --profile cloudflare-tunnel
+    profiles: ["cloudflare-tunnel"]

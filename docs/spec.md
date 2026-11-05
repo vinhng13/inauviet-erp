@@ -1,10 +1,15 @@
-# Inauviet ERP — Technical Spec (v0.7)
+# Inauviet ERP — Technical Spec (v0.8)
 
 **Backend:** Node.js 22 LTS · NestJS · Prisma 7 · PostgreSQL
 **Frontend:** React 19 · TypeScript · Vite · Ant Design 6
 **Repository:** `Inauviet/ERP/` with `api/` and `web/` (npm workspaces), next to `Inauviet/CMS/`
 **Scope:** A simple order and delivery tracker. Staff create orders with a delivery plan, follow every order on a board, mark deliveries done, and optionally record payments.
 **Status:** Codebase initialized 29 Oct 2026 (milestones M0–M3 built and tested, M4 deployment files in place). Open questions are in section 12.
+
+**Changes in v0.8 (separate modules and the accounting module, 05 Nov 2026)**
+- After sign-in a module picker (`/`) shows only the modules the account may use: **CRM**, **Kế toán**, **Quản trị**. Each module has its own sidebar menu and a switcher at the top of the menu (also "Chọn module" in the user menu). CRM paths are unchanged; accounting lives under `/accounting/*` plus `/payments`.
+- Accounting module (internal books, Thông tư 133, no e-invoice): periods by month with month-end steps and closing, cash/bank book with expense vouchers, receivables/payables, raw-material stock at the monthly weighted average, fixed assets and tools, VAT 8%, general journal and trial balance, P&L and general ledger. See section 13.
+- Order lines can no longer change once the customer has signed acceptance (`ORDER_COMPLETED`), since revenue is booked from them.
 
 **Changes in v0.7 (steps 2–6 of the 6-step process, as in the prototype)**
 - Order statuses follow the steps: CONFIRMED (2 · Chốt đơn) → DESIGNING (3 · Thiết kế) → DESIGN_FINALIZING (4 · Hoàn thiện TK) → IN_PRODUCTION (5 · Sản xuất) → DELIVERING (6 · Giao hàng) → COMPLETED. "Bắt đầu sản xuất" is replaced by "Xác nhận đơn" (needs design, or customer files go straight to production).
@@ -400,6 +405,18 @@ Stable `code` values, translated to Vietnamese in the web app.
 | `/login` | Sign-in (shown whenever nobody is signed in; forced password change after a temporary password) |
 | `/accounts` | Tài khoản: create by hand, edit, group, reset password, lock, sign out everywhere |
 | `/roles` | Nhóm quyền: module × action matrix |
+| `/` | Chọn module: cards for CRM, Kế toán, Quản trị (only those the account can use) |
+| `/accounting` | Tổng quan & khoá sổ: balances (111, 112, 131, 331, 152, profit), the 5 month-end steps with run buttons, close; orders in production with no material issued |
+| `/accounting/periods` | Kỳ kế toán: months, results, reopen (with reason), opening balances and opening stock of the first month, closing log |
+| `/accounting/cash` | Thu – chi: cash and bank book, expense voucher (by category or paying a supplier), expense categories and their split |
+| `/accounting/debts` | Phải thu – phải trả: 131 by customer (oldest unpaid, > 30 days), 331 by supplier |
+| `/accounting/stock` | Kho NVL: stock by material, receipts PN, issues PX, materials, suppliers |
+| `/accounting/assets` | TSCĐ & CCDC: register, monthly charge, charged so far |
+| `/accounting/tax` | Thuế GTGT: output, input, carried in, payable or carried forward |
+| `/accounting/journal` | Sổ & bút toán: general journal (filter auto / manual / month-end), trial balance, manual entry PKT, edit an automatic entry with a reason |
+| `/accounting/reports` | Báo cáo: P&L for 6 months + year to date, general ledger per account |
+
+Every accounting screen keeps the month in the address (`?ky=2026-10`); it defaults to the earliest open month.
 
 ### 9.2 Board card
 
@@ -467,7 +484,8 @@ Clicking a card opens the order detail.
 | **P3 — Production** | Work order LSX per order, workshop stages Nhận → In → Gia công → Kiểm tra → Xong, production screen | Built 31 Oct 2026 |
 | **P4 — Delivery & acceptance** | Existing trips + acceptance with a signed handover report, 6-column board, payments & receivables page | Built 31 Oct 2026 |
 | **P5 — Documents** | Server-side PDF for quote, order, design approval, work order, acceptance report, internal invoice (temporary layout); download icons in lists, zip per order and per customer | Temporary layout built; company templates pending |
-| **Later** | Accounting module (after the MISA decision), file uploads, notifications | |
+| **P6 — Modules & accounting** | Module picker and module-scoped menus; accounting module (section 13) | Built 05 Nov 2026 |
+| **Later** | File uploads, notifications, e-invoice integration if needed | |
 
 Section 6 rules for quotes:
 - Lines from the catalog are priced on the server. AREA products need width and height (0–100 m); one piece = round(width × height × price per m²) and the line total = pieces × piece price. UNIT products use their unit price. A list price can be overridden on the line.
@@ -486,3 +504,60 @@ Section 6 rules for quotes:
 5. **Refunds.** Needed in v1, or handled outside the app?
 6. **Completed orders on the board.** Keep the last 14 days visible, or a different window?
 7. **Language.** Vietnamese only, or a Vietnamese/English toggle?
+
+---
+
+## 13. Accounting module
+
+Internal books following Thông tư 133. Revenue is recognised when the customer signs acceptance; no e-invoice; VAT 8% by default (0/5/8/10 on purchases and expenses). Profit is worked out at month end.
+
+### 13.1 Model
+- Chart of accounts `LedgerAccount` (111, 112, 131, 1331, 152, 154, 211, 214, 242, 331, 33311, 411, 421, 511, 632, 6421, 6422, 911 …). Balances are debit-positive.
+- `AccountingPeriod` per month "YYYY-MM": OPEN / CLOSED, the time each month-end step ran, who closed it and the saved results (revenue, COGS, selling, admin, other).
+- `PeriodOpening` (account balances at the start of a month) and `MaterialOpening` (qty and unit cost per material). The first month's are typed in; later months are carried by closing.
+- `JournalEntry` / `JournalLine` (double entry). `(sourceType, sourceId)` is unique, so a document posts once. An automatic entry changed by hand keeps its original lines, reason and editor.
+- Vouchers: `StockReceipt` PN, `StockIssue` PX, `CashPayment` PC, `FixedAsset` TS-/CC-, manual entries PKT. `Supplier` NCC-0001, `Material`, `ExpenseCategory` with its split over 154 / 6421 / 6422.
+
+### 13.2 Postings
+| Source | Entry |
+|---|---|
+| CRM payment | PT: Dr 111 (cash) / 112 (bank transfer), Cr 131 |
+| Payment voided | PT removed while its month is open; otherwise reversal `PT-…-H` in the current open month |
+| Order accepted (with prices) | DT-YYMM-NNNN: Dr 131 total + 8%, Cr 511, Cr 33311 |
+| Stock receipt | Dr 152 (+ Dr 1331), Cr 111 / 112 / 331 |
+| Stock issue | Dr 154 / Cr 152 at the provisional average; re-valued at month end. Issue for an order = work in progress of that order; issue without an order = production overhead |
+| Expense voucher | Dr 154 / 6421 / 6422 by the category split (+ Dr 1331), Cr 111 / 112 |
+| Paying a supplier | Dr 331, Cr 111 / 112 |
+| Asset bought | Dr 211 (asset) or 242 (tool) (+ 1331), Cr 111 / 112 / 331. Assets owned before the books started post nothing (they are in the openings) |
+| Manual entry | PKT, any balanced lines |
+
+CRM documents are brought into the books automatically before every accounting read and write (idempotent, one database lock). A CRM document dated in a closed month goes to the first open month, with a note. Documents dated before the first month are part of the opening balances and are not posted. Accounting vouchers must be dated in an open month (`PERIOD_CLOSED`).
+
+### 13.3 Month end
+Run in order (each needs the earlier months closed and the openings balanced):
+1. **Price** — monthly weighted average per material `(opening value + received value) / (opening qty + received qty)`; re-values this month's issues; posts cost of goods GV (Dr 632 / Cr 154) for orders accepted this month (everything ever issued to them) and for material issued this month to orders accepted earlier.
+2. **Depreciation** KH-YYMM — straight line, Dr 154 / 6421 / 6422, Cr 214 (the last month takes the rounding difference).
+3. **Allocation** PB-YYMM — tools, Dr cost account, Cr 242.
+4. **VAT offset** KT-YYMM — Dr 33311 / Cr 1331 for min(output, input incl. carried in).
+5. **Transfer** — KC-01 production overhead (154 other than issues for orders) → 632; KC-02 revenue → 911; KC-03 expenses → 911; KC-04 profit / loss → 421.
+
+Any posting that changes the month's figures (everything except customer receipts and supplier payments) deletes the month-end entries and resets the steps. **Close** needs all 5 steps, saves the results and carries closing balances and stock (qty, average cost) into the next month. **Reopen** (permission accounting.reopen, reason required) is allowed for the latest closed month only.
+
+### 13.4 Permissions
+`accounting.view` (implies money.view), `accounting.post` (vouchers, catalogs), `accounting.close` (start the books, openings, expense categories, month-end steps, close, edit automatic entries), `accounting.reopen`. The default "Kế toán" group has view, post and close.
+
+### 13.5 API (`/api/v1/accounting`)
+| Method | Path | Notes |
+|---|---|---|
+| GET | /accounts | chart of accounts |
+| GET | /periods | periods (newest first) and the closing log |
+| POST | /periods/start | `{ month }`, once |
+| GET | /periods/:id/overview · journal · cash?account= · debts · stock · tax · assets · ledger?account= | read models of one month |
+| POST | /periods/:id/steps/:step | step = price, depreciation, allocation, vat, transfer |
+| POST | /periods/:id/close · /periods/:id/reopen | reopen takes `{ reason }` |
+| GET | /reports/pnl | last 6 months + year to date |
+| GET / PUT | /openings · PUT /openings/stock | first month only, while it is open |
+| GET / POST / PUT | /suppliers · /materials · POST/PUT /categories | catalogs |
+| POST | /receipts · /issues · /cash-payments · /assets · /entries | vouchers |
+| PUT | /entries/:id | manual entry, or automatic entry with `reason` |
+| DELETE | /entries/:id · /receipts/:id · /issues/:id · /assets/:id | voucher and its entry; CRM and month-end entries can't be deleted |

@@ -120,7 +120,7 @@ describe('sign-in, accounts and permission groups', () => {
   describe('permission groups', () => {
     it('lists the catalog and adds implied permissions when saving', async () => {
       const catalog = (await t.api.get('/permissions').expect(200)).body;
-      expect(catalog.map((m: { key: string }) => m.key)).toEqual(['quotes', 'orders', 'design', 'production', 'deliveries', 'payments', 'money', 'customers', 'products', 'accounts', 'roles']);
+      expect(catalog.map((m: { key: string }) => m.key)).toEqual(['quotes', 'orders', 'design', 'production', 'deliveries', 'payments', 'accounting', 'money', 'customers', 'products', 'accounts', 'roles']);
       const role = await t.api.post('/roles', { name: 'Giao hàng', permissions: ['deliveries.deliver', 'made.up'] }).expect(201);
       expect(role.body.permissions).toEqual(['orders.view', 'deliveries.view', 'deliveries.deliver']);
       const roles = (await t.api.get('/roles').expect(200)).body;

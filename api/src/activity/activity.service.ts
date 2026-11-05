@@ -4,7 +4,7 @@ import type { Tx } from '../prisma/prisma.service';
 import { PrismaService } from '../prisma/prisma.service';
 import type { ActivityEntryDto } from './activity.dto';
 
-export type EntityType = 'ORDER' | 'QUOTE' | 'DELIVERY' | 'PAYMENT' | 'CUSTOMER' | 'USER' | 'ROLE' | 'PRODUCT';
+export type EntityType = 'ORDER' | 'QUOTE' | 'DELIVERY' | 'PAYMENT' | 'CUSTOMER' | 'USER' | 'ROLE' | 'PRODUCT' | 'PERIOD' | 'ACCOUNTING';
 
 export interface ActivityInput {
   orderId?: string | null;

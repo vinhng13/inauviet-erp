@@ -94,6 +94,7 @@ model User {
   ordersCreated     Order[]       @relation("OrderCreatedBy")
   deliveriesCreated Delivery[]
   paymentsRecorded  Payment[]
+  periodsClosed     AccountingPeriod[] @relation("PeriodClosedBy")
 
   @@index([roleId])
 }
@@ -401,4 +402,301 @@ model ActivityLog {
 
   @@index([entityType, entityId])
   @@index([orderId, createdAt])
+}
+
+// ───────────── Accounting (internal books, Circular 133) ─────────────
+
+enum PeriodStatus {
+  OPEN
+  CLOSED
+}
+
+enum EntrySource {
+  AUTO // posted from a document (CRM payment, acceptance, stock, cash, month-end step)
+  MANUAL // typed by the accountant
+}
+
+/// What produced a journal entry
+enum EntryKind {
+  CUSTOMER_RECEIPT // PT: money from a customer (CRM payment)
+  RECEIPT_VOID // reversal of a voided CRM payment in a later period
+  REVENUE // DT: revenue when the customer signs the acceptance report
+  COGS // GV: materials issued to an accepted order
+  PURCHASE // PN: materials received
+  ISSUE // PX: materials issued to production
+  EXPENSE // PC: expense paid
+  SUPPLIER_PAYMENT // PC: paying a supplier
+  ASSET_PURCHASE // fixed asset / tool bought
+  DEPRECIATION // KH: month-end depreciation
+  ALLOCATION // PB: month-end tool allocation
+  VAT_OFFSET // KT: month-end VAT offset
+  CLOSING // KC: month-end transfers to 911 / 421
+  MANUAL // PKT: manual entry
+}
+
+enum PayMethod {
+  CASH // 111
+  BANK // 112
+  CREDIT // 331 (bought on credit)
+}
+
+enum AssetKind {
+  FIXED_ASSET // TSCĐ: 211, depreciated into 214
+  TOOL // CCDC: 242, allocated
+}
+
+/// Chart of accounts used by the internal books
+model LedgerAccount {
+  code     String  @id // "111", "33311"
+  name     String
+  /// true for accounts whose normal balance is on the credit side (214, 331, 333x, 411, 421, 511, 911…)
+  isCredit Boolean @default(false)
+  isActive Boolean @default(true)
+  sortOrder Int    @default(0)
+
+  lines    JournalLine[]
+  openings PeriodOpening[]
+}
+
+/// One calendar month of books. Only open periods take postings; closing carries balances to the next month.
+model AccountingPeriod {
+  id     String       @id @default(uuid()) @db.Uuid
+  month  String       @unique // "2026-10"
+  status PeriodStatus @default(OPEN)
+  // Month-end steps, in order; reset whenever a posting changes the month's figures
+  pricedAt      DateTime?
+  depreciatedAt DateTime?
+  allocatedAt   DateTime?
+  vatOffsetAt   DateTime?
+  transferredAt DateTime?
+  closedAt      DateTime?
+  closedById    String?   @db.Uuid
+  // Results saved when closing
+  revenueVnd  BigInt?
+  cogsVnd     BigInt?
+  sellingVnd  BigInt?
+  adminVnd    BigInt?
+  otherNetVnd BigInt?
+  createdAt   DateTime  @default(now())
+
+  closedBy  User?             @relation("PeriodClosedBy", fields: [closedById], references: [id])
+  entries   JournalEntry[]
+  openings  PeriodOpening[]
+  stock     MaterialOpening[]
+  receipts  StockReceipt[]
+  issues    StockIssue[]
+  payments  CashPayment[]
+}
+
+/// Opening balance of an account for a period (debit positive, credit negative)
+model PeriodOpening {
+  periodId    String @db.Uuid
+  accountCode String
+  balanceVnd  BigInt
+
+  period  AccountingPeriod @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  account LedgerAccount    @relation(fields: [accountCode], references: [code])
+
+  @@id([periodId, accountCode])
+}
+
+model JournalEntry {
+  id          String      @id @default(uuid()) @db.Uuid
+  code        String      @unique // PT-2610-0001, DT-2610-0005, PKT-2610-0001…
+  periodId    String      @db.Uuid
+  date        DateTime    @db.Date
+  description String
+  kind        EntryKind
+  source      EntrySource @default(AUTO)
+  /// What it was posted from, e.g. PAYMENT + payment id; unique so a document posts once
+  sourceType  String?
+  sourceId    String?
+  orderId     String?     @db.Uuid
+  customerId  String?     @db.Uuid
+  supplierId  String?     @db.Uuid
+  /// Why the entry sits in this period when its document date is in a closed one
+  note        String?
+  /// Auto entry changed by hand: the lines as posted, the reason and who
+  originalLines Json?
+  editReason    String?
+  editedById    String?   @db.Uuid
+  editedAt      DateTime?
+  createdById   String?   @db.Uuid
+  createdAt     DateTime  @default(now())
+
+  period   AccountingPeriod @relation(fields: [periodId], references: [id])
+  lines    JournalLine[]
+  supplier Supplier?        @relation(fields: [supplierId], references: [id])
+
+  @@unique([sourceType, sourceId])
+  @@index([periodId, date])
+  @@index([kind])
+}
+
+model JournalLine {
+  id          String @id @default(uuid()) @db.Uuid
+  entryId     String @db.Uuid
+  accountCode String
+  debitVnd    BigInt @default(0)
+  creditVnd   BigInt @default(0)
+  sortOrder   Int    @default(0)
+
+  entry   JournalEntry  @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  account LedgerAccount @relation(fields: [accountCode], references: [code])
+
+  @@index([entryId])
+  @@index([accountCode])
+}
+
+model Supplier {
+  id        String   @id @default(uuid()) @db.Uuid
+  code      String   @unique // NCC-0001
+  name      String   @unique
+  phone     String?
+  taxCode   String?
+  address   String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  receipts StockReceipt[]
+  payments CashPayment[]
+  entries  JournalEntry[]
+  assets   FixedAsset[]
+}
+
+/// Raw material (nguyên vật liệu)
+model Material {
+  id        String   @id @default(uuid()) @db.Uuid
+  code      String   @unique // VT-DPP
+  name      String
+  unit      String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  openings     MaterialOpening[]
+  receiptLines StockReceiptLine[]
+  issueLines   StockIssueLine[]
+}
+
+/// Quantity and unit cost of a material at the start of a period
+model MaterialOpening {
+  periodId   String  @db.Uuid
+  materialId String  @db.Uuid
+  qty        Decimal @db.Decimal(14, 3)
+  priceVnd   BigInt
+
+  period   AccountingPeriod @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  material Material         @relation(fields: [materialId], references: [id])
+
+  @@id([periodId, materialId])
+}
+
+/// Phiếu nhập kho
+model StockReceipt {
+  id          String    @id @default(uuid()) @db.Uuid
+  code        String    @unique // PN-2610-0001
+  periodId    String    @db.Uuid
+  date        DateTime  @db.Date
+  supplierId  String    @db.Uuid
+  payMethod   PayMethod
+  vatRate     Int       @default(8)
+  note        String?
+  createdById String    @db.Uuid
+  createdAt   DateTime  @default(now())
+
+  period   AccountingPeriod   @relation(fields: [periodId], references: [id])
+  supplier Supplier           @relation(fields: [supplierId], references: [id])
+  lines    StockReceiptLine[]
+}
+
+model StockReceiptLine {
+  id         String  @id @default(uuid()) @db.Uuid
+  receiptId  String  @db.Uuid
+  materialId String  @db.Uuid
+  qty        Decimal @db.Decimal(14, 3)
+  priceVnd   BigInt
+  sortOrder  Int     @default(0)
+
+  receipt  StockReceipt @relation(fields: [receiptId], references: [id], onDelete: Cascade)
+  material Material     @relation(fields: [materialId], references: [id])
+}
+
+/// Phiếu xuất kho for production (valued at the month's weighted average once priced)
+model StockIssue {
+  id          String   @id @default(uuid()) @db.Uuid
+  code        String   @unique // PX-2610-0001
+  periodId    String   @db.Uuid
+  date        DateTime @db.Date
+  orderId     String?  @db.Uuid
+  note        String?
+  createdById String   @db.Uuid
+  createdAt   DateTime @default(now())
+
+  period AccountingPeriod @relation(fields: [periodId], references: [id])
+  lines  StockIssueLine[]
+}
+
+model StockIssueLine {
+  id         String  @id @default(uuid()) @db.Uuid
+  issueId    String  @db.Uuid
+  materialId String  @db.Uuid
+  qty        Decimal @db.Decimal(14, 3)
+  /// Unit cost used: provisional until the month is priced, then the weighted average
+  priceVnd   BigInt  @default(0)
+  sortOrder  Int     @default(0)
+
+  issue    StockIssue @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  material Material   @relation(fields: [materialId], references: [id])
+}
+
+/// Khoản mục chi phí: how an expense splits over 154 / 6421 / 6422
+model ExpenseCategory {
+  id        String  @id @default(uuid()) @db.Uuid
+  name      String  @unique
+  /// [{ "account": "154", "percent": 60 }, …], percents add up to 100
+  split     Json
+  isActive  Boolean @default(true)
+  sortOrder Int     @default(0)
+
+  payments CashPayment[]
+}
+
+/// Phiếu chi: an expense, or a payment to a supplier
+model CashPayment {
+  id          String           @id @default(uuid()) @db.Uuid
+  code        String           @unique // PC-2610-0001
+  periodId    String           @db.Uuid
+  date        DateTime         @db.Date
+  description String
+  categoryId  String?          @db.Uuid // expense
+  supplierId  String?          @db.Uuid // supplier payment
+  amountVnd   BigInt // before VAT
+  vatRate     Int              @default(0)
+  vatVnd      BigInt           @default(0)
+  method      PayMethod
+  createdById String           @db.Uuid
+  createdAt   DateTime         @default(now())
+
+  period   AccountingPeriod @relation(fields: [periodId], references: [id])
+  category ExpenseCategory? @relation(fields: [categoryId], references: [id])
+  supplier Supplier?        @relation(fields: [supplierId], references: [id])
+}
+
+/// TSCĐ (depreciated monthly into 214) or CCDC (allocated monthly out of 242)
+model FixedAsset {
+  id             String    @id @default(uuid()) @db.Uuid
+  code           String    @unique // TS-01, CC-01
+  kind           AssetKind
+  name           String
+  costVnd        BigInt
+  /// First month charged, "2026-04"
+  startMonth     String
+  months         Int
+  /// Where the monthly charge goes: 154, 6421 or 6422
+  expenseAccount String
+  supplierId     String?   @db.Uuid
+  createdById    String    @db.Uuid
+  createdAt      DateTime  @default(now())
+
+  supplier Supplier? @relation(fields: [supplierId], references: [id])
 }
