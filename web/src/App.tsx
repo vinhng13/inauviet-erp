@@ -2,14 +2,24 @@ import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from '@ta
 import { App as AntApp, ConfigProvider, Result, Spin } from 'antd';
 import viVN from 'antd/locale/vi_VN';
 import type { ReactNode } from 'react';
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router';
+import { BrowserRouter, Route, Routes } from 'react-router';
 import { ApiError } from './api/client';
 import { keys, useMe } from './api/hooks';
-import { AppLayout, firstAllowedPath } from './layout/AppLayout';
+import { AppLayout } from './layout/AppLayout';
 import { useCan, type Permission } from './lib/access';
 import { errorMessage } from './lib/errors';
 import './lib/format';
 import { AccountsPage } from './pages/AccountsPage';
+import { AccountingAssetsPage } from './pages/accounting/AssetsPage';
+import { AccountingCashPage } from './pages/accounting/CashPage';
+import { AccountingDebtsPage } from './pages/accounting/DebtsPage';
+import { AccountingJournalPage } from './pages/accounting/JournalPage';
+import { AccountingOverviewPage } from './pages/accounting/OverviewPage';
+import { AccountingPeriodsPage } from './pages/accounting/PeriodsPage';
+import { AccountingReportsPage } from './pages/accounting/ReportsPage';
+import { AccountingStockPage } from './pages/accounting/StockPage';
+import { AccountingTaxPage } from './pages/accounting/TaxPage';
+import { ModulePickerPage } from './pages/ModulePickerPage';
 import { BoardPage } from './pages/BoardPage';
 import { CustomerDetailPage } from './pages/CustomerDetailPage';
 import { CustomersPage } from './pages/CustomersPage';
@@ -63,8 +73,8 @@ export function App() {
           <BrowserRouter>
             <SignInGate>
               <Routes>
+                <Route index element={<ModulePickerPage />} />
                 <Route element={<AppLayout />}>
-                  <Route index element={<HomeRedirect />} />
                   <Route path="/board" element={<Allow p="orders.view"><BoardPage /></Allow>} />
                   <Route path="/quotes" element={<Allow p="quotes.view"><QuotesPage /></Allow>} />
                   <Route path="/quotes/new" element={<Allow p="quotes.create"><QuoteEditorPage /></Allow>} />
@@ -77,6 +87,15 @@ export function App() {
                   <Route path="/production" element={<Allow p="production.view"><ProductionPage /></Allow>} />
                   <Route path="/deliveries" element={<Allow p="deliveries.view"><DeliveriesPage /></Allow>} />
                   <Route path="/payments" element={<Allow p="payments.view"><PaymentsPage /></Allow>} />
+                  <Route path="/accounting" element={<Allow p="accounting.view"><AccountingOverviewPage /></Allow>} />
+                  <Route path="/accounting/periods" element={<Allow p="accounting.view"><AccountingPeriodsPage /></Allow>} />
+                  <Route path="/accounting/cash" element={<Allow p="accounting.view"><AccountingCashPage /></Allow>} />
+                  <Route path="/accounting/debts" element={<Allow p="accounting.view"><AccountingDebtsPage /></Allow>} />
+                  <Route path="/accounting/stock" element={<Allow p="accounting.view"><AccountingStockPage /></Allow>} />
+                  <Route path="/accounting/assets" element={<Allow p="accounting.view"><AccountingAssetsPage /></Allow>} />
+                  <Route path="/accounting/tax" element={<Allow p="accounting.view"><AccountingTaxPage /></Allow>} />
+                  <Route path="/accounting/journal" element={<Allow p="accounting.view"><AccountingJournalPage /></Allow>} />
+                  <Route path="/accounting/reports" element={<Allow p="accounting.view"><AccountingReportsPage /></Allow>} />
                   <Route path="/customers" element={<Allow p="customers.view"><CustomersPage /></Allow>} />
                   <Route path="/customers/:id" element={<Allow p="customers.view"><CustomerDetailPage /></Allow>} />
                   <Route path="/products" element={<Allow p="products.view"><ProductsPage /></Allow>} />
@@ -106,11 +125,4 @@ function SignInGate({ children }: { children: ReactNode }) {
 function Allow({ p, children }: { p: Permission; children: ReactNode }) {
   const can = useCan();
   return can(p) ? <>{children}</> : <Result status="403" title="Bạn không có quyền xem trang này" subTitle="Nhờ quản trị viên cấp thêm quyền nếu cần." />;
-}
-
-/** Home is the first page this account may open (the board for most people). */
-function HomeRedirect() {
-  const can = useCan();
-  const path = firstAllowedPath(can);
-  return path ? <Navigate to={path} replace /> : <Result status="info" title="Tài khoản chưa được cấp quyền nào" subTitle="Nhờ quản trị viên thêm quyền cho nhóm của bạn." />;
 }

@@ -34,7 +34,7 @@ const MESSAGES: Record<string, string> = {
   LINE_NOT_IN_ORDER: 'Mặt hàng không thuộc đơn này.',
   INVALID_LINE_INDEX: 'Chuyến giao chọn một mặt hàng không có trong đơn.',
   ORDER_CANCELLED: 'Đơn đã huỷ, không sửa được nữa.',
-  ORDER_COMPLETED: 'Đơn đã hoàn thành, không huỷ được.',
+  ORDER_COMPLETED: 'Đơn đã nghiệm thu / hoàn thành, không huỷ hay sửa hạng mục được nữa.',
   INVALID_STATUS: 'Không thể làm việc này ở trạng thái hiện tại.',
   DELIVERY_HAS_PAYMENTS: 'Chuyến này đã có khoản thu. Huỷ khoản thu trước.',
   DELIVERY_NOT_IN_ORDER: 'Chuyến giao không thuộc đơn này.',
@@ -60,6 +60,47 @@ const MESSAGES: Record<string, string> = {
   NOT_FULLY_DELIVERED: 'Chưa giao đủ hàng, chưa ký nghiệm thu được.',
   ORDER_ACCEPTED: 'Đơn đã ký nghiệm thu, không sửa chuyến giao được nữa.',
   USER_NOT_FOUND: 'Không tìm thấy tài khoản hoặc tài khoản đã khoá.',
+  // Kế toán
+  BOOKS_NOT_STARTED: 'Sổ sách chưa bắt đầu. Chọn tháng đầu tiên ghi sổ ở mục Tổng quan.',
+  BOOKS_STARTED: 'Sổ sách đã bắt đầu từ trước.',
+  INVALID_MONTH: 'Tháng không hợp lệ.',
+  PERIOD_CLOSED: 'Kỳ kế toán của ngày chứng từ đã khoá sổ. Chọn ngày trong kỳ đang mở hoặc mở lại kỳ.',
+  PERIOD_BEFORE_START: 'Ngày chứng từ trước kỳ đầu tiên của sổ sách: đưa vào số dư đầu kỳ.',
+  PERIOD_NOT_CLOSED: 'Kỳ này chưa khoá sổ.',
+  PREVIOUS_PERIOD_OPEN: 'Kỳ trước chưa khoá sổ. Khoá sổ các kỳ theo thứ tự.',
+  LATER_PERIOD_CLOSED: 'Kỳ sau đã khoá sổ. Mở lại kỳ sau trước.',
+  STEP_ORDER: 'Chạy các bước cuối kỳ theo đúng thứ tự.',
+  STEP_DONE: 'Bước này đã chạy rồi.',
+  STEPS_PENDING: 'Chạy đủ 5 bước cuối kỳ trước khi khoá sổ.',
+  OPENINGS_UNBALANCED: 'Số dư đầu kỳ chưa cân (tổng Nợ khác tổng Có). Sửa ở mục Kỳ kế toán.',
+  OPENINGS_LOCKED: 'Kỳ đầu tiên đã khoá sổ nên số dư đầu kỳ không sửa được nữa.',
+  ENTRY_UNBALANCED: 'Bút toán chưa cân: tổng Nợ phải bằng tổng Có và lớn hơn 0.',
+  ENTRY_NEGATIVE: 'Số tiền không được âm.',
+  ENTRY_BOTH_SIDES: 'Mỗi dòng chỉ ghi Nợ hoặc Có.',
+  ENTRY_LOCKED: 'Bút toán này theo CRM hoặc do bước cuối kỳ tạo, không sửa/xoá được.',
+  EDIT_REASON_REQUIRED: 'Ghi lý do khi sửa bút toán tự động.',
+  ACCOUNT_UNKNOWN: 'Tài khoản không có trong hệ thống tài khoản.',
+  ACCOUNT_DUPLICATE: 'Mỗi tài khoản chỉ nhập một lần.',
+  MATERIAL_UNKNOWN: 'Vật tư không tồn tại hoặc đã ngừng dùng.',
+  MATERIAL_DUPLICATE: 'Mỗi vật tư chỉ nhập một lần.',
+  MATERIAL_CODE_TAKEN: 'Mã vật tư đã có.',
+  SUPPLIER_NAME_TAKEN: 'Đã có nhà cung cấp trùng tên.',
+  CATEGORY_NAME_TAKEN: 'Đã có khoản mục trùng tên.',
+  SPLIT_NOT_100: 'Tỷ lệ phân bổ phải cộng đủ 100%.',
+  SPLIT_ACCOUNT: 'Chỉ phân bổ vào 154, 6421, 6422, mỗi tài khoản một lần.',
+  STOCK_SHORT: 'Không đủ tồn kho.',
+  RECEIPT_EMPTY: 'Phiếu nhập chưa có giá trị.',
+  PAYMENT_TARGET: 'Chọn khoản mục chi phí hoặc nhà cung cấp.',
+  ASSET_SUPPLIER_REQUIRED: 'Mua chịu cần chọn nhà cung cấp.',
+  SUPPLIER_NOT_FOUND: 'Không tìm thấy nhà cung cấp.',
+  MATERIAL_NOT_FOUND: 'Không tìm thấy vật tư.',
+  EXPENSECATEGORY_NOT_FOUND: 'Không tìm thấy khoản mục chi phí (hoặc đã ngừng dùng).',
+  JOURNALENTRY_NOT_FOUND: 'Không tìm thấy bút toán.',
+  ACCOUNTINGPERIOD_NOT_FOUND: 'Không tìm thấy kỳ kế toán.',
+  STOCKISSUE_NOT_FOUND: 'Không tìm thấy phiếu xuất.',
+  STOCKRECEIPT_NOT_FOUND: 'Không tìm thấy phiếu nhập.',
+  FIXEDASSET_NOT_FOUND: 'Không tìm thấy tài sản.',
+  ASSET_CHARGED: 'Tài sản đã được trích ở kỳ đã khoá sổ, không xoá được.',
 };
 
 export function errorMessage(err: unknown): string {
@@ -72,6 +113,8 @@ export function errorMessage(err: unknown): string {
       return `${base} ${lines}`;
     }
     if (err.code === 'WEAK_PASSWORD') return err.message;
+    if (err.code === 'STOCK_SHORT' && err.body.details?.onHand !== undefined) return `${base} ${err.message.replace(/^Not enough (.*) in stock \((.*)\)$/, '$1: còn $2')}`;
+    if (err.code === 'OPENINGS_UNBALANCED' && typeof err.body.details?.differenceVnd === 'number') return `${base} Lệch ${new Intl.NumberFormat('vi-VN').format(Math.abs(err.body.details.differenceVnd as number))} đ.`;
     if (err.code === 'VALIDATION_FAILED' && Array.isArray(err.body.details?.errors)) {
       return `${base} (${(err.body.details!.errors as string[]).join('; ')})`;
     }

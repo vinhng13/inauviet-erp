@@ -1,5 +1,6 @@
 import { Module, RequestMethod } from '@nestjs/common';
 import { LoggerModule } from 'nestjs-pino';
+import { AccountingModule } from './accounting/accounting.module';
 import { AccessModule } from './access/access.module';
 import { ActivityModule } from './activity/activity.module';
 import { AuthModule } from './auth/auth.module';
@@ -38,6 +39,7 @@ const isTest = process.env.NODE_ENV === 'test';
     CatalogModule,
     OrdersModule,
     DocumentsModule,
+    AccountingModule,
   ],
   controllers: [HealthController],
 })

@@ -89,6 +89,43 @@ async function main(): Promise<void> {
     console.log(`Sample catalog: ${products.length} products`);
   }
 
+  // Sample materials, suppliers, fixed assets and tools for the accounting module (books not started)
+  if (process.env.SEED_SAMPLE_DATA !== 'false' && (await prisma.material.count()) === 0) {
+    const materials: Array<[string, string, string]> = [
+      ['VT-BAT32', 'Bạt Hiflex khổ 3,2 m', 'm²'],
+      ['VT-DPP', 'Decal PP in UV', 'm²'],
+      ['VT-DSUA', 'Decal sữa', 'm²'],
+      ['VT-MUC', 'Mực in UV', 'lít'],
+      ['VT-ALU3', 'Tấm alu 3 mm 1,22×2,44', 'tấm'],
+      ['VT-MICA3', 'Mica 3 mm 1,22×2,44', 'tấm'],
+      ['VT-C300', 'Giấy C300', 'ram'],
+    ];
+    await prisma.material.createMany({ data: materials.map(([code, name, unit]) => ({ code, name, unit })) });
+    const suppliers = ['Cty Vật tư quảng cáo Phú Thịnh', 'Mực in Hoàng Gia', 'Nhôm Alu Đại Phát', 'Giấy Sài Gòn Xanh'];
+    if ((await prisma.supplier.count()) === 0) {
+      for (const [i, name] of suppliers.entries()) {
+        await prisma.supplier.create({ data: { code: `NCC-${String(i + 1).padStart(4, '0')}`, name } });
+      }
+      await prisma.$executeRaw`INSERT INTO "DocumentSequence" ("prefix", "period", "lastNo") VALUES ('NCC', '', ${suppliers.length})
+        ON CONFLICT ("prefix", "period") DO UPDATE SET "lastNo" = GREATEST("DocumentSequence"."lastNo", EXCLUDED."lastNo")`;
+    }
+    if ((await prisma.fixedAsset.count()) === 0) {
+      const assets: Array<[string, 'FIXED_ASSET' | 'TOOL', string, number, string, number, string]> = [
+        ['TS-01', 'FIXED_ASSET', 'Máy in UV phẳng 2,5×1,3 m', 150_000_000, '2024-01', 60, '154'],
+        ['TS-02', 'FIXED_ASSET', 'Máy in bạt khổ lớn 3,2 m', 90_000_000, '2023-06', 60, '154'],
+        ['TS-03', 'FIXED_ASSET', 'Máy cắt CNC chữ nổi', 60_000_000, '2025-03', 48, '154'],
+        ['TS-04', 'FIXED_ASSET', 'Xe tải nhỏ giao hàng', 180_000_000, '2024-09', 72, '6421'],
+        ['CC-01', 'TOOL', 'Máy cán màng nguội 1,6 m', 18_000_000, '2026-04', 12, '154'],
+        ['CC-02', 'TOOL', 'Bộ bàn cắt, dao, thước nhôm', 6_000_000, '2026-08', 6, '154'],
+        ['CC-03', 'TOOL', 'Máy tính thiết kế', 24_000_000, '2026-01', 24, '6422'],
+      ];
+      await prisma.fixedAsset.createMany({
+        data: assets.map(([code, kind, name, cost, startMonth, months, expenseAccount]) => ({ code, kind, name, costVnd: BigInt(cost), startMonth, months, expenseAccount, createdById: owner.id })),
+      });
+    }
+    console.log(`Sample accounting data: ${materials.length} materials, ${suppliers.length} suppliers, 7 assets and tools`);
+  }
+
   if (process.env.SEED_SAMPLE_DATA === 'false' || (await prisma.order.count()) > 0) return;
 
   const phone = '0903123456';

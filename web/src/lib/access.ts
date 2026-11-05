@@ -11,6 +11,7 @@ export type Permission =
   | 'production.view' | 'production.update'
   | 'deliveries.view' | 'deliveries.create' | 'deliveries.update' | 'deliveries.deliver' | 'deliveries.cancel' | 'deliveries.reopen' | 'deliveries.accept'
   | 'payments.view' | 'payments.create' | 'payments.void'
+  | 'accounting.view' | 'accounting.post' | 'accounting.close' | 'accounting.reopen'
   | 'money.view'
   | 'customers.view' | 'customers.create' | 'customers.update'
   | 'products.view' | 'products.manage'

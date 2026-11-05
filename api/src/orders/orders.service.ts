@@ -273,7 +273,11 @@ export class OrdersService {
   /** Replace the order lines. Kept lines keep their id; removed lines must have no trips. */
   async replaceLines(id: string, dto: ReplaceLinesDto, actor: AuthUser): Promise<OrderDetailDto> {
     await this.prisma.$transaction(async (tx) => {
-      await this.loadOpen(tx, id);
+      const order = await this.loadOpen(tx, id);
+      // Revenue is booked at acceptance from these lines: after that they are final
+      if (order.status === OrderStatus.COMPLETED || order.acceptedAt) {
+        throw DomainError.conflict('ORDER_COMPLETED', `${order.code} was accepted by the customer; its lines can no longer change`);
+      }
       const current = await tx.orderLine.findMany({ where: { orderId: id }, include: { _count: { select: { deliveryLines: true } } } });
       const currentIds = new Set(current.map((l) => l.id));
       const keepIds = new Set(dto.lines.filter((l) => l.id).map((l) => l.id!));

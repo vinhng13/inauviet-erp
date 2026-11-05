@@ -3,7 +3,10 @@ import { ENV, type Env } from '../config/env';
 import { periodInZone } from '../common/utils/dates';
 import type { Tx } from '../prisma/prisma.service';
 
-export type DocumentPrefix = 'KH' | 'BG' | 'DH' | 'LSX' | 'GH';
+export type DocumentPrefix = 'KH' | 'BG' | 'DH' | 'LSX' | 'GH' | 'NCC' | 'PT' | 'PN' | 'PX' | 'PC' | 'PKT';
+
+/** Codes that run on without restarting each month */
+const RUNNING: DocumentPrefix[] = ['KH', 'NCC'];
 
 /**
  * Human-readable document codes staff can say over the phone.
@@ -12,6 +15,8 @@ export type DocumentPrefix = 'KH' | 'BG' | 'DH' | 'LSX' | 'GH';
  *   DH-2610-0042   orders     (restarts each month, YYMM)
  *   LSX-2610-0014  work orders (restarts each month, YYMM)
  *   GH-2610-0011   deliveries (restarts each month, YYMM)
+ *   NCC-0001       suppliers (one running sequence)
+ *   PT / PN / PX / PC / PKT-2610-0001  accounting vouchers, numbered in their posting month
  * Uses one atomic upsert, so two people saving at the same moment never get the same number.
  */
 @Injectable()
@@ -19,7 +24,7 @@ export class NumberingService {
   constructor(@Inject(ENV) private readonly env: Env) {}
 
   async next(tx: Tx, prefix: DocumentPrefix, now: Date = new Date()): Promise<string> {
-    const period = prefix === 'KH' ? '' : periodInZone(this.env.APP_TIMEZONE, now);
+    const period = RUNNING.includes(prefix) ? '' : periodInZone(this.env.APP_TIMEZONE, now);
     const rows = await tx.$queryRaw<Array<{ lastNo: number }>>`
       INSERT INTO "DocumentSequence" ("prefix", "period", "lastNo")
       VALUES (${prefix}, ${period}, 1)

@@ -66,6 +66,16 @@ export const PERMISSION_MODULES = [
     ],
   },
   {
+    key: 'accounting',
+    label: 'Kế toán',
+    actions: [
+      { key: 'view', label: 'Xem', description: 'Sổ sách, kho, tài sản, thuế, báo cáo lãi lỗ và sổ cái' },
+      { key: 'post', label: 'Lập chứng từ', description: 'Phiếu nhập, phiếu xuất, phiếu chi, ghi tăng tài sản, bút toán thủ công, sửa bút toán tự động' },
+      { key: 'close', label: 'Khoá sổ', description: 'Chạy các bước cuối tháng và khoá sổ kỳ' },
+      { key: 'reopen', label: 'Mở lại kỳ', description: 'Mở lại kỳ đã khoá sổ để sửa sai' },
+    ],
+  },
+  {
     key: 'money',
     label: 'Giá & số tiền',
     actions: [
@@ -144,6 +154,10 @@ export const IMPLIED: Partial<Record<Permission, Permission[]>> = {
   'payments.view': ['orders.view', 'money.view'],
   'payments.create': ['payments.view'],
   'payments.void': ['payments.view'],
+  'accounting.view': ['money.view'],
+  'accounting.post': ['accounting.view'],
+  'accounting.close': ['accounting.view'],
+  'accounting.reopen': ['accounting.close'],
   'customers.create': ['customers.view'],
   'customers.update': ['customers.view'],
   'accounts.create': ['accounts.view', 'roles.view'],
@@ -178,8 +192,8 @@ export const DEFAULT_ROLES: Array<{ name: string; description: string; permissio
   },
   {
     name: 'Kế toán',
-    description: 'Theo dõi tiền cọc, tiền thu và công nợ',
-    permissions: normalizePermissions(['payments.create', 'payments.void', 'deliveries.view', 'customers.view']),
+    description: 'Tiền thu, công nợ và sổ sách kế toán nội bộ',
+    permissions: normalizePermissions(['payments.create', 'payments.void', 'deliveries.view', 'customers.view', 'accounting.post', 'accounting.close']),
   },
   {
     name: 'Giao hàng',
