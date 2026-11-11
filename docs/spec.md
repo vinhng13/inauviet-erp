@@ -1,10 +1,15 @@
-# Inauviet ERP — Technical Spec (v0.8)
+# Inauviet ERP — Technical Spec (v0.9)
 
 **Backend:** Node.js 22 LTS · NestJS · Prisma 7 · PostgreSQL
 **Frontend:** React 19 · TypeScript · Vite · Ant Design 6
 **Repository:** `Inauviet/ERP/` with `api/` and `web/` (npm workspaces), next to `Inauviet/CMS/`
 **Scope:** A simple order and delivery tracker. Staff create orders with a delivery plan, follow every order on a board, mark deliveries done, and optionally record payments.
 **Status:** Codebase initialized 29 Oct 2026 (milestones M0–M3 built and tested, M4 deployment files in place). Open questions are in section 12.
+
+**Changes in v0.9 (Facebook fanpage chat, 11 Nov 2026)**
+- CRM → **Hội thoại**: Messenger messages and fanpage comments, answered from the CRM (text, images, files; public reply or one private reply to a comment). Live updates over server-sent events, unread badge and chime.
+- Quản trị → **Kết nối kênh**: connect fanpages with a system-user (or page) access token; tokens stored AES-256-GCM encrypted; health, last event, failed events with retry.
+- New permissions `conversations.view / viewAll / reply / assign` and `channels.manage`; the "Kinh doanh" group gets view + reply. See section 14.
 
 **Changes in v0.8 (separate modules and the accounting module, 05 Nov 2026)**
 - After sign-in a module picker (`/`) shows only the modules the account may use: **CRM**, **Kế toán**, **Quản trị**. Each module has its own sidebar menu and a switcher at the top of the menu (also "Chọn module" in the user menu). CRM paths are unchanged; accounting lives under `/accounting/*` plus `/payments`.
@@ -561,3 +566,34 @@ Any posting that changes the month's figures (everything except customer receipt
 | POST | /receipts · /issues · /cash-payments · /assets · /entries | vouchers |
 | PUT | /entries/:id | manual entry, or automatic entry with `reason` |
 | DELETE | /entries/:id · /receipts/:id · /issues/:id · /assets/:id | voucher and its entry; CRM and month-end entries can't be deleted |
+
+## 14. Facebook fanpage chat
+
+Phase 3 of the channel design (Messenger + comments). Lead ads, Zalo OA, lead records and source reports come later on the same tables.
+
+### 14.1 Flow
+1. Meta calls `POST /api/v1/webhooks/facebook`. The API checks `X-Hub-Signature-256` (HMAC-SHA256 of the raw body with `FB_APP_SECRET`), stores each `entry` as a `WebhookEvent` and answers 200 at once. `GET` on the same path answers Meta's verify-token handshake (`FB_VERIFY_TOKEN`).
+2. An in-process worker claims due events (`FOR UPDATE SKIP LOCKED`, sorted by arrival so messages keep their order), every 5 s and right after each webhook call. Failures wait 30 s, 2 min, 10 min, 30 min; the 5th failure marks the event failed and writes the error on the channel. "Chạy lại" puts failed events back.
+3. Each Messenger message or comment becomes a `Message` (deduplicated by its Facebook id) in a `Conversation` of a `ChannelContact` (one person on one page; name and picture from the Graph API). Echoes of messages the CRM sent carry `metadata = inauviet-erp` and are skipped; messages typed in Meta Business Suite are stored as `outsideCrm`. Images and files are downloaded to `CHAT_FILES_DIR` (Facebook links expire).
+4. Staff answer from the CRM: Messenger Send API with `messaging_type RESPONSE` within 24 h of the customer's last message, `MESSAGE_TAG / HUMAN_AGENT` until day 7, refused after that (`REPLY_WINDOW_CLOSED`). Comments: public reply under the customer's latest comment, or one private reply (`recipient.comment_id`) within 7 days. A refusal from Facebook is stored as a FAILED message with a Vietnamese reason; error 190 also marks the channel ERROR.
+
+### 14.2 Model
+| Table | Holds |
+|---|---|
+| `ChannelAccount` | platform, page id, name, picture, page token (encrypted), status ACTIVE / ERROR / DISCONNECTED, last event, last error, who connected |
+| `WebhookEvent` | raw entry, attempts, next attempt, lock, processed / failed time, last error |
+| `ChannelContact` | page, PSID or user id (unique per page), name, avatar, first phone number written, linked `Customer` |
+| `Conversation` | kind MESSAGE / COMMENT, thread key (`m`, or `c:<postId>` per commenter and post), post link, assignee, OPEN / DONE, last message preview / time / direction, last inbound time, unread count, private reply used |
+| `Message` | direction IN / OUT, Facebook id (unique), type, text, attachments JSON, sender (staff), outsideCrm, privateReply, status RECEIVED / SENDING / SENT / FAILED, error |
+
+### 14.3 Rules
+- Visibility: with `conversations.viewAll` everything; otherwise conversations assigned to me plus unassigned ones (so new chats can be picked up before round-robin assignment exists).
+- Replying to an unassigned conversation assigns it to the sender. Taking an unassigned one needs `reply`; any other change of assignee needs `assign`. A returning contact goes to the person who handled them last.
+- A new inbound message reopens a DONE conversation and increments its unread count; opening the conversation marks it read.
+- The first Vietnamese phone number in an inbound message is kept on the contact; "Tạo khách mới" pre-fills it. "Lập báo giá" opens `/quotes/new?customerId=`.
+
+### 14.4 Endpoints
+`GET/POST /webhooks/facebook` (public, signed) · `GET /channels` · `POST /channels/facebook/pages` (preview, token not stored) · `POST /channels/facebook/connect` · `POST /channels/:id/check` · `DELETE /channels/:id` · `POST /channels/events/retry` · `GET /conversations` (filter all / mine / unassigned / waiting, status, kind, channel, q, before) · `GET /conversations/unread` · `GET /conversations/assignees` · `GET /conversations/stream` (SSE) · `GET /conversations/:id` · `GET /conversations/:id/messages?before=` · `POST /conversations/:id/messages` · `POST /conversations/:id/files` (multipart, 25 MB) · `POST /conversations/:id/read` · `PATCH /conversations/:id` · `PUT /conversations/:id/customer` · `GET /conversations/:id/messages/:messageId/files/:index`.
+
+### 14.5 Configuration
+`CHANNEL_SECRET_KEY` (64 hex), `FB_APP_SECRET`, `FB_VERIFY_TOKEN`, `FB_GRAPH_VERSION` (default v24.0), `FB_GRAPH_URL` (tests point it at a fake), `CHAT_FILES_DIR`, `CHANNEL_WORKER` (off in tests). The reverse proxy must not compress or buffer `/api/v1/conversations/stream`.

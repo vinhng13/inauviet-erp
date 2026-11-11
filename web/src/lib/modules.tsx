@@ -1,4 +1,5 @@
 import {
+  ApiOutlined,
   AppstoreOutlined,
   BankOutlined,
   BarChartOutlined,
@@ -12,6 +13,7 @@ import {
   DollarOutlined,
   FileDoneOutlined,
   FileTextOutlined,
+  MessageOutlined,
   PercentageOutlined,
   SafetyCertificateOutlined,
   SettingOutlined,
@@ -48,11 +50,12 @@ export const MODULES: AppModule[] = [
   {
     key: 'crm',
     name: 'CRM',
-    description: 'Báo giá, đơn hàng, thiết kế, sản xuất, giao hàng và khách hàng',
+    description: 'Hội thoại Facebook, báo giá, đơn hàng, thiết kế, sản xuất, giao hàng và khách hàng',
     icon: <AppstoreOutlined />,
     color: '#0a6f9c',
     nav: [
       { key: '/board', icon: <AppstoreOutlined />, label: 'Bảng điều phối', permission: 'orders.view' },
+      { key: '/conversations', icon: <MessageOutlined />, label: 'Hội thoại', permission: 'conversations.view' },
       { key: '/quotes', icon: <FileDoneOutlined />, label: 'Báo giá', permission: 'quotes.view' },
       { key: '/orders', icon: <FileTextOutlined />, label: 'Đơn hàng', permission: 'orders.view' },
       { key: '/design', icon: <BgColorsOutlined />, label: 'Thiết kế', permission: 'design.view' },
@@ -84,12 +87,13 @@ export const MODULES: AppModule[] = [
   {
     key: 'admin',
     name: 'Quản trị',
-    description: 'Tài khoản người dùng và nhóm quyền',
+    description: 'Tài khoản người dùng, nhóm quyền và kết nối fanpage',
     icon: <SettingOutlined />,
     color: '#7a4fb5',
     nav: [
       { key: '/accounts', icon: <UserOutlined />, label: 'Tài khoản', permission: 'accounts.view' },
       { key: '/roles', icon: <SafetyCertificateOutlined />, label: 'Nhóm quyền', permission: 'roles.view' },
+      { key: '/channels', icon: <ApiOutlined />, label: 'Kết nối kênh', permission: 'channels.manage' },
     ],
   },
 ];

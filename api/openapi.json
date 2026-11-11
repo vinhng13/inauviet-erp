@@ -3841,6 +3841,546 @@
           "accounting"
         ]
       }
+    },
+    "/api/v1/channels": {
+      "get": {
+        "operationId": "Channels_overview",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChannelOverviewDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Connected pages, configuration checklist and failed webhook events",
+        "tags": [
+          "channels"
+        ]
+      }
+    },
+    "/api/v1/channels/facebook/pages": {
+      "post": {
+        "operationId": "Channels_pages",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FacebookTokenDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FacebookPagesDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Pages the token can manage. 400 FB_TOKEN_REJECTED when Facebook refuses the token.",
+        "tags": [
+          "channels"
+        ]
+      }
+    },
+    "/api/v1/channels/facebook/connect": {
+      "post": {
+        "operationId": "Channels_connect",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectFacebookDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectResultsDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Connects the chosen pages: stores each page token encrypted and subscribes to its events",
+        "tags": [
+          "channels"
+        ]
+      }
+    },
+    "/api/v1/channels/{id}/check": {
+      "post": {
+        "operationId": "Channels_check",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "channels"
+        ]
+      }
+    },
+    "/api/v1/channels/{id}": {
+      "delete": {
+        "operationId": "Channels_disconnect",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "channels"
+        ]
+      }
+    },
+    "/api/v1/channels/events/retry": {
+      "post": {
+        "operationId": "Channels_retry",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "channels"
+        ]
+      }
+    },
+    "/api/v1/conversations": {
+      "get": {
+        "operationId": "Conversations_list",
+        "parameters": [
+          {
+            "name": "filter",
+            "required": false,
+            "in": "query",
+            "description": "all; mine = assigned to me; unassigned; waiting = the customer wrote last",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "all",
+                "mine",
+                "unassigned",
+                "waiting"
+              ]
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "OPEN",
+                "DONE"
+              ]
+            }
+          },
+          {
+            "name": "kind",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "MESSAGE",
+                "COMMENT"
+              ]
+            }
+          },
+          {
+            "name": "channelId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "description": "Name or phone of the person",
+            "schema": {
+              "maxLength": 100,
+              "type": "string"
+            }
+          },
+          {
+            "name": "before",
+            "required": false,
+            "in": "query",
+            "description": "Load conversations older than this (lastMessageAt of the last row shown)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConversationListDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Newest first; 50 per page",
+        "tags": [
+          "conversations"
+        ]
+      }
+    },
+    "/api/v1/conversations/unread": {
+      "get": {
+        "operationId": "Conversations_unread",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnreadDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "For the menu badge",
+        "tags": [
+          "conversations"
+        ]
+      }
+    },
+    "/api/v1/conversations/assignees": {
+      "get": {
+        "operationId": "Conversations_assignees",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssigneesDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "conversations"
+        ]
+      }
+    },
+    "/api/v1/conversations/{id}": {
+      "get": {
+        "operationId": "Conversations_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConversationDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "conversations"
+        ]
+      },
+      "patch": {
+        "operationId": "Conversations_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateConversationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConversationDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Assign (conversations.assign; taking an unassigned one needs only conversations.reply) or mark done / reopen",
+        "tags": [
+          "conversations"
+        ]
+      }
+    },
+    "/api/v1/conversations/{id}/messages": {
+      "get": {
+        "operationId": "Conversations_messages",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "before",
+            "required": false,
+            "in": "query",
+            "description": "Messages sent before this time (sentAt of the oldest one shown)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageListDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "50 messages, oldest first; pass before= to load earlier ones",
+        "tags": [
+          "conversations"
+        ]
+      },
+      "post": {
+        "operationId": "Conversations_send",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendMessageDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Messenger: 400 REPLY_WINDOW_CLOSED after 7 days of silence from the customer. Comments: public reply, or private=true\nfor the one private message Facebook allows (409 PRIVATE_REPLY_USED). A refusal by Facebook comes back as a FAILED message.",
+        "tags": [
+          "conversations"
+        ]
+      }
+    },
+    "/api/v1/conversations/{id}/read": {
+      "post": {
+        "operationId": "Conversations_read",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "conversations"
+        ]
+      }
+    },
+    "/api/v1/conversations/{id}/files": {
+      "post": {
+        "operationId": "Conversations_sendFile",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                },
+                "required": [
+                  "file"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Image or file (field \"file\", up to 25 MB), Messenger chats only",
+        "tags": [
+          "conversations"
+        ]
+      }
+    },
+    "/api/v1/conversations/{id}/customer": {
+      "put": {
+        "operationId": "Conversations_linkCustomer",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LinkCustomerDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConversationDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "conversations"
+        ]
+      }
     }
   },
   "info": {
@@ -9342,6 +9882,819 @@
         },
         "required": [
           "lines"
+        ]
+      },
+      "ChannelPlatform": {
+        "type": "string",
+        "enum": [
+          "FACEBOOK",
+          "ZALO"
+        ]
+      },
+      "ChannelStatus": {
+        "type": "string",
+        "enum": [
+          "ACTIVE",
+          "ERROR",
+          "DISCONNECTED"
+        ]
+      },
+      "ChannelDto": {
+        "type": "object",
+        "properties": {
+          "platform": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ChannelPlatform"
+              }
+            ]
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ChannelStatus"
+              }
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "externalId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "pictureUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastEventAt": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true
+          },
+          "lastError": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastErrorAt": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true
+          },
+          "connectedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "connectedBy": {
+            "type": "string",
+            "nullable": true
+          },
+          "conversations": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "platform",
+          "status",
+          "id",
+          "externalId",
+          "name",
+          "pictureUrl",
+          "lastEventAt",
+          "lastError",
+          "lastErrorAt",
+          "connectedAt",
+          "connectedBy",
+          "conversations"
+        ]
+      },
+      "ChannelSetupDto": {
+        "type": "object",
+        "properties": {
+          "appSecret": {
+            "type": "boolean",
+            "description": "FB_APP_SECRET is set: webhook signatures can be checked"
+          },
+          "verifyToken": {
+            "type": "boolean",
+            "description": "FB_VERIFY_TOKEN is set"
+          },
+          "secretKey": {
+            "type": "boolean",
+            "description": "CHANNEL_SECRET_KEY is set and valid: tokens can be stored"
+          },
+          "callbackPath": {
+            "type": "string",
+            "description": "Path of the callback URL to enter in the Meta app (after the public address)"
+          },
+          "graphVersion": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "appSecret",
+          "verifyToken",
+          "secretKey",
+          "callbackPath",
+          "graphVersion"
+        ]
+      },
+      "FailedEventDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "receivedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "attempts": {
+            "type": "number"
+          },
+          "lastError": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "receivedAt",
+          "attempts",
+          "lastError"
+        ]
+      },
+      "ChannelOverviewDto": {
+        "type": "object",
+        "properties": {
+          "channels": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChannelDto"
+            }
+          },
+          "setup": {
+            "$ref": "#/components/schemas/ChannelSetupDto"
+          },
+          "pendingEvents": {
+            "type": "number"
+          },
+          "failedEvents": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FailedEventDto"
+            }
+          }
+        },
+        "required": [
+          "channels",
+          "setup",
+          "pendingEvents",
+          "failedEvents"
+        ]
+      },
+      "FacebookTokenDto": {
+        "type": "object",
+        "properties": {
+          "accessToken": {
+            "type": "string",
+            "description": "User, system-user or page access token from Meta",
+            "maxLength": 2000
+          }
+        },
+        "required": [
+          "accessToken"
+        ]
+      },
+      "FacebookPageDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "pictureUrl": {
+            "type": "string"
+          },
+          "connected": {
+            "type": "boolean",
+            "description": "Already connected and active"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "connected"
+        ]
+      },
+      "FacebookPagesDto": {
+        "type": "object",
+        "properties": {
+          "pages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FacebookPageDto"
+            }
+          }
+        },
+        "required": [
+          "pages"
+        ]
+      },
+      "ConnectFacebookDto": {
+        "type": "object",
+        "properties": {
+          "accessToken": {
+            "type": "string",
+            "description": "User, system-user or page access token from Meta",
+            "maxLength": 2000
+          },
+          "pageIds": {
+            "description": "Pages to connect, from the preview",
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "accessToken",
+          "pageIds"
+        ]
+      },
+      "ConnectResultDto": {
+        "type": "object",
+        "properties": {
+          "pageId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "error": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "pageId",
+          "name",
+          "ok"
+        ]
+      },
+      "ConnectResultsDto": {
+        "type": "object",
+        "properties": {
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConnectResultDto"
+            }
+          }
+        },
+        "required": [
+          "results"
+        ]
+      },
+      "ConversationKind": {
+        "type": "string",
+        "enum": [
+          "MESSAGE",
+          "COMMENT"
+        ]
+      },
+      "ConversationStatus": {
+        "type": "string",
+        "enum": [
+          "OPEN",
+          "DONE"
+        ]
+      },
+      "ReplyWindowDto": {
+        "type": "object",
+        "properties": {
+          "mode": {
+            "description": "RESPONSE: within 24 h of the customer's last message; HUMAN_AGENT: day 2–7, staff only; CLOSED: past 7 days; COMMENT: public reply under the post",
+            "enum": [
+              "RESPONSE",
+              "HUMAN_AGENT",
+              "CLOSED",
+              "COMMENT"
+            ],
+            "type": "string"
+          },
+          "until": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true,
+            "description": "When the current mode ends"
+          }
+        },
+        "required": [
+          "mode",
+          "until"
+        ]
+      },
+      "ConversationRowDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ConversationKind"
+              }
+            ]
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ConversationStatus"
+              }
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "channelId": {
+            "type": "string"
+          },
+          "channelName": {
+            "type": "string"
+          },
+          "contactName": {
+            "type": "string"
+          },
+          "contactAvatarUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "customerName": {
+            "type": "string",
+            "nullable": true
+          },
+          "assignee": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PersonRefDto"
+              }
+            ]
+          },
+          "lastMessageAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "lastMessageText": {
+            "type": "string"
+          },
+          "lastMessageIn": {
+            "type": "boolean",
+            "description": "The customer wrote last: waiting for an answer"
+          },
+          "unreadCount": {
+            "type": "number"
+          },
+          "window": {
+            "$ref": "#/components/schemas/ReplyWindowDto"
+          }
+        },
+        "required": [
+          "kind",
+          "status",
+          "id",
+          "channelId",
+          "channelName",
+          "contactName",
+          "contactAvatarUrl",
+          "customerName",
+          "assignee",
+          "lastMessageAt",
+          "lastMessageText",
+          "lastMessageIn",
+          "unreadCount",
+          "window"
+        ]
+      },
+      "ConversationListDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConversationRowDto"
+            }
+          },
+          "hasMore": {
+            "type": "boolean",
+            "description": "More rows exist after the last one"
+          }
+        },
+        "required": [
+          "items",
+          "hasMore"
+        ]
+      },
+      "UnreadDto": {
+        "type": "object",
+        "properties": {
+          "conversations": {
+            "type": "number",
+            "description": "Visible open conversations with unread messages"
+          }
+        },
+        "required": [
+          "conversations"
+        ]
+      },
+      "AssigneesDto": {
+        "type": "object",
+        "properties": {
+          "people": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PersonRefDto"
+            }
+          }
+        },
+        "required": [
+          "people"
+        ]
+      },
+      "CustomerRefDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "name",
+          "phone"
+        ]
+      },
+      "ContactDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "avatarUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "phone": {
+            "type": "string",
+            "nullable": true,
+            "description": "First phone number the person wrote"
+          },
+          "customer": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CustomerRefDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "avatarUrl",
+          "phone",
+          "customer"
+        ]
+      },
+      "ConversationDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ConversationKind"
+              }
+            ]
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ConversationStatus"
+              }
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "channelId": {
+            "type": "string"
+          },
+          "channelName": {
+            "type": "string"
+          },
+          "contactName": {
+            "type": "string"
+          },
+          "contactAvatarUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "customerName": {
+            "type": "string",
+            "nullable": true
+          },
+          "assignee": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PersonRefDto"
+              }
+            ]
+          },
+          "lastMessageAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "lastMessageText": {
+            "type": "string"
+          },
+          "lastMessageIn": {
+            "type": "boolean",
+            "description": "The customer wrote last: waiting for an answer"
+          },
+          "unreadCount": {
+            "type": "number"
+          },
+          "window": {
+            "$ref": "#/components/schemas/ReplyWindowDto"
+          },
+          "contact": {
+            "$ref": "#/components/schemas/ContactDto"
+          },
+          "postId": {
+            "type": "string",
+            "nullable": true
+          },
+          "postUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "canPrivateReply": {
+            "type": "boolean",
+            "description": "Comment threads: a private message can still be sent (once per comment, within 7 days)"
+          }
+        },
+        "required": [
+          "kind",
+          "status",
+          "id",
+          "channelId",
+          "channelName",
+          "contactName",
+          "contactAvatarUrl",
+          "customerName",
+          "assignee",
+          "lastMessageAt",
+          "lastMessageText",
+          "lastMessageIn",
+          "unreadCount",
+          "window",
+          "contact",
+          "postId",
+          "postUrl",
+          "canPrivateReply"
+        ]
+      },
+      "MessageDirection": {
+        "type": "string",
+        "enum": [
+          "IN",
+          "OUT"
+        ]
+      },
+      "MessageType": {
+        "type": "string",
+        "enum": [
+          "TEXT",
+          "IMAGE",
+          "VIDEO",
+          "AUDIO",
+          "FILE",
+          "STICKER",
+          "OTHER"
+        ]
+      },
+      "MessageStatus": {
+        "type": "string",
+        "enum": [
+          "RECEIVED",
+          "SENDING",
+          "SENT",
+          "FAILED"
+        ]
+      },
+      "AttachmentDto": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "enum": [
+              "image",
+              "video",
+              "audio",
+              "file",
+              "sticker",
+              "other"
+            ],
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "mime": {
+            "type": "string",
+            "nullable": true
+          },
+          "size": {
+            "type": "number",
+            "nullable": true
+          },
+          "href": {
+            "type": "string",
+            "nullable": true,
+            "description": "Download through the CRM (copy kept on the server, or Facebook's link)"
+          }
+        },
+        "required": [
+          "type",
+          "name",
+          "mime",
+          "size",
+          "href"
+        ]
+      },
+      "MessageDto": {
+        "type": "object",
+        "properties": {
+          "direction": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MessageDirection"
+              }
+            ]
+          },
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MessageType"
+              }
+            ]
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MessageStatus"
+              }
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string",
+            "nullable": true
+          },
+          "attachments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AttachmentDto"
+            }
+          },
+          "sender": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PersonRefDto"
+              }
+            ]
+          },
+          "outsideCrm": {
+            "type": "boolean",
+            "description": "Sent by the page from Facebook / Meta Business Suite, not from the CRM"
+          },
+          "privateReply": {
+            "type": "boolean"
+          },
+          "error": {
+            "type": "string",
+            "nullable": true
+          },
+          "sentAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "direction",
+          "type",
+          "status",
+          "id",
+          "text",
+          "attachments",
+          "sender",
+          "outsideCrm",
+          "privateReply",
+          "error",
+          "sentAt"
+        ]
+      },
+      "MessageListDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MessageDto"
+            }
+          },
+          "hasMore": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "items",
+          "hasMore"
+        ]
+      },
+      "SendMessageDto": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "private": {
+            "type": "boolean",
+            "description": "Comment threads: send as a private Messenger message instead of a public reply"
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
+      "UpdateConversationDto": {
+        "type": "object",
+        "properties": {
+          "assigneeId": {
+            "type": "string",
+            "nullable": true,
+            "description": "null = nobody",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "OPEN",
+              "DONE"
+            ]
+          }
+        }
+      },
+      "LinkCustomerDto": {
+        "type": "object",
+        "properties": {
+          "customerId": {
+            "type": "string",
+            "nullable": true,
+            "description": "null removes the link",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "customerId"
         ]
       }
     }

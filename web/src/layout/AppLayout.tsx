@@ -1,7 +1,8 @@
 import { AppstoreOutlined, DownOutlined, KeyOutlined, LogoutOutlined, MenuOutlined, UserOutlined } from '@ant-design/icons';
-import { Button, Drawer, Dropdown, Grid, Input, Layout, Menu, Modal, Space, Typography, theme } from 'antd';
-import { useState } from 'react';
+import { Badge, Button, Drawer, Dropdown, Grid, Input, Layout, Menu, Modal, Space, Typography, theme } from 'antd';
+import { useEffect, useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router';
+import { useChatStream, useUnreadConversations } from '../api/chat';
 import { useAuthActions, useMe } from '../api/hooks';
 import { ChangePasswordForm } from '../components/ChangePasswordForm';
 import { useCan, type Permission } from '../lib/access';
@@ -23,10 +24,27 @@ export function AppLayout() {
   const [drawer, setDrawer] = useState(false);
   const { token } = theme.useToken();
 
+  const chat = can('conversations.view');
+  useChatStream(chat);
+  const unread = useUnreadConversations(chat).data?.conversations ?? 0;
+  useEffect(() => {
+    const base = document.title.replace(/^\(\d+\) /, '');
+    document.title = unread ? `(${unread}) ${base}` : base;
+  }, [unread]);
+
   const modules = allowedModules(can);
   const current = navItemOf(location.pathname);
   const module = modules.find((m) => m.key === current?.module.key) ?? modules[0];
-  const items = (module?.allowed ?? []).map((n) => ({ key: n.key, icon: n.icon, label: <Link to={n.key}>{n.label}</Link> }));
+  const items = (module?.allowed ?? []).map((n) => ({
+    key: n.key,
+    icon: n.icon,
+    label: (
+      <Link to={n.key}>
+        {n.label}
+        {n.key === '/conversations' && unread > 0 && <Badge count={unread} size="small" style={{ marginInlineStart: 8 }} />}
+      </Link>
+    ),
+  }));
   const selected = current?.item.key ?? '';
   const menu = <Menu mode="inline" selectedKeys={[selected]} items={items} onClick={() => setDrawer(false)} style={{ borderInlineEnd: 0 }} />;
   const compact = !screens.lg;

@@ -118,3 +118,22 @@ docker compose -f docker-compose.prod.yml --env-file .env.prod exec api npm run 
   Nhiều phản hồi `401` ở `/auth/login` liên tục nghĩa là có người dò mật khẩu: bật Cloudflare Access (mục 1.3).
 - `GET /api/v1/health` cho công cụ theo dõi (Uptime Kuma, Better Stack…).
 - Ai đã làm gì: tab *Lịch sử* của từng đơn; thay đổi tài khoản và nhóm quyền cũng được ghi lại trong database (bảng `ActivityLog`).
+
+## 7. Kết nối fanpage Facebook (Hội thoại)
+
+Tin nhắn Messenger và bình luận fanpage đổ về màn hình **CRM → Hội thoại**. Cần máy chủ chạy thật có HTTPS công khai
+(Meta không gọi được `localhost`). Các bước trên Meta xem tài liệu thiết kế, mục *Các bước kết nối Fanpage Facebook*.
+
+1. Thêm vào `.env.prod` rồi chạy lại `docker compose … up -d`:
+   - `CHANNEL_SECRET_KEY`: tạo bằng `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`.
+     Giữ cẩn thận: đổi khoá thì các fanpage phải kết nối lại.
+   - `FB_APP_SECRET`: Meta → ứng dụng → App settings → Basic → App Secret.
+   - `FB_VERIFY_TOKEN`: chuỗi ngẫu nhiên tự đặt.
+2. Meta → ứng dụng → **Webhooks** → đối tượng *Page*: Callback URL `https://erp.inauviet.vn/api/v1/webhooks/facebook`,
+   Verify token = `FB_VERIFY_TOKEN`. Chọn các trường `messages`, `message_echoes`, `messaging_postbacks`, `messaging_referrals`, `feed`.
+3. Trong ERP: **Quản trị → Kết nối kênh → Kết nối Facebook** → dán mã truy cập của người dùng hệ thống → chọn fanpage → Kết nối.
+   Màn hình hiện "Đang nhận tin" và thời điểm sự kiện cuối.
+4. Ảnh, tệp trong hội thoại nằm ở volume `chat_files`; sao lưu cùng cơ sở dữ liệu:
+   `docker run --rm -v erp_chat_files:/d -v $PWD/backups:/b alpine tar czf /b/chat-files-$(date +%F).tgz -C /d .`
+
+Caddy không được nén hoặc giữ lại luồng `/api/v1/conversations/stream` (cập nhật tức thời): xem `deploy/Caddyfile`.

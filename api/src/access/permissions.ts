@@ -76,6 +76,23 @@ export const PERMISSION_MODULES = [
     ],
   },
   {
+    key: 'conversations',
+    label: 'Hội thoại',
+    actions: [
+      { key: 'view', label: 'Xem', description: 'Hội thoại được giao cho mình và hội thoại chưa ai nhận' },
+      { key: 'viewAll', label: 'Xem tất cả', description: 'Mọi hội thoại, kể cả của người khác' },
+      { key: 'reply', label: 'Trả lời', description: 'Nhắn tin, trả lời bình luận, nhận hội thoại chưa ai nhận, gắn khách hàng' },
+      { key: 'assign', label: 'Phân công', description: 'Giao hội thoại cho người khác' },
+    ],
+  },
+  {
+    key: 'channels',
+    label: 'Kết nối kênh',
+    actions: [
+      { key: 'manage', label: 'Quản lý', description: 'Kết nối, ngắt kết nối fanpage Facebook; xem lỗi và chạy lại sự kiện' },
+    ],
+  },
+  {
     key: 'money',
     label: 'Giá & số tiền',
     actions: [
@@ -158,6 +175,9 @@ export const IMPLIED: Partial<Record<Permission, Permission[]>> = {
   'accounting.post': ['accounting.view'],
   'accounting.close': ['accounting.view'],
   'accounting.reopen': ['accounting.close'],
+  'conversations.viewAll': ['conversations.view'],
+  'conversations.reply': ['conversations.view'],
+  'conversations.assign': ['conversations.view'],
   'customers.create': ['customers.view'],
   'customers.update': ['customers.view'],
   'accounts.create': ['accounts.view', 'roles.view'],
@@ -188,6 +208,7 @@ export const DEFAULT_ROLES: Array<{ name: string; description: string; permissio
       'orders.create', 'orders.update', 'orders.cancel', 'design.assign', 'production.view',
       'deliveries.create', 'deliveries.update', 'deliveries.deliver', 'deliveries.cancel', 'deliveries.accept',
       'payments.create', 'customers.create', 'customers.update',
+      'conversations.reply',
     ]),
   },
   {

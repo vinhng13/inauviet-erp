@@ -4,6 +4,7 @@ import { AccountingModule } from './accounting/accounting.module';
 import { AccessModule } from './access/access.module';
 import { ActivityModule } from './activity/activity.module';
 import { AuthModule } from './auth/auth.module';
+import { ChannelsModule } from './channels/channels.module';
 import { CatalogModule } from './catalog/catalog.module';
 import { ConfigModule } from './config/config.module';
 import { CustomersModule } from './customers/customers.module';
@@ -40,6 +41,7 @@ const isTest = process.env.NODE_ENV === 'test';
     OrdersModule,
     DocumentsModule,
     AccountingModule,
+    ChannelsModule,
   ],
   controllers: [HealthController],
 })

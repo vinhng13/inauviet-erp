@@ -95,6 +95,9 @@ model User {
   deliveriesCreated Delivery[]
   paymentsRecorded  Payment[]
   periodsClosed     AccountingPeriod[] @relation("PeriodClosedBy")
+  channelsConnected ChannelAccount[]
+  conversations     Conversation[]     @relation("ConversationAssignee")
+  messagesSent      Message[]
 
   @@index([roleId])
 }
@@ -143,8 +146,9 @@ model Customer {
   updatedAt   DateTime  @updatedAt
   archivedAt  DateTime?
 
-  orders Order[]
-  quotes Quote[]
+  orders   Order[]
+  quotes   Quote[]
+  contacts ChannelContact[]
 
   @@index([searchText(ops: raw("gin_trgm_ops"))], type: Gin, map: "Customer_searchText_trgm_idx")
 }
@@ -699,4 +703,161 @@ model FixedAsset {
   createdAt      DateTime  @default(now())
 
   supplier Supplier? @relation(fields: [supplierId], references: [id])
+}
+
+// ───────────── Kênh: Facebook Messenger, bình luận fanpage (Zalo OA sau) ─────────────
+
+enum ChannelPlatform {
+  FACEBOOK
+  ZALO
+}
+
+enum ChannelStatus {
+  ACTIVE       // receiving events
+  ERROR        // token rejected or events keep failing
+  DISCONNECTED // turned off by an administrator; token wiped
+}
+
+/// A connected fanpage (or, later, a Zalo OA). Tokens are AES-256-GCM encrypted and never sent to the browser.
+model ChannelAccount {
+  id              String          @id @default(uuid()) @db.Uuid
+  platform        ChannelPlatform
+  externalId      String // Facebook page id
+  name            String
+  pictureUrl      String?
+  accessTokenEnc  String? // page access token, encrypted
+  status          ChannelStatus   @default(ACTIVE)
+  lastEventAt     DateTime?
+  lastError       String?
+  lastErrorAt     DateTime?
+  connectedById   String?         @db.Uuid
+  connectedAt     DateTime        @default(now())
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  connectedBy   User?          @relation(fields: [connectedById], references: [id])
+  contacts      ChannelContact[]
+  conversations Conversation[]
+
+  @@unique([platform, externalId])
+}
+
+/// Every webhook delivery, stored before it is processed so nothing is lost and failures can be retried.
+model WebhookEvent {
+  id            String          @id @default(uuid()) @db.Uuid
+  platform      ChannelPlatform
+  payload       Json // one "entry" of the webhook body
+  receivedAt    DateTime        @default(now())
+  nextAttemptAt DateTime        @default(now())
+  lockedUntil   DateTime?
+  attempts      Int             @default(0)
+  processedAt   DateTime?
+  failedAt      DateTime? // gave up after 5 attempts
+  lastError     String?
+
+  @@index([processedAt, failedAt, nextAttemptAt])
+}
+
+/// One person on one fanpage (Facebook gives each person a different id per page).
+model ChannelContact {
+  id         String    @id @default(uuid()) @db.Uuid
+  channelId  String    @db.Uuid
+  externalId String // PSID for Messenger, user id for comments
+  name       String
+  avatarUrl  String?
+  phone      String? // first phone number the person wrote, normalized
+  customerId String?   @db.Uuid
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  channel       ChannelAccount @relation(fields: [channelId], references: [id])
+  customer      Customer?      @relation(fields: [customerId], references: [id])
+  conversations Conversation[]
+
+  @@unique([channelId, externalId])
+  @@index([customerId])
+}
+
+enum ConversationKind {
+  MESSAGE // Messenger chat
+  COMMENT // comments by one person under one post
+}
+
+enum ConversationStatus {
+  OPEN
+  DONE
+}
+
+model Conversation {
+  id                String             @id @default(uuid()) @db.Uuid
+  channelId         String             @db.Uuid
+  contactId         String             @db.Uuid
+  kind              ConversationKind
+  threadKey         String // "m" for Messenger, "c:<postId>" for comments: unique per contact
+  postId            String?
+  postUrl           String?
+  assigneeId        String?            @db.Uuid
+  status            ConversationStatus @default(OPEN)
+  lastMessageAt     DateTime
+  lastMessageText   String
+  lastMessageIn     Boolean            @default(true) // last message came from the customer: waiting for a reply
+  lastInboundAt     DateTime?
+  unreadCount       Int                @default(0)
+  privateReplyAt    DateTime? // comment threads: Facebook allows one private message per comment
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  channel  ChannelAccount @relation(fields: [channelId], references: [id])
+  contact  ChannelContact @relation(fields: [contactId], references: [id])
+  assignee User?          @relation("ConversationAssignee", fields: [assigneeId], references: [id])
+  messages Message[]
+
+  @@unique([contactId, threadKey])
+  @@index([lastMessageAt])
+  @@index([assigneeId])
+}
+
+enum MessageDirection {
+  IN
+  OUT
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  VIDEO
+  AUDIO
+  FILE
+  STICKER
+  OTHER
+}
+
+enum MessageStatus {
+  RECEIVED
+  SENDING
+  SENT
+  FAILED
+}
+
+model Message {
+  id             String           @id @default(uuid()) @db.Uuid
+  conversationId String           @db.Uuid
+  direction      MessageDirection
+  externalId     String?          @unique // Messenger mid or comment id; filters duplicate deliveries
+  type           MessageType      @default(TEXT)
+  text           String?
+  /// [{ type, url, name?, mime?, size?, file? }]: file = saved copy under CHAT_FILES_DIR
+  attachments    Json             @default("[]")
+  senderId       String?          @db.Uuid // staff member who sent it from the CRM
+  outsideCrm     Boolean          @default(false) // sent by the page from Facebook / Meta Business Suite
+  privateReply   Boolean          @default(false) // private message in reply to a comment
+  status         MessageStatus    @default(RECEIVED)
+  error          String?
+  sentAt         DateTime
+  createdAt      DateTime         @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User?        @relation(fields: [senderId], references: [id])
+
+  @@index([conversationId, sentAt])
 }

@@ -21,6 +21,8 @@ import { AccountingStockPage } from './pages/accounting/StockPage';
 import { AccountingTaxPage } from './pages/accounting/TaxPage';
 import { ModulePickerPage } from './pages/ModulePickerPage';
 import { BoardPage } from './pages/BoardPage';
+import { ChannelsPage } from './pages/ChannelsPage';
+import { ConversationsPage } from './pages/ConversationsPage';
 import { CustomerDetailPage } from './pages/CustomerDetailPage';
 import { CustomersPage } from './pages/CustomersPage';
 import { DeliveriesPage } from './pages/DeliveriesPage';
@@ -76,6 +78,8 @@ export function App() {
                 <Route index element={<ModulePickerPage />} />
                 <Route element={<AppLayout />}>
                   <Route path="/board" element={<Allow p="orders.view"><BoardPage /></Allow>} />
+                  <Route path="/conversations" element={<Allow p="conversations.view"><ConversationsPage /></Allow>} />
+                  <Route path="/channels" element={<Allow p="channels.manage"><ChannelsPage /></Allow>} />
                   <Route path="/quotes" element={<Allow p="quotes.view"><QuotesPage /></Allow>} />
                   <Route path="/quotes/new" element={<Allow p="quotes.create"><QuoteEditorPage /></Allow>} />
                   <Route path="/quotes/:id" element={<Allow p="quotes.view"><QuoteDetailPage /></Allow>} />

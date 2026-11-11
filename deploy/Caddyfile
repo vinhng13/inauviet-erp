@@ -6,7 +6,15 @@
 }
 
 :80 {
-	encode zstd gzip
+	# The live chat stream (server-sent events) must not be compressed or buffered
+	@compressible not path /api/v1/conversations/stream
+	encode @compressible zstd gzip
+
+	handle /api/v1/conversations/stream {
+		reverse_proxy api:3000 {
+			flush_interval -1
+		}
+	}
 
 	handle /api/* {
 		reverse_proxy api:3000

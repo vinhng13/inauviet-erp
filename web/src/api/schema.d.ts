@@ -1521,6 +1521,242 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/channels": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Connected pages, configuration checklist and failed webhook events */
+        get: operations["Channels_overview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/channels/facebook/pages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Pages the token can manage. 400 FB_TOKEN_REJECTED when Facebook refuses the token. */
+        post: operations["Channels_pages"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/channels/facebook/connect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Connects the chosen pages: stores each page token encrypted and subscribes to its events */
+        post: operations["Channels_connect"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/channels/{id}/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["Channels_check"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/channels/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["Channels_disconnect"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/channels/events/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["Channels_retry"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/conversations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Newest first; 50 per page */
+        get: operations["Conversations_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/conversations/unread": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** For the menu badge */
+        get: operations["Conversations_unread"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/conversations/assignees": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["Conversations_assignees"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/conversations/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["Conversations_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Assign (conversations.assign; taking an unassigned one needs only conversations.reply) or mark done / reopen */
+        patch: operations["Conversations_update"];
+        trace?: never;
+    };
+    "/api/v1/conversations/{id}/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 50 messages, oldest first; pass before= to load earlier ones */
+        get: operations["Conversations_messages"];
+        put?: never;
+        /**
+         * Messenger: 400 REPLY_WINDOW_CLOSED after 7 days of silence from the customer. Comments: public reply, or private=true
+         *     for the one private message Facebook allows (409 PRIVATE_REPLY_USED). A refusal by Facebook comes back as a FAILED message.
+         */
+        post: operations["Conversations_send"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/conversations/{id}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["Conversations_read"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/conversations/{id}/files": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Image or file (field "file", up to 25 MB), Messenger chats only */
+        post: operations["Conversations_sendFile"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/conversations/{id}/customer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["Conversations_linkCustomer"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -3041,6 +3277,218 @@ export interface components {
             description?: string;
             /** @description Required when changing an automatic entry */
             reason?: string;
+        };
+        /** @enum {string} */
+        ChannelPlatform: "FACEBOOK" | "ZALO";
+        /** @enum {string} */
+        ChannelStatus: "ACTIVE" | "ERROR" | "DISCONNECTED";
+        ChannelDto: {
+            platform: components["schemas"]["ChannelPlatform"];
+            status: components["schemas"]["ChannelStatus"];
+            id: string;
+            externalId: string;
+            name: string;
+            pictureUrl: string | null;
+            /** Format: date-time */
+            lastEventAt: string | null;
+            lastError: string | null;
+            /** Format: date-time */
+            lastErrorAt: string | null;
+            /** Format: date-time */
+            connectedAt: string;
+            connectedBy: string | null;
+            conversations: number;
+        };
+        ChannelSetupDto: {
+            /** @description FB_APP_SECRET is set: webhook signatures can be checked */
+            appSecret: boolean;
+            /** @description FB_VERIFY_TOKEN is set */
+            verifyToken: boolean;
+            /** @description CHANNEL_SECRET_KEY is set and valid: tokens can be stored */
+            secretKey: boolean;
+            /** @description Path of the callback URL to enter in the Meta app (after the public address) */
+            callbackPath: string;
+            graphVersion: string;
+        };
+        FailedEventDto: {
+            id: string;
+            /** Format: date-time */
+            receivedAt: string;
+            attempts: number;
+            lastError: string | null;
+        };
+        ChannelOverviewDto: {
+            channels: components["schemas"]["ChannelDto"][];
+            setup: components["schemas"]["ChannelSetupDto"];
+            pendingEvents: number;
+            failedEvents: components["schemas"]["FailedEventDto"][];
+        };
+        FacebookTokenDto: {
+            /** @description User, system-user or page access token from Meta */
+            accessToken: string;
+        };
+        FacebookPageDto: {
+            id: string;
+            name: string;
+            pictureUrl?: string;
+            /** @description Already connected and active */
+            connected: boolean;
+        };
+        FacebookPagesDto: {
+            pages: components["schemas"]["FacebookPageDto"][];
+        };
+        ConnectFacebookDto: {
+            /** @description User, system-user or page access token from Meta */
+            accessToken: string;
+            /** @description Pages to connect, from the preview */
+            pageIds: string[];
+        };
+        ConnectResultDto: {
+            pageId: string;
+            name: string;
+            ok: boolean;
+            error?: string;
+        };
+        ConnectResultsDto: {
+            results: components["schemas"]["ConnectResultDto"][];
+        };
+        /** @enum {string} */
+        ConversationKind: "MESSAGE" | "COMMENT";
+        /** @enum {string} */
+        ConversationStatus: "OPEN" | "DONE";
+        ReplyWindowDto: {
+            /**
+             * @description RESPONSE: within 24 h of the customer's last message; HUMAN_AGENT: day 2–7, staff only; CLOSED: past 7 days; COMMENT: public reply under the post
+             * @enum {string}
+             */
+            mode: "RESPONSE" | "HUMAN_AGENT" | "CLOSED" | "COMMENT";
+            /**
+             * Format: date-time
+             * @description When the current mode ends
+             */
+            until: string | null;
+        };
+        ConversationRowDto: {
+            kind: components["schemas"]["ConversationKind"];
+            status: components["schemas"]["ConversationStatus"];
+            id: string;
+            channelId: string;
+            channelName: string;
+            contactName: string;
+            contactAvatarUrl: string | null;
+            customerName: string | null;
+            assignee: components["schemas"]["PersonRefDto"] | null;
+            /** Format: date-time */
+            lastMessageAt: string;
+            lastMessageText: string;
+            /** @description The customer wrote last: waiting for an answer */
+            lastMessageIn: boolean;
+            unreadCount: number;
+            window: components["schemas"]["ReplyWindowDto"];
+        };
+        ConversationListDto: {
+            items: components["schemas"]["ConversationRowDto"][];
+            /** @description More rows exist after the last one */
+            hasMore: boolean;
+        };
+        UnreadDto: {
+            /** @description Visible open conversations with unread messages */
+            conversations: number;
+        };
+        AssigneesDto: {
+            people: components["schemas"]["PersonRefDto"][];
+        };
+        CustomerRefDto: {
+            id: string;
+            code: string;
+            name: string;
+            phone: string;
+        };
+        ContactDto: {
+            id: string;
+            name: string;
+            avatarUrl: string | null;
+            /** @description First phone number the person wrote */
+            phone: string | null;
+            customer: components["schemas"]["CustomerRefDto"] | null;
+        };
+        ConversationDto: {
+            kind: components["schemas"]["ConversationKind"];
+            status: components["schemas"]["ConversationStatus"];
+            id: string;
+            channelId: string;
+            channelName: string;
+            contactName: string;
+            contactAvatarUrl: string | null;
+            customerName: string | null;
+            assignee: components["schemas"]["PersonRefDto"] | null;
+            /** Format: date-time */
+            lastMessageAt: string;
+            lastMessageText: string;
+            /** @description The customer wrote last: waiting for an answer */
+            lastMessageIn: boolean;
+            unreadCount: number;
+            window: components["schemas"]["ReplyWindowDto"];
+            contact: components["schemas"]["ContactDto"];
+            postId: string | null;
+            postUrl: string | null;
+            /** @description Comment threads: a private message can still be sent (once per comment, within 7 days) */
+            canPrivateReply: boolean;
+        };
+        /** @enum {string} */
+        MessageDirection: "IN" | "OUT";
+        /** @enum {string} */
+        MessageType: "TEXT" | "IMAGE" | "VIDEO" | "AUDIO" | "FILE" | "STICKER" | "OTHER";
+        /** @enum {string} */
+        MessageStatus: "RECEIVED" | "SENDING" | "SENT" | "FAILED";
+        AttachmentDto: {
+            /** @enum {string} */
+            type: "image" | "video" | "audio" | "file" | "sticker" | "other";
+            name: string | null;
+            mime: string | null;
+            size: number | null;
+            /** @description Download through the CRM (copy kept on the server, or Facebook's link) */
+            href: string | null;
+        };
+        MessageDto: {
+            direction: components["schemas"]["MessageDirection"];
+            type: components["schemas"]["MessageType"];
+            status: components["schemas"]["MessageStatus"];
+            id: string;
+            text: string | null;
+            attachments: components["schemas"]["AttachmentDto"][];
+            sender: components["schemas"]["PersonRefDto"] | null;
+            /** @description Sent by the page from Facebook / Meta Business Suite, not from the CRM */
+            outsideCrm: boolean;
+            privateReply: boolean;
+            error: string | null;
+            /** Format: date-time */
+            sentAt: string;
+        };
+        MessageListDto: {
+            items: components["schemas"]["MessageDto"][];
+            hasMore: boolean;
+        };
+        SendMessageDto: {
+            text: string;
+            /** @description Comment threads: send as a private Messenger message instead of a public reply */
+            private?: boolean;
+        };
+        UpdateConversationDto: {
+            /**
+             * Format: uuid
+             * @description null = nobody
+             */
+            assigneeId?: string | null;
+            /** @enum {string} */
+            status?: "OPEN" | "DONE";
+        };
+        LinkCustomerDto: {
+            /**
+             * Format: uuid
+             * @description null removes the link
+             */
+            customerId: string | null;
         };
     };
     responses: never;
@@ -5491,6 +5939,360 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    Channels_overview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChannelOverviewDto"];
+                };
+            };
+        };
+    };
+    Channels_pages: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FacebookTokenDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FacebookPagesDto"];
+                };
+            };
+        };
+    };
+    Channels_connect: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConnectFacebookDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectResultsDto"];
+                };
+            };
+        };
+    };
+    Channels_check: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    Channels_disconnect: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    Channels_retry: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    Conversations_list: {
+        parameters: {
+            query?: {
+                /** @description all; mine = assigned to me; unassigned; waiting = the customer wrote last */
+                filter?: "all" | "mine" | "unassigned" | "waiting";
+                status?: "OPEN" | "DONE";
+                kind?: "MESSAGE" | "COMMENT";
+                channelId?: string;
+                /** @description Name or phone of the person */
+                q?: string;
+                /** @description Load conversations older than this (lastMessageAt of the last row shown) */
+                before?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConversationListDto"];
+                };
+            };
+        };
+    };
+    Conversations_unread: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnreadDto"];
+                };
+            };
+        };
+    };
+    Conversations_assignees: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssigneesDto"];
+                };
+            };
+        };
+    };
+    Conversations_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConversationDto"];
+                };
+            };
+        };
+    };
+    Conversations_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateConversationDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConversationDto"];
+                };
+            };
+        };
+    };
+    Conversations_messages: {
+        parameters: {
+            query?: {
+                /** @description Messages sent before this time (sentAt of the oldest one shown) */
+                before?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageListDto"];
+                };
+            };
+        };
+    };
+    Conversations_send: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SendMessageDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageDto"];
+                };
+            };
+        };
+    };
+    Conversations_read: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    Conversations_sendFile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageDto"];
+                };
+            };
+        };
+    };
+    Conversations_linkCustomer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LinkCustomerDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConversationDto"];
+                };
             };
         };
     };

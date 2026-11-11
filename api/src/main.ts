@@ -10,7 +10,7 @@ import { API_PREFIX, buildOpenApi, setupApp } from './setup-app';
 async function bootstrap(): Promise<void> {
   loadDotEnv();
   const env = loadEnv(); // fail fast on bad configuration
-  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  const app = await NestFactory.create(AppModule, { bufferLogs: true, rawBody: true }); // rawBody: webhook signatures
   app.useLogger(app.get(Logger));
   app.enableShutdownHooks();
   // Behind cloudflared → Caddy inside Docker: trust proxies on private networks so req.ip is the real client
