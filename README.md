@@ -69,6 +69,18 @@ npm run dev
 nếu database đã có tài khoản chủ từ bản trước thì dùng tên đó, ví dụ `owner`). Lần đăng nhập đầu sẽ bắt đổi mật khẩu.
 Quên mật khẩu quản trị: `npm run user:reset-admin -w api -- admin`.
 
+### Dữ liệu ban đầu của Kho và kế toán
+
+- **Hệ thống tài khoản TT133:** `npm run db:migrate` (hoặc `db:deploy`) nạp đủ 123 tài khoản cấp 1, cấp 2 theo Thông tư 133/2016/TT-BTC.
+  Trong mỗi nhóm chỉ bật cấp mà sổ sách đang hạch toán (ví dụ dùng 111 thì 1111/1112 tắt; dùng 1331 thì 133 tắt), để số liệu không bị chia đôi.
+- **Bảng khuôn Excel của kho:** đặt file vào `api/data/khuon.xlsx` (thư mục này không đưa lên git), rồi
+  ```bash
+  npm run kho:import                 # xem trước, chưa ghi gì
+  npm run kho:import -- --write      # nhập thật; chạy lại không tạo trùng
+  npm run kho:import -- duong/dan/file.xlsx --write
+  ```
+  Cũng làm được trên giao diện: *Kho → Danh mục kho → Nhập bảng khuôn Excel*.
+
 ## Tài khoản và phân quyền
 
 - **Tài khoản** (menu *Quản trị → Tài khoản*): tạo tài khoản thủ công với tên đăng nhập, họ tên, nhóm quyền.
