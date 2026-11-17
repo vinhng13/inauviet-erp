@@ -93,6 +93,17 @@ export const PERMISSION_MODULES = [
     ],
   },
   {
+    key: 'warehouse',
+    label: 'Kho',
+    actions: [
+      { key: 'view', label: 'Xem', description: 'Tồn kho, thẻ kho, phiếu, danh sách khuôn, tổng quan kho' },
+      { key: 'slip', label: 'Lập phiếu', description: 'Phiếu nhập, xuất, nhập lại vật tư; huỷ phiếu có lý do' },
+      { key: 'dies', label: 'Quản lý khuôn', description: 'Tạo, sửa khuôn; xuất, nhận, kiểm, sửa, thanh lý khuôn; giao nhận nhiều khuôn' },
+      { key: 'count', label: 'Kiểm kê', description: 'Kiểm kê vật tư và khuôn; duyệt chênh lệch' },
+      { key: 'manage', label: 'Quản lý danh mục', description: 'Vật tư và khổ, ký hiệu khuôn, vị trí, đối tác; nhập dữ liệu Excel; chốt tồn tháng' },
+    ],
+  },
+  {
     key: 'money',
     label: 'Giá & số tiền',
     actions: [
@@ -177,6 +188,10 @@ export const IMPLIED: Partial<Record<Permission, Permission[]>> = {
   'accounting.reopen': ['accounting.close'],
   'conversations.viewAll': ['conversations.view'],
   'conversations.reply': ['conversations.view'],
+  'warehouse.slip': ['warehouse.view'],
+  'warehouse.dies': ['warehouse.view'],
+  'warehouse.count': ['warehouse.view'],
+  'warehouse.manage': ['warehouse.view'],
   'conversations.assign': ['conversations.view'],
   'customers.create': ['customers.view'],
   'customers.update': ['customers.view'],
@@ -230,5 +245,10 @@ export const DEFAULT_ROLES: Array<{ name: string; description: string; permissio
     name: 'Sản xuất',
     description: 'Xem lệnh sản xuất, chuyển công đoạn in, gia công, kiểm tra. Không thấy giá tiền.',
     permissions: normalizePermissions(['production.update']),
+  },
+  {
+    name: 'Thủ kho',
+    description: 'Phân hệ Kho: phiếu nhập xuất giấy, vật tư, khuôn, kiểm kê. Không thấy giá tiền.',
+    permissions: normalizePermissions(['warehouse.slip', 'warehouse.dies', 'warehouse.count']),
   },
 ];

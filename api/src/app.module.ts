@@ -13,6 +13,7 @@ import { NumberingModule } from './numbering/numbering.module';
 import { DocumentsModule } from './documents/documents.module';
 import { OrdersModule } from './orders/orders.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { WarehouseModule } from './warehouse/warehouse.module';
 
 const isProd = process.env.NODE_ENV === 'production';
 const isTest = process.env.NODE_ENV === 'test';
@@ -42,6 +43,7 @@ const isTest = process.env.NODE_ENV === 'test';
     DocumentsModule,
     AccountingModule,
     ChannelsModule,
+    WarehouseModule,
   ],
   controllers: [HealthController],
 })

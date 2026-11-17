@@ -9,6 +9,12 @@ import {
   CalendarOutlined,
   CarOutlined,
   ContainerOutlined,
+  DatabaseOutlined,
+  AuditOutlined,
+  BlockOutlined,
+  InboxOutlined,
+  DeploymentUnitOutlined,
+  ProfileOutlined,
   DashboardOutlined,
   DollarOutlined,
   FileDoneOutlined,
@@ -27,7 +33,7 @@ import {
 import type { ReactNode } from 'react';
 import type { Permission } from './access';
 
-export type ModuleKey = 'crm' | 'accounting' | 'admin';
+export type ModuleKey = 'crm' | 'accounting' | 'warehouse' | 'admin';
 
 export interface NavItem {
   key: string;
@@ -45,7 +51,7 @@ export interface AppModule {
   nav: NavItem[];
 }
 
-/** The three modules. After sign-in people choose one; each module shows only its own menu. */
+/** The modules. After sign-in people choose one; each module shows only its own menu. */
 export const MODULES: AppModule[] = [
   {
     key: 'crm',
@@ -82,6 +88,21 @@ export const MODULES: AppModule[] = [
       { key: '/accounting/tax', icon: <PercentageOutlined />, label: 'Thuế GTGT', permission: 'accounting.view' },
       { key: '/accounting/journal', icon: <BookOutlined />, label: 'Sổ & bút toán', permission: 'accounting.view' },
       { key: '/accounting/reports', icon: <BarChartOutlined />, label: 'Báo cáo', permission: 'accounting.view' },
+    ],
+  },
+  {
+    key: 'warehouse',
+    name: 'Kho',
+    description: 'Giấy, màng, vật tư theo khổ; khuôn bế và vòng luân chuyển khuôn với các xưởng; kiểm kê',
+    icon: <InboxOutlined />,
+    color: '#b5651d',
+    nav: [
+      { key: '/warehouse', icon: <DashboardOutlined />, label: 'Tổng quan kho', permission: 'warehouse.view' },
+      { key: '/warehouse/stock', icon: <DatabaseOutlined />, label: 'Tồn kho & phiếu', permission: 'warehouse.view' },
+      { key: '/warehouse/dies', icon: <BlockOutlined />, label: 'Khuôn', permission: 'warehouse.view' },
+      { key: '/warehouse/batches', icon: <DeploymentUnitOutlined />, label: 'Giao nhận khuôn', permission: 'warehouse.view' },
+      { key: '/warehouse/counts', icon: <AuditOutlined />, label: 'Kiểm kê', permission: 'warehouse.view' },
+      { key: '/warehouse/catalog', icon: <ProfileOutlined />, label: 'Danh mục kho', permission: 'warehouse.view' },
     ],
   },
   {

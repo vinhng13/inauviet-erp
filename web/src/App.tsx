@@ -39,6 +39,12 @@ import { QuoteDetailPage } from './pages/QuoteDetailPage';
 import { QuoteEditorPage } from './pages/QuoteEditorPage';
 import { QuotesPage } from './pages/QuotesPage';
 import { RolesPage } from './pages/RolesPage';
+import { WarehouseBatchesPage } from './pages/warehouse/BatchesPage';
+import { WarehouseCatalogPage } from './pages/warehouse/CatalogPage';
+import { WarehouseCountsPage } from './pages/warehouse/CountsPage';
+import { WarehouseDiesPage } from './pages/warehouse/DiesPage';
+import { WarehouseOverviewPage } from './pages/warehouse/OverviewPage';
+import { WarehouseStockPage } from './pages/warehouse/StockPage';
 
 /** Any 401 means the session ended (expired, logged out elsewhere, account locked): show the sign-in page. */
 function onAuthError(err: unknown) {
@@ -100,6 +106,12 @@ export function App() {
                   <Route path="/accounting/tax" element={<Allow p="accounting.view"><AccountingTaxPage /></Allow>} />
                   <Route path="/accounting/journal" element={<Allow p="accounting.view"><AccountingJournalPage /></Allow>} />
                   <Route path="/accounting/reports" element={<Allow p="accounting.view"><AccountingReportsPage /></Allow>} />
+                  <Route path="/warehouse" element={<Allow p="warehouse.view"><WarehouseOverviewPage /></Allow>} />
+                  <Route path="/warehouse/stock" element={<Allow p="warehouse.view"><WarehouseStockPage /></Allow>} />
+                  <Route path="/warehouse/dies" element={<Allow p="warehouse.view"><WarehouseDiesPage /></Allow>} />
+                  <Route path="/warehouse/batches" element={<Allow p="warehouse.view"><WarehouseBatchesPage /></Allow>} />
+                  <Route path="/warehouse/counts" element={<Allow p="warehouse.view"><WarehouseCountsPage /></Allow>} />
+                  <Route path="/warehouse/catalog" element={<Allow p="warehouse.view"><WarehouseCatalogPage /></Allow>} />
                   <Route path="/customers" element={<Allow p="customers.view"><CustomersPage /></Allow>} />
                   <Route path="/customers/:id" element={<Allow p="customers.view"><CustomerDetailPage /></Allow>} />
                   <Route path="/products" element={<Allow p="products.view"><ProductsPage /></Allow>} />

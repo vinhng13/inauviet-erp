@@ -59,7 +59,7 @@ enum PricingMode {
 enum QuoteStatus {
   DRAFT
   SENT
-  WON  // closed into an order
+  WON // closed into an order
   LOST
 }
 
@@ -85,19 +85,26 @@ model User {
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 
-  role              Role          @relation(fields: [roleId], references: [id])
+  role              Role               @relation(fields: [roleId], references: [id])
   sessions          Session[]
   activity          ActivityLog[]
   quotesCreated     Quote[]
-  ordersDesigned    Order[]       @relation("OrderDesigner")
+  ordersDesigned    Order[]            @relation("OrderDesigner")
   designVersions    DesignVersion[]
-  ordersCreated     Order[]       @relation("OrderCreatedBy")
+  ordersCreated     Order[]            @relation("OrderCreatedBy")
   deliveriesCreated Delivery[]
   paymentsRecorded  Payment[]
   periodsClosed     AccountingPeriod[] @relation("PeriodClosedBy")
   channelsConnected ChannelAccount[]
   conversations     Conversation[]     @relation("ConversationAssignee")
   messagesSent      Message[]
+  whSlips           WhSlip[]           @relation("WhSlipCreatedBy")
+  whSlipsVoided     WhSlip[]           @relation("WhSlipVoidedBy")
+  whCounts          WhCount[]
+  whDieMoves        WhDieMove[]
+  whDieBatches      WhDieBatch[]
+  whDieCounts       WhDieCount[]
+  whMonthLocks      WhMonthLock[]
 
   @@index([roleId])
 }
@@ -134,14 +141,14 @@ model Session {
 
 model Customer {
   id          String    @id @default(uuid()) @db.Uuid
-  code        String    @unique                 // KH-0001
+  code        String    @unique // KH-0001
   name        String
-  phone       String    @unique                 // normalized 0xxxxxxxxx
+  phone       String    @unique // normalized 0xxxxxxxxx
   companyName String?
   taxCode     String?
-  address     String?                           // default delivery address
+  address     String? // default delivery address
   note        String?
-  searchText  String                            // name + phone + company, diacritics removed
+  searchText  String // name + phone + company, diacritics removed
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   archivedAt  DateTime?
@@ -224,15 +231,15 @@ model QuoteLine {
 }
 
 model Order {
-  id                  String      @id @default(uuid()) @db.Uuid
-  code                String      @unique // DH-2610-0042
-  quoteId             String?     @unique @db.Uuid // the quote this order was closed from
-  customerId          String      @db.Uuid
-  status              OrderStatus @default(CONFIRMED)
-  orderDate           DateTime    @db.Date
-  dueDate             DateTime?   @db.Date
+  id                  String           @id @default(uuid()) @db.Uuid
+  code                String           @unique // DH-2610-0042
+  quoteId             String?          @unique @db.Uuid // the quote this order was closed from
+  customerId          String           @db.Uuid
+  status              OrderStatus      @default(CONFIRMED)
+  orderDate           DateTime         @db.Date
+  dueDate             DateTime?        @db.Date
   totalVnd            BigInt? // sum of priced lines; null if no line has a price
-  paidVnd             BigInt      @default(0) // sum of non-voided payments
+  paidVnd             BigInt           @default(0) // sum of non-voided payments
   note                String?
   cancelReason        String?
   productionStartedAt DateTime?
@@ -240,7 +247,7 @@ model Order {
   confirmedAt         DateTime?
   needsDesign         Boolean?
   // Steps 3–4: design
-  designerId          String?     @db.Uuid
+  designerId          String?          @db.Uuid
   designApprovedAt    DateTime?
   approvedVersion     Int?
   approvalChannel     String? // Zalo, Email, Trực tiếp…
@@ -258,16 +265,16 @@ model Order {
   acceptedAt          DateTime?
   acceptedByName      String?
   acceptanceNote      String?
-  createdById         String      @db.Uuid
-  createdAt           DateTime    @default(now())
-  updatedAt           DateTime    @updatedAt
+  createdById         String           @db.Uuid
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
   completedAt         DateTime?
   cancelledAt         DateTime?
 
-  customer   Customer    @relation(fields: [customerId], references: [id])
-  quote      Quote?      @relation(fields: [quoteId], references: [id])
-  createdBy  User        @relation("OrderCreatedBy", fields: [createdById], references: [id])
-  designer   User?       @relation("OrderDesigner", fields: [designerId], references: [id])
+  customer   Customer        @relation(fields: [customerId], references: [id])
+  quote      Quote?          @relation(fields: [quoteId], references: [id])
+  createdBy  User            @relation("OrderCreatedBy", fields: [createdById], references: [id])
+  designer   User?           @relation("OrderDesigner", fields: [designerId], references: [id])
   lines      OrderLine[]
   designs    DesignVersion[]
   deliveries Delivery[]
@@ -281,15 +288,15 @@ model Order {
 
 /// One maket sent to the customer (v1, v2…) and the customer's answer. Files are not stored yet.
 model DesignVersion {
-  id          String         @id @default(uuid()) @db.Uuid
-  orderId     String         @db.Uuid
-  version     Int
-  sentAt      DateTime       @default(now())
-  note        String? // what was sent, through which channel
-  feedback    DesignFeedback @default(PENDING)
-  feedbackAt  DateTime?
+  id           String         @id @default(uuid()) @db.Uuid
+  orderId      String         @db.Uuid
+  version      Int
+  sentAt       DateTime       @default(now())
+  note         String? // what was sent, through which channel
+  feedback     DesignFeedback @default(PENDING)
+  feedbackAt   DateTime?
   feedbackNote String?
-  createdById String         @db.Uuid
+  createdById  String         @db.Uuid
 
   order     Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
   createdBy User  @relation(fields: [createdById], references: [id])
@@ -298,22 +305,22 @@ model DesignVersion {
 }
 
 model OrderLine {
-  id           String  @id @default(uuid()) @db.Uuid
-  orderId      String  @db.Uuid
-  productId    String? @db.Uuid                 // catalog item, when the line came from the catalog
-  quoteLineId  String? @db.Uuid                 // the quote line it was created from (to show what changed at closing)
-  description  String                           // "Banner hiflex 2×1 m"
-  spec         String?                          // material, finishing
-  unit         String?                          // ĐVT: tấm, cái, bộ…
-  widthM       Decimal? @db.Decimal(8, 2)       // AREA lines
+  id           String   @id @default(uuid()) @db.Uuid
+  orderId      String   @db.Uuid
+  productId    String?  @db.Uuid // catalog item, when the line came from the catalog
+  quoteLineId  String?  @db.Uuid // the quote line it was created from (to show what changed at closing)
+  description  String // "Banner hiflex 2×1 m"
+  spec         String? // material, finishing
+  unit         String? // ĐVT: tấm, cái, bộ…
+  widthM       Decimal? @db.Decimal(8, 2) // AREA lines
   heightM      Decimal? @db.Decimal(8, 2)
-  areaPriceVnd BigInt?                          // price per m² (AREA lines); unitPriceVnd is then the price of one piece
+  areaPriceVnd BigInt? // price per m² (AREA lines); unitPriceVnd is then the price of one piece
   quantity     Int
-  plannedQty   Int     @default(0)              // cached: sum of planned qty on SCHEDULED deliveries + delivered qty on DELIVERED ones
-  deliveredQty Int     @default(0)              // cached: sum of delivered qty on DELIVERED deliveries
-  unitPriceVnd BigInt?                          // optional
-  lineTotalVnd BigInt?                          // quantity × unit price, null if no price
-  sortOrder    Int     @default(0)
+  plannedQty   Int      @default(0) // cached: sum of planned qty on SCHEDULED deliveries + delivered qty on DELIVERED ones
+  deliveredQty Int      @default(0) // cached: sum of delivered qty on DELIVERED deliveries
+  unitPriceVnd BigInt? // optional
+  lineTotalVnd BigInt? // quantity × unit price, null if no price
+  sortOrder    Int      @default(0)
 
   order         Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product       Product?       @relation(fields: [productId], references: [id])
@@ -324,12 +331,12 @@ model OrderLine {
 
 model Delivery {
   id           String         @id @default(uuid()) @db.Uuid
-  code         String         @unique           // GH-2610-0011
+  code         String         @unique // GH-2610-0011
   orderId      String         @db.Uuid
   status       DeliveryStatus @default(SCHEDULED)
   plannedDate  DateTime       @db.Date
   deliveredAt  DateTime?
-  address      String?                          // defaults to customer address
+  address      String? // defaults to customer address
   receiverName String?
   note         String?
   cancelReason String?
@@ -351,7 +358,7 @@ model DeliveryLine {
   deliveryId   String @db.Uuid
   orderLineId  String @db.Uuid
   plannedQty   Int
-  deliveredQty Int?                              // set when the delivery is marked DELIVERED
+  deliveredQty Int? // set when the delivery is marked DELIVERED
 
   delivery  Delivery  @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
   orderLine OrderLine @relation(fields: [orderLineId], references: [id])
@@ -362,8 +369,8 @@ model DeliveryLine {
 model Payment {
   id           String        @id @default(uuid()) @db.Uuid
   orderId      String        @db.Uuid
-  deliveryId   String?       @db.Uuid           // set when collected at a delivery
-  amountVnd    BigInt                           // > 0
+  deliveryId   String?       @db.Uuid // set when collected at a delivery
+  amountVnd    BigInt // > 0
   method       PaymentMethod
   paidOn       DateTime      @db.Date
   isDeposit    Boolean       @default(false)
@@ -383,8 +390,8 @@ model Payment {
 }
 
 model DocumentSequence {
-  prefix String                                  // KH, BG, DH, LSX, GH
-  period String                                  // "2610"; "" for KH
+  prefix String // KH, BG, DH, LSX, GH
+  period String // "2610"; "" for KH
   lastNo Int    @default(0)
 
   @@id([prefix, period])
@@ -392,10 +399,10 @@ model DocumentSequence {
 
 model ActivityLog {
   id         String   @id @default(uuid()) @db.Uuid
-  orderId    String?  @db.Uuid                  // every order-related entry carries its order, for the order timeline
-  entityType String                             // ORDER, QUOTE, DELIVERY, PAYMENT, USER, CUSTOMER, PRODUCT
+  orderId    String?  @db.Uuid // every order-related entry carries its order, for the order timeline
+  entityType String // ORDER, QUOTE, DELIVERY, PAYMENT, USER, CUSTOMER, PRODUCT
   entityId   String   @db.Uuid
-  action     String                             // CREATED, STATUS_CHANGED, DELIVERED, PAYMENT_RECORDED, VOIDED…
+  action     String // CREATED, STATUS_CHANGED, DELIVERED, PAYMENT_RECORDED, VOIDED…
   fromValue  String?
   toValue    String?
   data       Json?
@@ -451,12 +458,12 @@ enum AssetKind {
 
 /// Chart of accounts used by the internal books
 model LedgerAccount {
-  code     String  @id // "111", "33311"
-  name     String
+  code      String  @id // "111", "33311"
+  name      String
   /// true for accounts whose normal balance is on the credit side (214, 331, 333x, 411, 421, 511, 911…)
-  isCredit Boolean @default(false)
-  isActive Boolean @default(true)
-  sortOrder Int    @default(0)
+  isCredit  Boolean @default(false)
+  isActive  Boolean @default(true)
+  sortOrder Int     @default(0)
 
   lines    JournalLine[]
   openings PeriodOpening[]
@@ -464,9 +471,9 @@ model LedgerAccount {
 
 /// One calendar month of books. Only open periods take postings; closing carries balances to the next month.
 model AccountingPeriod {
-  id     String       @id @default(uuid()) @db.Uuid
-  month  String       @unique // "2026-10"
-  status PeriodStatus @default(OPEN)
+  id            String       @id @default(uuid()) @db.Uuid
+  month         String       @unique // "2026-10"
+  status        PeriodStatus @default(OPEN)
   // Month-end steps, in order; reset whenever a posting changes the month's figures
   pricedAt      DateTime?
   depreciatedAt DateTime?
@@ -474,22 +481,22 @@ model AccountingPeriod {
   vatOffsetAt   DateTime?
   transferredAt DateTime?
   closedAt      DateTime?
-  closedById    String?   @db.Uuid
+  closedById    String?      @db.Uuid
   // Results saved when closing
-  revenueVnd  BigInt?
-  cogsVnd     BigInt?
-  sellingVnd  BigInt?
-  adminVnd    BigInt?
-  otherNetVnd BigInt?
-  createdAt   DateTime  @default(now())
+  revenueVnd    BigInt?
+  cogsVnd       BigInt?
+  sellingVnd    BigInt?
+  adminVnd      BigInt?
+  otherNetVnd   BigInt?
+  createdAt     DateTime     @default(now())
 
-  closedBy  User?             @relation("PeriodClosedBy", fields: [closedById], references: [id])
-  entries   JournalEntry[]
-  openings  PeriodOpening[]
-  stock     MaterialOpening[]
-  receipts  StockReceipt[]
-  issues    StockIssue[]
-  payments  CashPayment[]
+  closedBy User?             @relation("PeriodClosedBy", fields: [closedById], references: [id])
+  entries  JournalEntry[]
+  openings PeriodOpening[]
+  stock    MaterialOpening[]
+  receipts StockReceipt[]
+  issues   StockIssue[]
+  payments CashPayment[]
 }
 
 /// Opening balance of an account for a period (debit positive, credit negative)
@@ -505,28 +512,28 @@ model PeriodOpening {
 }
 
 model JournalEntry {
-  id          String      @id @default(uuid()) @db.Uuid
-  code        String      @unique // PT-2610-0001, DT-2610-0005, PKT-2610-0001…
-  periodId    String      @db.Uuid
-  date        DateTime    @db.Date
-  description String
-  kind        EntryKind
-  source      EntrySource @default(AUTO)
+  id            String      @id @default(uuid()) @db.Uuid
+  code          String      @unique // PT-2610-0001, DT-2610-0005, PKT-2610-0001…
+  periodId      String      @db.Uuid
+  date          DateTime    @db.Date
+  description   String
+  kind          EntryKind
+  source        EntrySource @default(AUTO)
   /// What it was posted from, e.g. PAYMENT + payment id; unique so a document posts once
-  sourceType  String?
-  sourceId    String?
-  orderId     String?     @db.Uuid
-  customerId  String?     @db.Uuid
-  supplierId  String?     @db.Uuid
+  sourceType    String?
+  sourceId      String?
+  orderId       String?     @db.Uuid
+  customerId    String?     @db.Uuid
+  supplierId    String?     @db.Uuid
   /// Why the entry sits in this period when its document date is in a closed one
-  note        String?
+  note          String?
   /// Auto entry changed by hand: the lines as posted, the reason and who
   originalLines Json?
   editReason    String?
-  editedById    String?   @db.Uuid
+  editedById    String?     @db.Uuid
   editedAt      DateTime?
-  createdById   String?   @db.Uuid
-  createdAt     DateTime  @default(now())
+  createdById   String?     @db.Uuid
+  createdAt     DateTime    @default(now())
 
   period   AccountingPeriod @relation(fields: [periodId], references: [id])
   lines    JournalLine[]
@@ -667,19 +674,19 @@ model ExpenseCategory {
 
 /// Phiếu chi: an expense, or a payment to a supplier
 model CashPayment {
-  id          String           @id @default(uuid()) @db.Uuid
-  code        String           @unique // PC-2610-0001
-  periodId    String           @db.Uuid
-  date        DateTime         @db.Date
+  id          String    @id @default(uuid()) @db.Uuid
+  code        String    @unique // PC-2610-0001
+  periodId    String    @db.Uuid
+  date        DateTime  @db.Date
   description String
-  categoryId  String?          @db.Uuid // expense
-  supplierId  String?          @db.Uuid // supplier payment
+  categoryId  String?   @db.Uuid // expense
+  supplierId  String?   @db.Uuid // supplier payment
   amountVnd   BigInt // before VAT
-  vatRate     Int              @default(0)
-  vatVnd      BigInt           @default(0)
+  vatRate     Int       @default(0)
+  vatVnd      BigInt    @default(0)
   method      PayMethod
-  createdById String           @db.Uuid
-  createdAt   DateTime         @default(now())
+  createdById String    @db.Uuid
+  createdAt   DateTime  @default(now())
 
   period   AccountingPeriod @relation(fields: [periodId], references: [id])
   category ExpenseCategory? @relation(fields: [categoryId], references: [id])
@@ -713,29 +720,29 @@ enum ChannelPlatform {
 }
 
 enum ChannelStatus {
-  ACTIVE       // receiving events
-  ERROR        // token rejected or events keep failing
+  ACTIVE // receiving events
+  ERROR // token rejected or events keep failing
   DISCONNECTED // turned off by an administrator; token wiped
 }
 
 /// A connected fanpage (or, later, a Zalo OA). Tokens are AES-256-GCM encrypted and never sent to the browser.
 model ChannelAccount {
-  id              String          @id @default(uuid()) @db.Uuid
-  platform        ChannelPlatform
-  externalId      String // Facebook page id
-  name            String
-  pictureUrl      String?
-  accessTokenEnc  String? // page access token, encrypted
-  status          ChannelStatus   @default(ACTIVE)
-  lastEventAt     DateTime?
-  lastError       String?
-  lastErrorAt     DateTime?
-  connectedById   String?         @db.Uuid
-  connectedAt     DateTime        @default(now())
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  id             String          @id @default(uuid()) @db.Uuid
+  platform       ChannelPlatform
+  externalId     String // Facebook page id
+  name           String
+  pictureUrl     String?
+  accessTokenEnc String? // page access token, encrypted
+  status         ChannelStatus   @default(ACTIVE)
+  lastEventAt    DateTime?
+  lastError      String?
+  lastErrorAt    DateTime?
+  connectedById  String?         @db.Uuid
+  connectedAt    DateTime        @default(now())
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
 
-  connectedBy   User?          @relation(fields: [connectedById], references: [id])
+  connectedBy   User?            @relation(fields: [connectedById], references: [id])
   contacts      ChannelContact[]
   conversations Conversation[]
 
@@ -760,15 +767,15 @@ model WebhookEvent {
 
 /// One person on one fanpage (Facebook gives each person a different id per page).
 model ChannelContact {
-  id         String    @id @default(uuid()) @db.Uuid
-  channelId  String    @db.Uuid
+  id         String   @id @default(uuid()) @db.Uuid
+  channelId  String   @db.Uuid
   externalId String // PSID for Messenger, user id for comments
   name       String
   avatarUrl  String?
   phone      String? // first phone number the person wrote, normalized
-  customerId String?   @db.Uuid
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  customerId String?  @db.Uuid
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   channel       ChannelAccount @relation(fields: [channelId], references: [id])
   customer      Customer?      @relation(fields: [customerId], references: [id])
@@ -789,23 +796,23 @@ enum ConversationStatus {
 }
 
 model Conversation {
-  id                String             @id @default(uuid()) @db.Uuid
-  channelId         String             @db.Uuid
-  contactId         String             @db.Uuid
-  kind              ConversationKind
-  threadKey         String // "m" for Messenger, "c:<postId>" for comments: unique per contact
-  postId            String?
-  postUrl           String?
-  assigneeId        String?            @db.Uuid
-  status            ConversationStatus @default(OPEN)
-  lastMessageAt     DateTime
-  lastMessageText   String
-  lastMessageIn     Boolean            @default(true) // last message came from the customer: waiting for a reply
-  lastInboundAt     DateTime?
-  unreadCount       Int                @default(0)
-  privateReplyAt    DateTime? // comment threads: Facebook allows one private message per comment
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
+  id              String             @id @default(uuid()) @db.Uuid
+  channelId       String             @db.Uuid
+  contactId       String             @db.Uuid
+  kind            ConversationKind
+  threadKey       String // "m" for Messenger, "c:<postId>" for comments: unique per contact
+  postId          String?
+  postUrl         String?
+  assigneeId      String?            @db.Uuid
+  status          ConversationStatus @default(OPEN)
+  lastMessageAt   DateTime
+  lastMessageText String
+  lastMessageIn   Boolean            @default(true) // last message came from the customer: waiting for a reply
+  lastInboundAt   DateTime?
+  unreadCount     Int                @default(0)
+  privateReplyAt  DateTime? // comment threads: Facebook allows one private message per comment
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
 
   channel  ChannelAccount @relation(fields: [channelId], references: [id])
   contact  ChannelContact @relation(fields: [contactId], references: [id])
@@ -860,4 +867,338 @@ model Message {
   sender       User?        @relation(fields: [senderId], references: [id])
 
   @@index([conversationId, sentAt])
+}
+
+// ───────────── Kho (phân hệ độc lập: không khoá ngoại sang bảng CRM / Kế toán) ─────────────
+
+enum WhPartnerKind {
+  DIE_MAKER // nơi làm khuôn
+  DIE_SHOP // xưởng bế ngoài
+  SUPPLIER // nhà cung cấp giấy, vật tư
+  OTHER
+}
+
+/// Đối tác của Kho: nơi làm khuôn, xưởng bế ngoài, nhà cung cấp. Danh mục riêng, không dùng chung với Kế toán.
+model WhPartner {
+  id        String        @id @default(uuid()) @db.Uuid
+  name      String        @unique
+  kind      WhPartnerKind
+  phone     String?
+  note      String?
+  isActive  Boolean       @default(true)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  slips      WhSlip[]
+  diesMade   WhDie[]      @relation("DieMaker")
+  diesHeld   WhDie[]      @relation("DieHolder")
+  dieMoves   WhDieMove[]
+  dieBatches WhDieBatch[]
+}
+
+/// Vị trí lưu trong kho Âu Việt (tầng / kệ / ô), ví dụ "T4-K02-O03" hoặc "Tầng 4".
+model WhLocation {
+  id        String   @id @default(uuid()) @db.Uuid
+  code      String   @unique
+  note      String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  dies      WhDie[]
+  dieMoves  WhDieMove[]
+  dieCounts WhDieCount[]
+}
+
+/// Vật tư (giấy, đề can, bạt, mực…). Giấy và đề can có nhiều khổ; mỗi khổ là một mã tồn riêng.
+model WhMaterial {
+  id        String   @id @default(uuid()) @db.Uuid
+  group     String // nhóm: Giấy ngoại, Đề can, Op, Bạt, Mực…
+  name      String
+  unit      String // tờ, m², lít, tấm, cuộn…
+  hasSizes  Boolean  @default(true)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items WhStockItem[]
+
+  @@unique([group, name])
+}
+
+/// Mã tồn = vật tư + khổ (rộng x dài, cm). Vật tư không theo khổ dùng 0 x 0.
+model WhStockItem {
+  id         String   @id @default(uuid()) @db.Uuid
+  materialId String   @db.Uuid
+  widthCm    Decimal  @default(0) @db.Decimal(8, 2)
+  lengthCm   Decimal  @default(0) @db.Decimal(8, 2)
+  qty        Decimal  @default(0) @db.Decimal(14, 3) // tồn hiện tại, cập nhật cùng giao dịch với phiếu
+  minQty     Decimal? @db.Decimal(14, 3) // mức tối thiểu; dưới mức thì cảnh báo
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+
+  material   WhMaterial    @relation(fields: [materialId], references: [id])
+  lines      WhSlipLine[]
+  countLines WhCountLine[]
+
+  @@unique([materialId, widthCm, lengthCm])
+}
+
+enum WhSlipKind {
+  RECEIPT // phiếu nhập
+  ISSUE // phiếu xuất
+  RETURN // nhập lại vật tư thừa
+  ADJUST // điều chỉnh sau kiểm kê (số lượng có dấu)
+}
+
+/// Phiếu kho. Phiếu sai thì huỷ có lý do, không xoá.
+model WhSlip {
+  id          String     @id @default(uuid()) @db.Uuid
+  code        String     @unique // NK / XK / NL / DC-YYMM-NNNN
+  kind        WhSlipKind
+  date        DateTime   @db.Date
+  partnerId   String?    @db.Uuid // nhà cung cấp (phiếu nhập)
+  receiver    String? // người nhận (phiếu xuất)
+  purpose     String?
+  reference   String? // số lệnh / đơn tham chiếu, gõ tay, không đối chiếu CRM
+  note        String?
+  countId     String?    @unique @db.Uuid
+  createdById String     @db.Uuid
+  createdAt   DateTime   @default(now())
+  voidedAt    DateTime?
+  voidReason  String?
+  voidedById  String?    @db.Uuid
+
+  partner   WhPartner?   @relation(fields: [partnerId], references: [id])
+  count     WhCount?     @relation(fields: [countId], references: [id])
+  createdBy User         @relation("WhSlipCreatedBy", fields: [createdById], references: [id])
+  voidedBy  User?        @relation("WhSlipVoidedBy", fields: [voidedById], references: [id])
+  lines     WhSlipLine[]
+
+  @@index([date])
+}
+
+model WhSlipLine {
+  id           String  @id @default(uuid()) @db.Uuid
+  slipId       String  @db.Uuid
+  stockItemId  String  @db.Uuid
+  qty          Decimal @db.Decimal(14, 3) // dương; phiếu điều chỉnh có thể âm
+  unitPriceVnd BigInt? // không bắt buộc, chỉ tham khảo
+
+  slip      WhSlip      @relation(fields: [slipId], references: [id], onDelete: Cascade)
+  stockItem WhStockItem @relation(fields: [stockItemId], references: [id])
+
+  @@index([stockItemId])
+}
+
+enum WhCountStatus {
+  DRAFT
+  APPROVED
+  CANCELLED
+}
+
+/// Đợt kiểm kê vật tư: nhập số đếm, duyệt thì tạo phiếu điều chỉnh.
+model WhCount {
+  id          String        @id @default(uuid()) @db.Uuid
+  code        String        @unique // KKV-YYMM-NNNN
+  date        DateTime      @db.Date
+  status      WhCountStatus @default(DRAFT)
+  note        String?
+  createdById String        @db.Uuid
+  createdAt   DateTime      @default(now())
+  approvedAt  DateTime?
+
+  createdBy User          @relation(fields: [createdById], references: [id])
+  lines     WhCountLine[]
+  slip      WhSlip?
+}
+
+model WhCountLine {
+  id          String   @id @default(uuid()) @db.Uuid
+  countId     String   @db.Uuid
+  stockItemId String   @db.Uuid
+  systemQty   Decimal  @db.Decimal(14, 3) // tồn trên phần mềm lúc đếm
+  countedQty  Decimal? @db.Decimal(14, 3)
+
+  count     WhCount     @relation(fields: [countId], references: [id], onDelete: Cascade)
+  stockItem WhStockItem @relation(fields: [stockItemId], references: [id])
+
+  @@unique([countId, stockItemId])
+}
+
+/// Tháng đã chốt tồn: phiếu trong tháng đó không lập / huỷ được nữa (không phụ thuộc kỳ kế toán).
+model WhMonthLock {
+  month      String   @id // YYYY-MM
+  lockedById String   @db.Uuid
+  lockedAt   DateTime @default(now())
+
+  lockedBy User @relation(fields: [lockedById], references: [id])
+}
+
+/// Ký hiệu nhóm khuôn: TUI = túi giấy, KEF = kẹp file…
+model WhDieSymbol {
+  code     String  @id // TUI
+  name     String
+  lastNo   Int     @default(0)
+  isActive Boolean @default(true)
+
+  dies WhDie[]
+}
+
+enum WhDieKind {
+  CUT // khuôn bế
+  FOIL // ép kim
+  EMBOSS // ép nổi
+}
+
+enum WhDieStatus {
+  READY // sẵn sàng (ở kho hoặc gửi giữ ở xưởng)
+  IN_USE // đã xuất cho một lần bế
+  CHECKING // trả về, chờ kiểm
+  REPAIRING // đang sửa
+  DEFECT // lỗi
+  BROKEN // hỏng
+  DISPOSED // thanh lý
+}
+
+enum WhDieOwner {
+  AU_VIET
+  CUSTOMER
+  PARTNER
+}
+
+enum WhOrientation {
+  PORTRAIT // dọc
+  LANDSCAPE // ngang
+}
+
+/// Một khuôn. Mã cấp một lần khi tạo và không bao giờ đổi. Vị trí (đang ở đâu) tách khỏi trạng thái (dùng được không).
+model WhDie {
+  id             String         @id @default(uuid()) @db.Uuid
+  code           String         @unique // TUI-001
+  symbolCode     String
+  seq            Int
+  kind           WhDieKind      @default(CUT)
+  productName    String
+  customerName   String?
+  lengthCm       Decimal?       @db.Decimal(8, 2) // dài
+  widthCm        Decimal?       @db.Decimal(8, 2) // rộng
+  heightCm       Decimal?       @db.Decimal(8, 2) // cao / hông
+  sizeText       String? // kích thước dạng chữ khi không tách được 3 số
+  orientation    WhOrientation?
+  pieces         Int? // số mảnh
+  ups            Int? // số sản phẩm trên một khuôn
+  makerId        String?        @db.Uuid
+  owner          WhDieOwner     @default(AU_VIET)
+  status         WhDieStatus    @default(READY)
+  locationId     String?        @db.Uuid // vị trí trong kho Âu Việt
+  holderId       String?        @db.Uuid // xưởng ngoài đang giữ; null = ở kho Âu Việt
+  expectedBackOn DateTime?      @db.Date
+  costVnd        BigInt?
+  photo          String? // đường dẫn trong WH_FILES_DIR
+  note           String?
+  needsReview    Boolean        @default(false)
+  reviewNote     String?
+  searchText     String         @default("")
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  symbol     WhDieSymbol      @relation(fields: [symbolCode], references: [code])
+  maker      WhPartner?       @relation("DieMaker", fields: [makerId], references: [id])
+  holder     WhPartner?       @relation("DieHolder", fields: [holderId], references: [id])
+  location   WhLocation?      @relation(fields: [locationId], references: [id])
+  moves      WhDieMove[]
+  countLines WhDieCountLine[]
+
+  @@unique([symbolCode, seq])
+  @@index([status])
+}
+
+enum WhDieAction {
+  CREATE
+  ISSUE // xuất khuôn
+  KEEP // bế xong, gửi giữ ở xưởng
+  RETURN // trả về, chờ kiểm
+  PASS // kiểm đạt, nhập kho
+  DEFECT // phát hiện lỗi / hỏng
+  SEND_REPAIR // chuyển sửa
+  BACK_REPAIR // trả từ sửa
+  DISPOSE // thanh lý
+  MOVE // chuyển vị trí
+  EDIT // sửa thông tin
+  IMPORT // dòng lịch sử nạp từ Excel
+}
+
+model WhDieMove {
+  id             String       @id @default(uuid()) @db.Uuid
+  dieId          String       @db.Uuid
+  action         WhDieAction
+  date           DateTime     @db.Date
+  fromStatus     WhDieStatus?
+  toStatus       WhDieStatus?
+  place          String? // nơi sau thao tác, dạng chữ để lịch sử không đổi khi danh mục đổi tên
+  partnerId      String?      @db.Uuid
+  locationId     String?      @db.Uuid
+  reference      String? // số lệnh / đơn tham chiếu
+  expectedBackOn DateTime?    @db.Date
+  note           String?
+  batchId        String?      @db.Uuid
+  userId         String?      @db.Uuid
+  createdAt      DateTime     @default(now())
+
+  die      WhDie       @relation(fields: [dieId], references: [id], onDelete: Cascade)
+  partner  WhPartner?  @relation(fields: [partnerId], references: [id])
+  location WhLocation? @relation(fields: [locationId], references: [id])
+  batch    WhDieBatch? @relation(fields: [batchId], references: [id])
+  user     User?       @relation(fields: [userId], references: [id])
+
+  @@index([dieId, createdAt])
+}
+
+enum WhBatchKind {
+  OUT // giao khuôn ra xưởng
+  IN // nhận khuôn về
+}
+
+/// Một chuyến giao nhận nhiều khuôn với một xưởng; in phiếu cho xưởng ký.
+model WhDieBatch {
+  id          String      @id @default(uuid()) @db.Uuid
+  code        String      @unique // GN-YYMM-NNNN
+  kind        WhBatchKind
+  date        DateTime    @db.Date
+  partnerId   String      @db.Uuid
+  reference   String?
+  note        String?
+  createdById String      @db.Uuid
+  createdAt   DateTime    @default(now())
+
+  partner   WhPartner   @relation(fields: [partnerId], references: [id])
+  createdBy User        @relation(fields: [createdById], references: [id])
+  moves     WhDieMove[]
+}
+
+/// Kiểm kê khuôn theo một vị trí (kệ) hoặc một xưởng.
+model WhDieCount {
+  id          String    @id @default(uuid()) @db.Uuid
+  locationId  String?   @db.Uuid
+  scope       String // mô tả phạm vi: "T4-K02", "Mê Linh", "Toàn kho"
+  createdById String    @db.Uuid
+  createdAt   DateTime  @default(now())
+  finishedAt  DateTime?
+
+  location  WhLocation?      @relation(fields: [locationId], references: [id])
+  createdBy User             @relation(fields: [createdById], references: [id])
+  lines     WhDieCountLine[]
+}
+
+model WhDieCountLine {
+  id      String  @id @default(uuid()) @db.Uuid
+  countId String  @db.Uuid
+  dieId   String  @db.Uuid
+  found   Boolean @default(false)
+  extra   Boolean @default(false) // thấy ở đây nhưng phần mềm ghi ở nơi khác
+
+  count WhDieCount @relation(fields: [countId], references: [id], onDelete: Cascade)
+  die   WhDie      @relation(fields: [dieId], references: [id])
+
+  @@unique([countId, dieId])
 }
