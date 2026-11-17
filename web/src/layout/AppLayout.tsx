@@ -1,4 +1,4 @@
-import { AppstoreOutlined, DownOutlined, KeyOutlined, LogoutOutlined, MenuOutlined, UserOutlined } from '@ant-design/icons';
+import { AppstoreOutlined, DownOutlined, KeyOutlined, LogoutOutlined, MenuOutlined, QuestionCircleOutlined, UserOutlined } from '@ant-design/icons';
 import { Badge, Button, Drawer, Dropdown, Grid, Input, Layout, Menu, Modal, Space, Typography, theme } from 'antd';
 import { useEffect, useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router';
@@ -142,13 +142,34 @@ export function Brand({ inline }: { inline?: boolean }) {
   );
 }
 
+/** Chapter of the static user guide (web/public/huong-dan) for the page being viewed */
+function guideHref(path: string): string {
+  const chapter = path.startsWith('/warehouse')
+    ? 'kho-hieu'
+    : path.startsWith('/accounting')
+      ? 'kt-hieu'
+      : path.startsWith('/accounts') || path.startsWith('/roles')
+        ? 'tai-khoan'
+        : path.startsWith('/channels')
+          ? 'ket-noi-kenh'
+          : path === '/'
+            ? 'gioi-thieu'
+            : '';
+  return `/huong-dan/index.html${chapter ? `#${chapter}` : ''}`;
+}
+
 export function UserMenu() {
   const { data: me } = useMe();
+  const { pathname } = useLocation();
+  const compact = !Grid.useBreakpoint().md;
   const { logout } = useAuthActions();
   const navigate = useNavigate();
   const [changing, setChanging] = useState(false);
   return (
-    <>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+      <Button type="text" icon={<QuestionCircleOutlined />} href={guideHref(pathname)} target="_blank" rel="noopener" aria-label="Hướng dẫn sử dụng">
+        {!compact && 'Hướng dẫn'}
+      </Button>
       <Dropdown
         trigger={['click']}
         menu={{
@@ -182,6 +203,6 @@ export function UserMenu() {
       <Modal open={changing} title="Đổi mật khẩu" footer={null} onCancel={() => setChanging(false)} destroyOnHidden>
         <ChangePasswordForm onDone={() => setChanging(false)} />
       </Modal>
-    </>
+    </div>
   );
 }

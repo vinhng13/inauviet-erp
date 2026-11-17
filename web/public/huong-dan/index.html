@@ -1,0 +1,1585 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hướng dẫn sử dụng Inauviet ERP</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --crm: #0a6f9c; --crm-soft: #e6f2f8;
+  --acc: #2f7d4f; --acc-soft: #e8f4ec;
+  --adm: #7a4fb5; --adm-soft: #f1ebfa;
+  --kho: #b5651d; --kho-soft: #f8eee4;
+  --ink: #1f2328; --muted: #5f6670; --line: #e3e6ea; --bg: #f6f7f9; --card: #fff;
+  --warn: #9a6200; --warn-soft: #fff6e0; --tip: #0a6f9c; --tip-soft: #e9f4fa; --bad: #b42318; --bad-soft: #fdecea;
+  --side: 300px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; font-family: "Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--ink); background: var(--bg); font-size: 16px; line-height: 1.65; }
+a { color: var(--crm); }
+code, kbd { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; font-size: .88em; background: #eef0f3; padding: 1px 6px; border-radius: 5px; }
+kbd { border: 1px solid #d5d9de; border-bottom-width: 2px; background: #fff; }
+
+/* Layout */
+.top { position: sticky; top: 0; z-index: 30; height: 60px; display: flex; align-items: center; gap: 12px; padding: 0 20px; background: #fff; border-bottom: 1px solid var(--line); }
+.top .logo { width: 32px; height: 32px; border-radius: 8px; background: var(--crm); display: grid; place-items: center; color: #fff; font-weight: 700; }
+.top .title { font-weight: 700; font-size: 17px; line-height: 1.2; }
+.top .title small { display: block; font-weight: 400; font-size: 12px; color: var(--muted); }
+.top .spacer { flex: 1; }
+.menu-btn { display: none; border: 1px solid var(--line); background: #fff; border-radius: 8px; padding: 6px 10px; font: inherit; cursor: pointer; }
+.print-btn { border: 1px solid var(--line); background: #fff; border-radius: 8px; padding: 6px 12px; font: inherit; font-size: 14px; cursor: pointer; color: var(--muted); }
+.wrap { display: flex; min-height: calc(100vh - 60px); }
+nav.side { width: var(--side); flex: none; background: #fff; border-right: 1px solid var(--line); position: sticky; top: 60px; height: calc(100vh - 60px); overflow-y: auto; padding: 14px 12px 40px; }
+.search { width: 100%; padding: 9px 12px; border: 1px solid var(--line); border-radius: 9px; font: inherit; font-size: 14px; margin-bottom: 10px; outline: none; }
+.search:focus { border-color: var(--crm); box-shadow: 0 0 0 3px var(--crm-soft); }
+.group { margin-top: 14px; }
+.group > .gtitle { display: flex; align-items: center; gap: 8px; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 600; padding: 4px 10px; }
+.dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+nav.side a.item { display: block; padding: 7px 10px 7px 12px; border-radius: 8px; color: var(--ink); text-decoration: none; font-size: 14.5px; line-height: 1.35; border-left: 3px solid transparent; }
+nav.side a.item:hover { background: #f1f3f5; }
+nav.side a.item.active { background: var(--crm-soft); color: var(--crm); font-weight: 600; border-left-color: var(--crm); }
+nav.side .g-acc a.item.active { background: var(--acc-soft); color: var(--acc); border-left-color: var(--acc); }
+nav.side .g-adm a.item.active { background: var(--adm-soft); color: var(--adm); border-left-color: var(--adm); }
+nav.side .g-kho a.item.active { background: var(--kho-soft); color: var(--kho); border-left-color: var(--kho); }
+nav.side .nores { font-size: 14px; color: var(--muted); padding: 8px 10px; display: none; }
+main { flex: 1; min-width: 0; padding: 28px 40px 80px; }
+.page { max-width: 900px; margin: 0 auto; }
+section.doc { display: none; scroll-margin-top: 80px; }
+section.doc.show { display: block; animation: fade .18s ease; }
+@keyframes fade { from { opacity: .3; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+/* Content */
+.crumb { font-size: 13px; color: var(--muted); margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+h1 { font-size: 30px; line-height: 1.25; margin: 0 0 8px; }
+h2 { font-size: 21px; margin: 34px 0 10px; padding-top: 6px; }
+h3 { font-size: 17px; margin: 24px 0 6px; }
+.lead { font-size: 17.5px; color: #3a4048; margin: 0 0 18px; }
+.who { display: inline-flex; flex-wrap: wrap; gap: 6px; margin: 0 0 18px; font-size: 13px; }
+.who span { background: #fff; border: 1px solid var(--line); border-radius: 999px; padding: 2px 10px; color: var(--muted); }
+.who b { color: var(--ink); font-weight: 600; }
+p { margin: 0 0 12px; }
+ul, ol { margin: 0 0 14px; padding-left: 22px; }
+li { margin: 4px 0; }
+.ui { font-weight: 600; background: #fff; border: 1px solid #cfd5db; border-radius: 6px; padding: 0 7px; white-space: nowrap; font-size: .93em; }
+.ui.primary { background: var(--crm); color: #fff; border-color: var(--crm); }
+.ui.danger { color: var(--bad); border-color: #f2b8b5; }
+.menu { font-weight: 600; color: var(--crm); }
+.acc .menu, .menu.acc { color: var(--acc); }
+
+ol.steps { list-style: none; padding: 0; counter-reset: s; margin: 10px 0 18px; }
+ol.steps > li { counter-increment: s; position: relative; padding: 2px 0 12px 46px; margin: 0; }
+ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: 0; width: 30px; height: 30px; border-radius: 50%; background: var(--crm); color: #fff; font-weight: 700; display: grid; place-items: center; font-size: 14px; }
+ol.steps > li::after { content: ""; position: absolute; left: 14px; top: 32px; bottom: 2px; width: 2px; background: var(--line); }
+ol.steps > li:last-child::after { display: none; }
+.acc ol.steps > li::before { background: var(--acc); }
+.adm ol.steps > li::before { background: var(--adm); }
+.kho ol.steps > li::before { background: var(--kho); }
+.kho .menu, .menu.kho { color: var(--kho); }
+.stt { display: inline-block; font-size: 13px; line-height: 20px; padding: 0 8px; border-radius: 5px; border: 1px solid #d9d9d9; background: #fafafa; white-space: nowrap; }
+.stt.green { color: #389e0d; background: #f6ffed; border-color: #b7eb8f; } .stt.blue { color: #0958d9; background: #e6f4ff; border-color: #91caff; } .stt.gold { color: #d48806; background: #fffbe6; border-color: #ffe58f; } .stt.orange { color: #d46b08; background: #fff7e6; border-color: #ffd591; } .stt.red { color: #cf1322; background: #fff1f0; border-color: #ffa39e; } .stt.purple { color: #531dab; background: #f9f0ff; border-color: #d3adf7; }
+.cycle { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; margin: 12px 0; line-height: 2.2; }
+
+.note { border-radius: 10px; padding: 12px 16px 12px 46px; margin: 14px 0 18px; position: relative; font-size: 15px; }
+.note::before { position: absolute; left: 14px; top: 11px; font-weight: 700; font-size: 17px; }
+.note p:last-child, .note ul:last-child { margin-bottom: 0; }
+.note.tip { background: var(--tip-soft); }
+.note.tip::before { content: "💡"; }
+.note.warn { background: var(--warn-soft); }
+.note.warn::before { content: "⚠️"; }
+.note.bad { background: var(--bad-soft); }
+.note.bad::before { content: "⛔"; }
+.note b.h { display: block; margin-bottom: 2px; }
+
+figure { margin: 16px 0 22px; background: #fff; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+figure img { display: block; width: 100%; height: auto; cursor: zoom-in; }
+figcaption { font-size: 13.5px; color: var(--muted); padding: 8px 14px; border-top: 1px solid var(--line); }
+
+table { width: 100%; border-collapse: collapse; margin: 10px 0 18px; font-size: 14.5px; background: #fff; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { background: #f3f5f7; font-weight: 600; font-size: 13.5px; }
+tr:last-child td { border-bottom: 0; }
+.tbl { overflow-x: auto; }
+
+.flow { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin: 14px 0 20px; }
+.flow .st { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 12px 10px; position: relative; }
+.flow .st .n { width: 26px; height: 26px; border-radius: 50%; background: var(--crm); color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 13px; margin-bottom: 6px; }
+.flow .st b { display: block; font-size: 15px; line-height: 1.3; }
+.flow .st span { display: block; font-size: 12.5px; color: var(--muted); line-height: 1.4; margin-top: 4px; }
+.flow .st .r { font-size: 12px; margin-top: 6px; color: var(--crm); font-weight: 600; }
+.flow .st:not(:last-child)::after { content: "›"; position: absolute; right: -8px; top: 40%; color: #9aa3ad; font-size: 20px; }
+
+.cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 14px 0 20px; }
+.card { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; text-decoration: none; color: inherit; display: block; }
+a.card:hover { border-color: #b9c2cb; box-shadow: 0 2px 10px rgba(0,0,0,.05); }
+.card h4 { margin: 0 0 4px; font-size: 16px; }
+.card p { margin: 0; font-size: 14px; color: var(--muted); }
+.card.crm { border-top: 4px solid var(--crm); }
+.card.acc { border-top: 4px solid var(--acc); }
+.card.adm { border-top: 4px solid var(--adm); }
+.card.kho { border-top: 4px solid var(--kho); }
+
+.check { list-style: none; padding: 0; }
+.check li { padding-left: 28px; position: relative; }
+.check li::before { content: ""; position: absolute; left: 2px; top: 5px; width: 15px; height: 15px; border: 2px solid #9aa3ad; border-radius: 4px; }
+
+.pager { display: flex; justify-content: space-between; gap: 12px; margin-top: 44px; padding-top: 18px; border-top: 1px solid var(--line); }
+.pager a { flex: 1; max-width: 48%; background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; text-decoration: none; color: var(--ink); }
+.pager a:hover { border-color: #b9c2cb; }
+.pager a small { display: block; color: var(--muted); font-size: 12.5px; }
+.pager a.next { text-align: right; margin-left: auto; }
+
+.lightbox { position: fixed; inset: 0; background: rgba(15,20,25,.88); display: none; align-items: center; justify-content: center; z-index: 50; padding: 20px; cursor: zoom-out; }
+.lightbox.open { display: flex; }
+.lightbox img { max-width: 100%; max-height: 100%; border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,.4); }
+
+@media (max-width: 960px) {
+  .flow { grid-template-columns: repeat(3, 1fr); }
+  .flow .st:nth-child(3)::after { display: none; }
+  .cards { grid-template-columns: 1fr; }
+}
+@media (max-width: 820px) {
+  .menu-btn { display: inline-block; white-space: nowrap; }
+  .top { padding: 0 12px; gap: 10px; }
+  .top .logo { display: none; }
+  .top .title { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .top .title small { display: none; }
+  .print-btn { display: none; }
+  nav.side { position: fixed; left: 0; top: 60px; z-index: 40; transform: translateX(-100%); transition: transform .2s; box-shadow: 4px 0 20px rgba(0,0,0,.08); width: min(320px, 88vw); }
+  nav.side.open { transform: none; }
+  main { padding: 20px 16px 60px; }
+  h1 { font-size: 25px; }
+  .flow { grid-template-columns: repeat(2, 1fr); }
+  .flow .st::after { display: none; }
+}
+@media print {
+  .top, nav.side, .pager { display: none !important; }
+  main { padding: 0; }
+  section.doc { display: block !important; page-break-after: always; }
+  figure { break-inside: avoid; }
+  body { background: #fff; }
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <button class="menu-btn" id="menuBtn" aria-label="Mở mục lục">☰ Mục lục</button>
+  <div class="logo">IÂ</div>
+  <div class="title">Hướng dẫn sử dụng Inauviet ERP<small>In Âu Việt · CRM · Kế toán · Kho · Quản trị</small></div>
+  <div class="spacer"></div>
+  <button class="print-btn" onclick="window.print()">In toàn bộ</button>
+</header>
+<div class="wrap">
+<nav class="side" id="side" aria-label="Mục lục">
+  <input class="search" id="search" type="search" placeholder="Tìm trong mục lục…" aria-label="Tìm mục">
+  <div class="nores" id="nores">Không có mục nào khớp.</div>
+  <div id="navGroups"></div>
+</nav>
+<main>
+<div class="page" id="page">
+
+<!-- ======================= BẮT ĐẦU ======================= -->
+<section class="doc" id="gioi-thieu" data-group="start" data-title="Giới thiệu">
+  <div class="crumb">Bắt đầu</div>
+  <h1>Chào mừng bạn đến với Inauviet ERP</h1>
+  <p class="lead">Inauviet ERP là phần mềm quản lý toàn bộ công việc của In Âu Việt: từ lúc báo giá cho khách, chốt đơn, thiết kế, sản xuất, giao hàng, thu tiền cho tới sổ sách kế toán cuối tháng.</p>
+  <p>Tài liệu này viết cho người mới dùng lần đầu. Bạn không cần biết trước về máy tính hay kế toán: mỗi mục giải thích màn hình dùng để làm gì, các bước bấm theo thứ tự, và những điều cần chú ý.</p>
+
+  <h2>Phần mềm có 4 phân hệ</h2>
+  <div class="cards">
+    <a class="card crm" href="#bang-dieu-phoi"><h4>CRM</h4><p>Báo giá, đơn hàng, thiết kế, sản xuất, giao hàng, khách hàng, sản phẩm. Dành cho kinh doanh, thiết kế, xưởng, giao hàng.</p></a>
+    <a class="card acc" href="#kt-hieu"><h4>Kế toán</h4><p>Thu tiền, công nợ, thu – chi, kho vật tư, tài sản, thuế GTGT, sổ sách và khoá sổ cuối tháng.</p></a>
+    <a class="card kho" href="#kho-hieu"><h4>Kho</h4><p>Giấy, màng, vật tư theo khổ; khuôn bế: đang ở kệ nào, xưởng nào, bao giờ về; kiểm kê. Dành cho thủ kho.</p></a>
+    <a class="card adm" href="#tai-khoan"><h4>Quản trị</h4><p>Tạo tài khoản cho nhân viên và phân quyền ai được làm gì.</p></a>
+  </div>
+  <p>Mỗi người chỉ thấy những phân hệ và menu mà nhóm quyền của mình được phép dùng. Vì vậy màn hình của bạn có thể ít menu hơn trong ảnh minh hoạ — đó là bình thường.</p>
+
+  <h2>Cách dùng tài liệu này</h2>
+  <ul>
+    <li>Chọn mục ở <b>mục lục bên trái</b> (trên điện thoại: bấm <span class="ui">☰ Mục lục</span>). Ô tìm kiếm giúp lọc nhanh tên mục.</li>
+    <li>Cuối mỗi mục có nút <b>mục trước / mục sau</b> để đọc lần lượt.</li>
+    <li>Bấm vào ảnh để phóng to. Bấm lần nữa để đóng.</li>
+    <li>Chữ trong khung như <span class="ui">Lưu</span> là <b>nút bấm</b> trên màn hình; chữ màu xanh đậm như <span class="menu">Báo giá</span> là <b>tên menu</b>.</li>
+  </ul>
+
+  <h2>Nên đọc gì trước?</h2>
+  <table>
+    <tr><th>Bạn là</th><th>Đọc các mục</th></tr>
+    <tr><td>Mọi người</td><td><a href="#dang-nhap">Đăng nhập</a>, <a href="#chon-phan-he">Chọn phân hệ & giao diện</a>, <a href="#quy-trinh">Quy trình 6 bước</a></td></tr>
+    <tr><td>Kinh doanh</td><td><a href="#hoi-thoai">Hội thoại Facebook</a>, <a href="#khach-hang">Khách hàng</a>, <a href="#bao-gia">Báo giá</a>, <a href="#don-hang">Đơn hàng</a>, <a href="#giao-hang">Giao hàng & nghiệm thu</a>, <a href="#thanh-toan">Thanh toán</a></td></tr>
+    <tr><td>Thiết kế</td><td><a href="#thiet-ke">Thiết kế (bước 3–4)</a></td></tr>
+    <tr><td>Xưởng sản xuất</td><td><a href="#san-xuat">Sản xuất (bước 5)</a></td></tr>
+    <tr><td>Giao hàng</td><td><a href="#giao-hang">Giao hàng & nghiệm thu</a></td></tr>
+    <tr><td>Kế toán</td><td><a href="#thanh-toan">Thanh toán</a> và toàn bộ phần <a href="#kt-hieu">Kế toán</a></td></tr>
+    <tr><td>Thủ kho</td><td>Toàn bộ phần <a href="#kho-hieu">Kho</a>, bắt đầu từ <a href="#kho-bat-dau">Bắt đầu dùng kho</a></td></tr>
+    <tr><td>Quản trị viên</td><td><a href="#tai-khoan">Tài khoản</a>, <a href="#nhom-quyen">Nhóm quyền</a>, <a href="#ket-noi-kenh">Kết nối fanpage</a></td></tr>
+  </table>
+</section>
+
+<section class="doc" id="dang-nhap" data-group="start" data-title="Đăng nhập & đổi mật khẩu">
+  <div class="crumb">Bắt đầu</div>
+  <h1>Đăng nhập và đổi mật khẩu</h1>
+  <p class="lead">Mỗi nhân viên có một tài khoản riêng do quản trị viên tạo. Lần đầu đăng nhập bằng mật khẩu tạm, phần mềm sẽ yêu cầu bạn đặt mật khẩu mới.</p>
+
+  <h2>Đăng nhập</h2>
+  <ol class="steps">
+    <li>Mở trình duyệt (Chrome, Edge, Cốc Cốc…) và vào địa chỉ phần mềm mà quản trị viên gửi cho bạn.</li>
+    <li>Nhập <b>Tên đăng nhập</b> (chữ thường, không dấu, ví dụ <code>lan.nguyen</code>) và <b>Mật khẩu</b>.</li>
+    <li>Bấm <span class="ui primary">Đăng nhập</span>.</li>
+    <li>Nếu đây là mật khẩu tạm, phần mềm hiện màn hình đặt mật khẩu mới: nhập mật khẩu mới (ít nhất 8 ký tự) hai lần, rồi bấm <span class="ui primary">Lưu và vào ứng dụng</span>.</li>
+  </ol>
+  <figure><img src="img/login.jpg" alt="Màn hình đăng nhập"><figcaption>Màn hình đăng nhập.</figcaption></figure>
+  <div class="note warn"><b class="h">Nhập sai nhiều lần</b>Nếu nhập sai mật khẩu quá nhiều lần, tài khoản bị tạm khoá 15 phút. Quên mật khẩu thì nhờ quản trị viên <a href="#tai-khoan">đặt lại mật khẩu</a>.</div>
+
+  <h2>Đổi mật khẩu khi đang dùng</h2>
+  <ol class="steps">
+    <li>Bấm vào <b>tên của bạn</b> ở góc trên bên phải.</li>
+    <li>Chọn <span class="ui">Đổi mật khẩu</span>, nhập mật khẩu hiện tại và mật khẩu mới, bấm lưu.</li>
+  </ol>
+
+  <h2>Đăng xuất</h2>
+  <p>Bấm tên của bạn ở góc phải → <span class="ui">Đăng xuất</span>. Nên đăng xuất khi dùng máy tính chung. Phiên đăng nhập tự hết hạn nếu lâu ngày không dùng.</p>
+</section>
+
+<section class="doc" id="chon-phan-he" data-group="start" data-title="Chọn phân hệ & giao diện chung">
+  <div class="crumb">Bắt đầu</div>
+  <h1>Chọn phân hệ và làm quen giao diện</h1>
+  <p class="lead">Sau khi đăng nhập, bạn thấy màn hình chọn phân hệ. Bấm vào thẻ của phân hệ cần làm việc; bên trong chỉ có các menu của phân hệ đó.</p>
+  <figure><img src="img/picker.jpg" alt="Màn hình chọn phân hệ"><figcaption>Màn hình chọn phân hệ. Mỗi thẻ ghi các menu bạn được dùng trong phân hệ đó.</figcaption></figure>
+
+  <h2>Các phần của màn hình</h2>
+  <figure><img src="img/board.jpg" alt="Giao diện chung"><figcaption>Giao diện bên trong phân hệ CRM.</figcaption></figure>
+  <table>
+    <tr><th>Vị trí</th><th>Là gì</th></tr>
+    <tr><td>Góc trên bên trái</td><td>Tên công ty và <b>nút đổi phân hệ</b> (ví dụ <span class="ui">CRM ▾</span>).</td></tr>
+    <tr><td>Cột bên trái</td><td><b>Menu</b> của phân hệ đang dùng. Menu đang mở được tô màu.</td></tr>
+    <tr><td>Thanh trên cùng</td><td>Trong CRM có ô <b>tìm nhanh</b> đơn theo mã đơn, tên khách, số điện thoại. Góc phải là <b>tên bạn</b> (đổi mật khẩu, chọn module, đăng xuất).</td></tr>
+    <tr><td>Phần giữa</td><td>Nội dung của menu đang chọn.</td></tr>
+  </table>
+
+  <h2>Đổi sang phân hệ khác</h2>
+  <ol class="steps">
+    <li>Bấm nút tên phân hệ ở đầu menu bên trái (ví dụ <span class="ui">CRM ▾</span>).</li>
+    <li>Chọn phân hệ muốn chuyển tới, hoặc <span class="ui">Màn hình chọn module</span> để về màn hình ban đầu.</li>
+  </ol>
+  <figure><img src="img/switcher.jpg" alt="Đổi phân hệ"><figcaption>Danh sách phân hệ khi bấm nút đổi phân hệ.</figcaption></figure>
+  <p>Cách khác: bấm tên bạn ở góc phải → <span class="ui">Chọn module</span>.</p>
+
+  <h2>Trên điện thoại</h2>
+  <p>Phần mềm dùng được trên điện thoại. Menu bên trái được thu gọn vào nút <span class="ui">☰</span> ở góc trên bên trái; nút đổi phân hệ nằm ở đầu menu đó.</p>
+
+  <div class="note tip"><b class="h">Dữ liệu không tự cập nhật liên tục</b>Màn hình lấy dữ liệu mới khi bạn mở trang hoặc quay lại tab trình duyệt. Muốn chắc chắn thấy số mới nhất, bấm <span class="ui">Làm mới</span> (nếu có) hoặc phím <kbd>F5</kbd>.</div>
+</section>
+
+<section class="doc" id="quy-trinh" data-group="start" data-title="Quy trình 6 bước của một đơn">
+  <div class="crumb">Bắt đầu</div>
+  <h1>Quy trình 6 bước của một đơn hàng</h1>
+  <p class="lead">Mọi đơn hàng đi qua 6 bước theo thứ tự. Trạng thái đơn do phần mềm tự chuyển khi bạn hoàn thành việc của từng bước, bạn không cần tự đổi trạng thái.</p>
+  <div class="flow">
+    <div class="st"><div class="n">1</div><b>Báo giá</b><span>Lập báo giá, gửi khách</span><div class="r">Kinh doanh</div></div>
+    <div class="st"><div class="n">2</div><b>Chốt đơn</b><span>Khách đồng ý → đơn hàng; xác nhận hàng hoá</span><div class="r">Kinh doanh</div></div>
+    <div class="st"><div class="n">3</div><b>Thiết kế</b><span>Gửi maket v1, v2… và ghi phản hồi</span><div class="r">Thiết kế</div></div>
+    <div class="st"><div class="n">4</div><b>Hoàn thiện TK</b><span>Khách duyệt, hoàn thiện file in, khoá</span><div class="r">Thiết kế</div></div>
+    <div class="st"><div class="n">5</div><b>Sản xuất</b><span>Lệnh sản xuất, xưởng làm theo công đoạn</span><div class="r">Xưởng</div></div>
+    <div class="st"><div class="n">6</div><b>Giao hàng</b><span>Giao một hoặc nhiều chuyến, khách ký nghiệm thu</span><div class="r">Giao hàng, Kinh doanh</div></div>
+  </div>
+  <ul>
+    <li><b>Khách có file in sẵn:</b> ở bước 2 chọn “Khách có file in sẵn”, đơn bỏ qua bước 3–4 và tạo lệnh sản xuất ngay.</li>
+    <li><b>Thu tiền</b> (cọc, thanh toán) ghi được ở <b>bất kỳ bước nào</b> và không làm đổi trạng thái đơn.</li>
+    <li><b>Huỷ đơn</b> được ở mọi bước trước khi khách ký nghiệm thu.</li>
+    <li>Đơn không đi từ báo giá (khách gọi đặt luôn) thì tạo trực tiếp ở <span class="menu">Đơn hàng</span> → <span class="ui">Đơn mới</span>, bắt đầu từ bước 2.</li>
+  </ul>
+
+  <h2>Phần kế toán nối vào đâu?</h2>
+  <p>Kế toán không phải nhập lại những gì CRM đã có:</p>
+  <ul>
+    <li>Mỗi khoản <b>thu tiền</b> ghi ở CRM tự vào sổ thành phiếu thu.</li>
+    <li>Khi khách <b>ký nghiệm thu</b> (cuối bước 6), doanh thu và công nợ của đơn tự ghi sổ, kèm thuế GTGT 8%.</li>
+    <li>Kế toán chỉ nhập thêm những gì CRM không biết: tiền chi ra, nhập – xuất kho vật tư, tài sản, các bút toán khác.</li>
+  </ul>
+</section>
+
+<section class="doc" id="quyen" data-group="start" data-title="Ai làm được gì (nhóm quyền)">
+  <div class="crumb">Bắt đầu</div>
+  <h1>Ai làm được gì</h1>
+  <p class="lead">Mỗi tài khoản thuộc một nhóm quyền. Nhóm quyền quyết định bạn thấy phân hệ, menu và nút bấm nào. Nút bạn không có quyền sẽ bị ẩn hoặc hiện kèm lời nhắc.</p>
+  <table>
+    <tr><th>Nhóm (mặc định)</th><th>Làm được gì</th><th>Thấy giá tiền</th></tr>
+    <tr><td>Quản trị viên</td><td>Toàn quyền, kể cả tài khoản và nhóm quyền</td><td>Có</td></tr>
+    <tr><td>Kinh doanh</td><td>Trả lời hội thoại Facebook, báo giá, chốt và xác nhận đơn, giao thiết kế, lên chuyến giao, nghiệm thu, thu tiền, khách hàng</td><td>Có</td></tr>
+    <tr><td>Kế toán</td><td>Thu tiền, huỷ khoản thu, công nợ; toàn bộ phân hệ Kế toán gồm khoá sổ</td><td>Có</td></tr>
+    <tr><td>Thiết kế</td><td>Gửi maket, ghi phản hồi và duyệt của khách, khoá thiết kế</td><td>Không</td></tr>
+    <tr><td>Sản xuất</td><td>Xem lệnh sản xuất, chuyển công đoạn, đổi hạn xưởng và ưu tiên</td><td>Không</td></tr>
+    <tr><td>Giao hàng</td><td>Xem lịch giao, xác nhận đã giao</td><td>Không</td></tr>
+    <tr><td>Thủ kho</td><td>Phân hệ Kho: lập phiếu nhập / xuất, luân chuyển khuôn, giao nhận khuôn, kiểm kê</td><td>Không</td></tr>
+  </table>
+  <div class="note tip">Người không có quyền xem tiền sẽ không thấy bất kỳ số tiền nào (giá, tổng đơn, công nợ) và không tải được chứng từ có giá. Đây là chủ ý, không phải lỗi.</div>
+  <p>Quản trị viên có thể sửa các nhóm này hoặc tạo nhóm mới: xem <a href="#nhom-quyen">Nhóm quyền</a>.</p>
+</section>
+
+<!-- ======================= CRM ======================= -->
+<section class="doc" id="bang-dieu-phoi" data-group="crm" data-title="Bảng điều phối">
+  <div class="crumb"><span class="dot" style="background:var(--crm)"></span>CRM</div>
+  <h1>Bảng điều phối</h1>
+  <p class="lead">Trang chủ của CRM: nhìn một lần là biết mọi đơn đang ở bước nào, đơn nào sắp trễ, đơn nào còn nợ tiền.</p>
+  <div class="who"><span>Dành cho: <b>Kinh doanh, Quản lý</b></span><span>Menu: <b>CRM → Bảng điều phối</b></span></div>
+  <figure><img src="img/board.jpg" alt="Bảng điều phối"><figcaption>Bảng điều phối: 4 ô số liệu, bộ lọc và 6 cột theo 6 bước.</figcaption></figure>
+
+  <h2>Đọc bảng điều phối</h2>
+  <ul>
+    <li><b>4 ô số liệu ở trên:</b> báo giá đang mở, đơn đang chạy, đang sản xuất (kèm số lệnh gấp), công nợ của đơn đã giao.</li>
+    <li><b>6 cột</b> tương ứng 6 bước. Cột 1 là các báo giá đang mở; cột 6 có thêm các đơn đã hoàn tất trong 14 ngày gần nhất.</li>
+    <li>Mỗi <b>thẻ</b> là một đơn: mã đơn, tên khách, hàng hoá, hạn giao và một dòng tiến độ (ví dụ “maket v2 · chờ phản hồi”, “Xưởng: In · hạn 06/11”). Nhãn <span class="ui">Gấp</span>, <span class="ui">File sẵn</span>, tình trạng tiền hiện ở cuối thẻ.</li>
+    <li><b>Bấm vào thẻ</b> để mở chi tiết đơn hoặc báo giá.</li>
+  </ul>
+
+  <h2>Lọc nhanh</h2>
+  <ul>
+    <li>Ô tìm kiếm: gõ mã đơn, tên khách hoặc số điện thoại.</li>
+    <li><span class="ui">Hạn trong 7 ngày</span>, <span class="ui">Quá hạn</span>: chỉ hiện đơn sắp tới hạn hoặc đã trễ.</li>
+    <li>Công tắc <span class="ui">Còn hàng chưa lên chuyến</span>: đơn còn hàng chưa xếp chuyến giao.</li>
+    <li>Thẻ tiền <span class="ui">Chưa cọc</span> <span class="ui">Đã cọc</span> <span class="ui">Còn nợ</span> <span class="ui">Đã thanh toán</span> (chỉ hiện với người được xem tiền).</li>
+  </ul>
+  <p>Nút <span class="ui primary">Báo giá mới</span> và <span class="ui">Đơn không qua báo giá</span> ở góc phải giúp tạo mới ngay từ bảng điều phối.</p>
+</section>
+
+<section class="doc" id="san-pham" data-group="crm" data-title="Sản phẩm (danh mục giá)">
+  <div class="crumb"><span class="dot" style="background:var(--crm)"></span>CRM</div>
+  <h1>Danh mục sản phẩm</h1>
+  <p class="lead">Danh sách sản phẩm và đơn giá dùng khi lập báo giá. Chuẩn bị danh mục trước giúp báo giá nhanh và giá đồng nhất.</p>
+  <div class="who"><span>Dành cho: <b>Quản lý, Kinh doanh</b> (cần quyền quản lý sản phẩm để sửa)</span><span>Menu: <b>CRM → Sản phẩm</b></span></div>
+  <figure><img src="img/products.jpg" alt="Danh mục sản phẩm"><figcaption>Danh mục sản phẩm.</figcaption></figure>
+
+  <h2>Hai cách tính giá</h2>
+  <table>
+    <tr><th>Cách tính</th><th>Dùng cho</th><th>Khi báo giá</th></tr>
+    <tr><td><b>Theo m²</b> (rộng × cao)</td><td>Decal, bạt, biển, hộp đèn…</td><td>Nhập rộng và cao (mét). Giá 1 tấm = rộng × cao × đơn giá/m², làm tròn tới đồng; thành tiền = giá tấm × số tấm.</td></tr>
+    <tr><td><b>Theo số lượng</b></td><td>Standee, card visit…</td><td>Nhập số lượng. Thành tiền = số lượng × đơn giá.</td></tr>
+  </table>
+
+  <h2>Thêm hoặc sửa sản phẩm</h2>
+  <ol class="steps">
+    <li>Bấm <span class="ui primary">Thêm sản phẩm</span> (hoặc biểu tượng sửa ở dòng sản phẩm).</li>
+    <li>Nhập <b>Tên sản phẩm</b>, <b>Nhóm</b> (Decal, Bạt, Biển & hộp đèn…), chọn <b>Cách tính giá</b>.</li>
+    <li>Với cách tính theo số lượng, nhập <b>Đơn vị tính</b> (cái, bộ, hộp…). Nhập <b>Đơn giá</b> (chưa gồm VAT).</li>
+    <li>Bấm <span class="ui primary">Lưu</span>.</li>
+  </ol>
+  <div class="note tip">Đổi giá <b>không ảnh hưởng</b> báo giá và đơn hàng đã lập. Sản phẩm không bán nữa thì chuyển sang <b>Ngừng bán</b> thay vì xoá: nó sẽ không hiện khi lập báo giá mới.</div>
+</section>
+
+<section class="doc" id="khach-hang" data-group="crm" data-title="Khách hàng">
+  <div class="crumb"><span class="dot" style="background:var(--crm)"></span>CRM</div>
+  <h1>Khách hàng</h1>
+  <p class="lead">Danh bạ khách hàng kèm toàn bộ báo giá, đơn hàng, công nợ và tài liệu của từng khách.</p>
+  <div class="who"><span>Dành cho: <b>Kinh doanh</b></span><span>Menu: <b>CRM → Khách hàng</b></span></div>
+  <figure><img src="img/customers.jpg" alt="Danh sách khách hàng"><figcaption>Danh sách khách hàng. Ô tìm kiếm không cần gõ dấu.</figcaption></figure>
+
+  <h2>Thêm khách hàng mới</h2>
+  <ol class="steps">
+    <li>Bấm <span class="ui primary">Thêm khách hàng</span>.</li>
+    <li>Nhập <b>Tên</b> và <b>Số điện thoại</b> (bắt buộc). Có thể thêm công ty, mã số thuế, địa chỉ giao hàng mặc định, ghi chú.</li>
+    <li>Bấm lưu. Khách được cấp mã tự động dạng <code>KH-0001</code>.</li>
+  </ol>
+  <div class="note warn">Mỗi số điện thoại chỉ thuộc một khách. Nếu báo “Số điện thoại này đã thuộc về một khách hàng khác”, hãy tìm khách đó trong danh sách thay vì tạo mới.</div>
+  <p>Bạn cũng có thể thêm khách ngay khi lập báo giá hoặc đơn hàng, trong ô chọn khách hàng.</p>
+
+  <h2>Hồ sơ khách hàng</h2>
+  <p>Bấm vào tên khách để mở hồ sơ:</p>
+  <figure><img src="img/customer-detail.jpg" alt="Hồ sơ khách hàng"><figcaption>Hồ sơ khách: thông tin, số đơn đang mở, tổng đơn, còn nợ và tài liệu.</figcaption></figure>
+  <ul>
+    <li>Thông tin liên hệ, số đơn đang mở, tổng giá trị đơn, số tiền <b>còn nợ</b>.</li>
+    <li>Nút <span class="ui">Đơn mới</span> và lập báo giá cho khách này.</li>
+    <li><b>Báo giá, đơn hàng & tài liệu:</b> mỗi báo giá / đơn một dòng, kèm các file PDF xem hoặc tải riêng; nút tải cả bộ của từng đơn.</li>
+    <li>Chọn <b>Loại tài liệu cần tải</b> (Báo giá, Đơn hàng, Thiết kế, Lệnh SX, Giao hàng, Hoá đơn) rồi tải toàn bộ thành một file .zip, mỗi đơn một thư mục.</li>
+  </ul>
+</section>
+
+<section class="doc" id="hoi-thoai" data-group="crm" data-title="Hội thoại Facebook">
+  <div class="crumb"><span class="dot" style="background:var(--crm)"></span>CRM</div>
+  <h1>Hội thoại Facebook</h1>
+  <p class="lead">Tin nhắn Messenger gửi tới fanpage và bình luận dưới bài viết hiện ở đây. Bạn trả lời ngay trong CRM, không cần mở Facebook.</p>
+  <div class="who"><span>Dành cho: <b>Kinh doanh</b></span><span>Menu: <b>CRM → Hội thoại</b></span></div>
+  <figure><img src="img/chat-inbox.jpg" alt="Màn hình Hội thoại"><figcaption>Trái: danh sách hội thoại. Giữa: khung chat. Phải: khách hàng và người phụ trách.</figcaption></figure>
+
+  <h2>Biết có tin mới</h2>
+  <ul>
+    <li>Menu <b>Hội thoại</b> hiện số hội thoại có tin chưa đọc; tiêu đề tab trình duyệt cũng hiện số này.</li>
+    <li>Khi khách nhắn, máy phát một tiếng chuông ngắn và danh sách tự cập nhật, không cần tải lại trang.</li>
+    <li>Biểu tượng <b>bong bóng xanh</b> là tin nhắn Messenger, <b>bong bóng cam</b> là bình luận.</li>
+  </ul>
+  <div class="note tip">Trình duyệt chỉ cho phát chuông sau khi bạn đã bấm vào trang ít nhất một lần.</div>
+
+  <h2>Lọc danh sách</h2>
+  <ul>
+    <li><b>Tất cả</b>, <b>Của tôi</b> (giao cho bạn), <b>Chưa nhận</b> (chưa ai phụ trách), <b>Chờ trả lời</b> (khách nhắn sau cùng).</li>
+    <li>Tìm theo tên hoặc số điện thoại; chọn chỉ <b>Tin nhắn</b> hoặc chỉ <b>Bình luận</b>; xem lại hội thoại <b>Đã xong</b>.</li>
+  </ul>
+
+  <h2>Trả lời tin nhắn</h2>
+  <ol class="steps">
+    <li>Bấm vào hội thoại. Tin của khách bên trái, tin của trang bên phải (kèm tên nhân viên gửi).</li>
+    <li>Gõ nội dung, nhấn <kbd>Enter</kbd> để gửi (<kbd>Shift</kbd> + <kbd>Enter</kbd> để xuống dòng).</li>
+    <li>Gửi ảnh hoặc tệp (PDF báo giá, maket…): bấm nút kẹp giấy, chọn tệp tối đa 25 MB.</li>
+  </ol>
+  <p>Hội thoại chưa ai nhận sẽ tự giao cho người trả lời đầu tiên. Khách cũ nhắn lại thì về người đã phụ trách họ lần trước.</p>
+  <div class="note warn"><b>Hạn trả lời của Facebook.</b> Trong 24 giờ kể từ tin cuối của khách, trang trả lời thoải mái (nhãn xanh). Từ giờ thứ 24 tới hết ngày thứ 7 nhân viên vẫn trả lời được (nhãn cam). Quá 7 ngày, Facebook không cho trang nhắn trước nữa: chờ khách nhắn lại, hoặc gọi điện nếu có số. Nên xin số điện thoại sớm.</div>
+  <p>Tin gửi lỗi hiện nền đỏ kèm lý do (ví dụ khách đã chặn trang). Tin ghi <b>Gửi từ Facebook</b> là tin ai đó trả lời trực tiếp trên Facebook / Meta Business Suite; CRM vẫn lưu để lịch sử đủ, nhưng nên trả lời trong CRM để biết ai đã nhắn.</p>
+
+  <h2>Trả lời bình luận</h2>
+  <figure><img src="img/chat-comment.jpg" alt="Hội thoại bình luận"><figcaption>Bình luận: chọn trả lời công khai hoặc nhắn riêng.</figcaption></figure>
+  <ul>
+    <li><b>Trả lời công khai</b>: câu trả lời hiện ngay dưới bình luận mới nhất của khách. Bấm <b>Xem bài viết</b> để mở bài trên Facebook.</li>
+    <li><b>Nhắn riêng</b>: gửi một tin Messenger cho người bình luận. Facebook chỉ cho <b>một lần</b> và trong 7 ngày kể từ bình luận. Khách trả lời tin riêng thì cuộc trò chuyện hiện thành hội thoại Messenger mới.</li>
+  </ul>
+  <div class="note tip">Đừng ghi giá công khai nếu không muốn đối thủ thấy: trả lời công khai “Shop đã inbox” rồi dùng Nhắn riêng.</div>
+
+  <h2>Gắn khách hàng và lập báo giá</h2>
+  <ol class="steps">
+    <li>Khách nhắn số điện thoại thì CRM tự nhận ra và hiện ở cột phải.</li>
+    <li>Bấm <span class="ui">Gắn khách có sẵn</span> (gõ tên hoặc số để tìm) hoặc <span class="ui">Tạo khách mới</span> (tên và số điện thoại điền sẵn).</li>
+    <li>Đã gắn khách thì bấm <span class="ui primary">Lập báo giá</span>: báo giá mới mở sẵn khách này.</li>
+  </ol>
+
+  <h2>Phân công và kết thúc</h2>
+  <ul>
+    <li>Người có quyền phân công chọn người trong ô <b>Phụ trách</b>. Nhân viên kinh doanh bấm <span class="ui">Nhận hội thoại</span> để nhận hội thoại chưa ai nhận.</li>
+    <li>Nhân viên chỉ thấy hội thoại của mình và hội thoại chưa ai nhận; quản trị viên và người có quyền “Xem tất cả” thấy hết.</li>
+    <li>Xong việc bấm <span class="ui">Đánh dấu xong</span>. Khách nhắn lại thì hội thoại tự mở lại.</li>
+  </ul>
+</section>
+
+<section class="doc" id="bao-gia" data-group="crm" data-title="Báo giá (bước 1)">
+  <div class="crumb"><span class="dot" style="background:var(--crm)"></span>CRM · Bước 1</div>
+  <h1>Báo giá</h1>
+  <p class="lead">Lập báo giá cho khách, gửi đi, theo dõi khách chốt hay không. Khách chốt thì báo giá thành đơn hàng chỉ với một nút bấm.</p>
+  <div class="who"><span>Dành cho: <b>Kinh doanh</b></span><span>Menu: <b>CRM → Báo giá</b></span></div>
+  <figure><img src="img/quotes.jpg" alt="Danh sách báo giá"><figcaption>Danh sách báo giá theo trạng thái. Biểu tượng cuối dòng để tải PDF.</figcaption></figure>
+
+  <h2>Trạng thái của báo giá</h2>
+  <table>
+    <tr><th>Trạng thái</th><th>Nghĩa là</th></tr>
+    <tr><td>Nháp</td><td>Mới lập, chưa gửi khách. Sửa thoải mái.</td></tr>
+    <tr><td>Đã gửi khách</td><td>Đã gửi, đang chờ khách trả lời. Vẫn sửa được.</td></tr>
+    <tr><td>Đã chốt</td><td>Khách đồng ý, đã thành đơn hàng. Không sửa nữa (sửa ở đơn hàng).</td></tr>
+    <tr><td>Khách không lấy</td><td>Khách từ chối. Mở lại được khi khách quay lại.</td></tr>
+  </table>
+  <p>Báo giá quá ngày hiệu lực có nhãn <b>Hết hiệu lực</b>.</p>
+
+  <h2>Lập báo giá mới</h2>
+  <ol class="steps">
+    <li>Bấm <span class="ui primary">Lập báo giá</span> (hoặc <span class="ui primary">Báo giá mới</span> ở bảng điều phối).</li>
+    <li><b>Khách hàng:</b> gõ tên hoặc số điện thoại để chọn; khách mới thì thêm ngay trong ô này.</li>
+    <li><b>Nội dung báo giá:</b> mô tả ngắn, ví dụ “Biển hiệu mặt tiền + decal kính”. <b>Hiệu lực:</b> số ngày (mặc định 7).</li>
+    <li><b>Hạng mục:</b> chọn sản phẩm từ danh mục hoặc gõ tên hạng mục tự do.
+      <ul>
+        <li>Sản phẩm tính theo m²: nhập <b>rộng × cao</b> (mét) và <b>số tấm</b>; phần mềm tự tính diện tích và giá.</li>
+        <li>Sản phẩm tính theo số lượng: nhập số lượng.</li>
+        <li>Có thể sửa đơn giá ở từng dòng nếu báo giá riêng cho khách.</li>
+      </ul>
+    </li>
+    <li><b>Ghi chú in trên báo giá</b> (ví dụ “Đã gồm lắp đặt nội thành”), rồi bấm <span class="ui primary">Lưu báo giá</span>.</li>
+  </ol>
+  <figure><img src="img/quote-new.jpg" alt="Lập báo giá"><figcaption>Màn hình lập báo giá. Giá chưa gồm VAT.</figcaption></figure>
+
+  <h2>Gửi, theo dõi và chốt</h2>
+  <figure><img src="img/quote-detail.jpg" alt="Chi tiết báo giá"><figcaption>Chi tiết báo giá với các nút xử lý ở trên cùng.</figcaption></figure>
+  <ol class="steps">
+    <li>Bấm <span class="ui">In báo giá</span> để mở hoặc tải PDF gửi khách (qua Zalo, email…).</li>
+    <li>Gửi xong, bấm <span class="ui">Đã gửi khách</span> để đánh dấu.</li>
+    <li>Khách đồng ý: bấm <span class="ui primary">Khách chốt → tạo đơn</span>, nhập <b>hạn giao</b> và ghi chú đơn (để trống thì dùng ghi chú của báo giá), bấm <span class="ui primary">Tạo đơn hàng</span>. Đơn được tạo với đúng các hạng mục của báo giá.</li>
+    <li>Khách từ chối: bấm <span class="ui">Khách không lấy</span> và ghi lý do. Sau này khách quay lại thì bấm <span class="ui">Mở lại báo giá</span>.</li>
+  </ol>
+  <div class="note tip">Mục <b>Lịch sử</b> ở cuối trang ghi lại ai lập, ai sửa, ai gửi báo giá và lúc nào.</div>
+</section>
+
+<section class="doc" id="don-hang" data-group="crm" data-title="Đơn hàng & chốt đơn (bước 2)">
+  <div class="crumb"><span class="dot" style="background:var(--crm)"></span>CRM · Bước 2</div>
+  <h1>Đơn hàng và chốt đơn</h1>
+  <p class="lead">Mọi việc của một đơn đều nằm trên trang chi tiết đơn: thanh 6 bước ở trên, thông tin, hàng hoá, chuyến giao, thanh toán và lịch sử ở dưới.</p>
+  <div class="who"><span>Dành cho: <b>Kinh doanh</b></span><span>Menu: <b>CRM → Đơn hàng</b></span></div>
+  <figure><img src="img/orders.jpg" alt="Danh sách đơn hàng"><figcaption>Danh sách đơn: lọc theo trạng thái, quá hạn, còn hàng chưa lên chuyến.</figcaption></figure>
+
+  <h2>Trang chi tiết đơn</h2>
+  <figure><img src="img/order-step2.jpg" alt="Chi tiết đơn ở bước 2"><figcaption>Đơn ở bước 2 · Chốt đơn: so sánh với báo giá và xác nhận.</figcaption></figure>
+  <ul>
+    <li><b>Hàng nút trên cùng:</b> <span class="ui">In / tải tài liệu</span>, <span class="ui">Thêm chuyến giao</span>, <span class="ui">Ghi nhận thanh toán</span>, <span class="ui">Khác</span> (sửa ngày & ghi chú, sửa hàng hoá, huỷ đơn).</li>
+    <li><b>Thanh 6 bước:</b> bước đang làm được tô đậm. Bấm vào một bước đã qua để xem lại việc của bước đó.</li>
+    <li><b>Phía dưới:</b> thông tin đơn, ô <b>Tiền</b> (tổng / đã nhận / còn lại) và các thẻ <b>Giao hàng</b>, <b>Hàng hoá</b>, <b>Thanh toán</b>, <b>Lịch sử</b>.</li>
+  </ul>
+
+  <h2>Bước 2: xác nhận đơn</h2>
+  <p>Sau khi khách chốt, kinh doanh xác nhận lại hàng hoá với khách rồi chọn hướng đi của đơn.</p>
+  <ol class="steps">
+    <li>Kiểm tra khung so sánh với báo giá. Nếu khách đổi sản phẩm, kích thước hay số lượng, bấm <span class="ui">Khác</span> → <span class="ui">Sửa hàng hoá</span>. Không cần ai duyệt; mọi thay đổi đều được ghi lại và hiện chênh lệch so với báo giá.</li>
+    <li>Chọn <b>Cần thiết kế (bước 3–4)</b> hoặc <b>Khách có file in sẵn → sản xuất luôn</b>.</li>
+    <li>Bấm <span class="ui primary">Xác nhận đơn</span>. Đơn chuyển sang Thiết kế, hoặc tạo lệnh sản xuất ngay nếu khách có file sẵn.</li>
+  </ol>
+  <div class="note tip">Nút <span class="ui">In đơn hàng để khách ký</span> tạo file PDF đơn đặt hàng để khách xác nhận.</div>
+
+  <h2>Tạo đơn không qua báo giá</h2>
+  <p>Dùng khi khách đặt luôn, không cần báo giá.</p>
+  <ol class="steps">
+    <li>Vào <span class="menu">Đơn hàng</span> → <span class="ui primary">Đơn mới</span> (hoặc <span class="ui">Đơn không qua báo giá</span> ở bảng điều phối).</li>
+    <li>Chọn khách, ngày đặt, hạn giao, ghi chú.</li>
+    <li><b>Hàng hoá:</b> mỗi dòng gồm mặt hàng, quy cách (chất liệu, gia công), số lượng, đơn giá (không bắt buộc).</li>
+    <li><b>Kế hoạch giao hàng</b> (có thể thêm sau): ngày giao, địa chỉ, số lượng từng mặt hàng mỗi chuyến.</li>
+    <li><b>Tiền cọc:</b> tích “Khách đã cọc”, nhập số tiền và hình thức nếu có. Bấm lưu.</li>
+  </ol>
+  <figure><img src="img/order-new.jpg" alt="Tạo đơn mới"><figcaption>Tạo đơn trực tiếp kèm kế hoạch giao và tiền cọc.</figcaption></figure>
+
+  <h2>Sửa và huỷ đơn</h2>
+  <ul>
+    <li><span class="ui">Khác</span> → <span class="ui">Sửa ngày & ghi chú</span>: đổi hạn giao, ghi chú.</li>
+    <li><span class="ui">Khác</span> → <span class="ui">Sửa hàng hoá</span>: đổi, thêm, bỏ hạng mục. Không giảm số lượng xuống dưới số đã xếp chuyến giao.</li>
+    <li><span class="ui">Khác</span> → <span class="ui danger">Huỷ đơn</span>: phải ghi lý do. Các chuyến chưa giao cũng bị huỷ; khoản đã thu vẫn giữ trong lịch sử.</li>
+  </ul>
+  <div class="note warn">Đơn đã được khách <b>ký nghiệm thu</b> thì không huỷ và không sửa hàng hoá được nữa, vì doanh thu đã ghi vào sổ kế toán.</div>
+</section>
+
+<section class="doc" id="thiet-ke" data-group="crm" data-title="Thiết kế (bước 3–4)">
+  <div class="crumb"><span class="dot" style="background:var(--crm)"></span>CRM · Bước 3–4</div>
+  <h1>Thiết kế và hoàn thiện thiết kế</h1>
+  <p class="lead">Người thiết kế gửi maket cho khách, ghi lại khách muốn sửa gì, đến khi khách duyệt. Sau đó hoàn thiện file in và khoá thiết kế để xưởng sản xuất.</p>
+  <div class="who"><span>Dành cho: <b>Thiết kế</b> (kinh doanh giao việc)</span><span>Menu: <b>CRM → Thiết kế</b></span></div>
+
+  <h2>Màn hình Việc thiết kế</h2>
+  <figure><img src="img/design.jpg" alt="Việc thiết kế"><figcaption>Hàng chờ thiết kế, chia theo tình trạng.</figcaption></figure>
+  <ul>
+    <li>Các thẻ: <b>Chưa gửi</b> · <b>Chờ khách</b> · <b>Cần sửa</b> · <b>Hoàn thiện</b>.</li>
+    <li>Bật <span class="ui">Chỉ việc của tôi</span> để chỉ thấy đơn được giao cho mình.</li>
+    <li>Bấm vào đơn để làm việc trên trang chi tiết đơn.</li>
+  </ul>
+
+  <h2>Bước 3: gửi maket và ghi phản hồi</h2>
+  <figure><img src="img/order-step3.jpg" alt="Đơn ở bước 3"><figcaption>Đơn ở bước 3 · Thiết kế.</figcaption></figure>
+  <ol class="steps">
+    <li><b>Giao người thiết kế</b> (kinh doanh hoặc trưởng nhóm): chọn ở ô <b>Người thiết kế</b>.</li>
+    <li>Thiết kế xong, gửi maket cho khách (Zalo, email…), rồi bấm <span class="ui primary">Đã gửi maket v1</span> và ghi nội dung / kênh gửi.</li>
+    <li>Khách muốn sửa: bấm <span class="ui">Khách yêu cầu sửa v1</span>, ghi khách muốn sửa gì. Sửa xong gửi lại và bấm <span class="ui primary">Đã gửi maket v2</span>… cứ thế tới khi khách đồng ý.</li>
+    <li>Khách đồng ý: bấm <span class="ui primary">Khách duyệt vN</span>, chọn <b>kênh duyệt</b> (Zalo, Email, Trực tiếp…) và <b>tên người duyệt bên khách</b>, bấm <span class="ui primary">Xác nhận duyệt</span>. Đơn sang bước 4.</li>
+  </ol>
+  <div class="note warn">Chỉ gửi được bản mới khi bản trước đã có phản hồi của khách. Bảng các phiên bản ghi lại toàn bộ lịch sử gửi và phản hồi.</div>
+
+  <h2>Bước 4: hoàn thiện và khoá thiết kế</h2>
+  <ol class="steps">
+    <li>Hoàn thiện file in đúng bản khách duyệt, rồi tích <b>File in đã hoàn thiện đúng theo bản khách duyệt</b>.</li>
+    <li>Bấm <span class="ui primary">Khoá thiết kế → tạo lệnh sản xuất</span>. Phần mềm tạo lệnh sản xuất (mã <code>LSX-YYMM-NNNN</code>) và đơn sang bước 5.</li>
+  </ol>
+  <p><b>Khách đổi ý sau khi đã duyệt?</b> Bấm <span class="ui">Khách đổi ý, sửa tiếp</span>: bản đã duyệt chuyển thành “khách yêu cầu sửa” và đơn quay lại bước 3.</p>
+  <p>Nút <span class="ui">In phiếu duyệt thiết kế</span> tạo phiếu ghi bản duyệt, kênh và người duyệt.</p>
+</section>
+
+<section class="doc" id="san-xuat" data-group="crm" data-title="Sản xuất (bước 5)">
+  <div class="crumb"><span class="dot" style="background:var(--crm)"></span>CRM · Bước 5</div>
+  <h1>Sản xuất</h1>
+  <p class="lead">Xưởng theo dõi các lệnh sản xuất trên một bảng theo công đoạn và bấm chuyển công đoạn khi làm xong.</p>
+  <div class="who"><span>Dành cho: <b>Xưởng sản xuất</b></span><span>Menu: <b>CRM → Sản xuất</b></span></div>
+  <figure><img src="img/production.jpg" alt="Màn hình sản xuất"><figcaption>Bảng sản xuất 5 cột theo công đoạn.</figcaption></figure>
+
+  <h2>Công đoạn</h2>
+  <p>Mỗi lệnh đi qua: <b>Nhận lệnh → In → Gia công → Kiểm tra → Xong</b>.</p>
+  <ul>
+    <li>Thẻ lệnh ghi mã lệnh, khách, hàng cần làm, quy cách, in theo maket nào, hạn xưởng, nhãn <b>GẤP</b> và <b>Trễ</b>. Màn hình xưởng không hiện giá tiền.</li>
+    <li>Bấm <span class="ui primary">→ In</span>, <span class="ui primary">→ Gia công</span>… trên thẻ để chuyển sang công đoạn tiếp theo.</li>
+    <li>Ở công đoạn Xong, bấm <span class="ui primary">Chuyển giao hàng</span> để báo hàng đã sẵn sàng giao. Đơn sang bước 6.</li>
+    <li>Biểu tượng in trên thẻ để xem / in lệnh sản xuất.</li>
+  </ul>
+
+  <h2>Trên trang chi tiết đơn</h2>
+  <figure><img src="img/order-step5.jpg" alt="Đơn ở bước 5"><figcaption>Bước 5 trên trang chi tiết đơn: hạn xưởng, ưu tiên, công đoạn.</figcaption></figure>
+  <ul>
+    <li><b>Hạn xưởng:</b> mặc định bằng hạn giao của đơn (hoặc 3 ngày nếu đơn chưa có hạn). Đổi được.</li>
+    <li><b>Ưu tiên:</b> Thường / Gấp. Lệnh gấp hiện nổi bật trên bảng sản xuất.</li>
+    <li>Nút <span class="ui primary">Cập nhật: …</span> chuyển công đoạn tiếp theo (chỉ nhóm Sản xuất).</li>
+  </ul>
+</section>
+
+<section class="doc" id="giao-hang" data-group="crm" data-title="Giao hàng & nghiệm thu (bước 6)">
+  <div class="crumb"><span class="dot" style="background:var(--crm)"></span>CRM · Bước 6</div>
+  <h1>Giao hàng và nghiệm thu</h1>
+  <p class="lead">Một đơn có thể giao một hoặc nhiều chuyến. Giao đủ hàng thì khách ký biên bản nghiệm thu và đơn hoàn tất.</p>
+  <div class="who"><span>Dành cho: <b>Kinh doanh, Giao hàng</b></span><span>Menu: <b>CRM → Giao hàng</b></span></div>
+  <figure><img src="img/deliveries.jpg" alt="Lịch giao hàng"><figcaption>Lịch giao hàng theo thẻ.</figcaption></figure>
+
+  <h2>Các thẻ trên màn hình Giao hàng</h2>
+  <table>
+    <tr><th>Thẻ</th><th>Hiện gì</th></tr>
+    <tr><td>Hôm nay / Sắp tới / Trễ lịch</td><td>Chuyến chờ giao theo ngày dự kiến (mã chuyến <code>GH-YYMM-NNNN</code>).</td></tr>
+    <tr><td>Đã giao</td><td>Chuyến đã giao xong.</td></tr>
+    <tr><td>Chờ nghiệm thu</td><td>Đơn đã giao đủ, chờ khách ký.</td></tr>
+    <tr><td>Đã nghiệm thu</td><td>Đơn khách đã ký biên bản.</td></tr>
+  </table>
+
+  <h2>Xếp chuyến giao</h2>
+  <ol class="steps">
+    <li>Trên trang chi tiết đơn, bấm <span class="ui">Thêm chuyến giao</span>.</li>
+    <li>Chọn <b>Ngày giao dự kiến</b>, <b>Địa chỉ giao</b>.</li>
+    <li>Nhập <b>số lượng chuyến này</b> cho từng mặt hàng (phần mềm hiện số còn có thể lên chuyến). Ghi chú cho tài xế nếu cần. Bấm <span class="ui primary">Lưu chuyến</span>.</li>
+  </ol>
+  <div class="note warn">Không xếp chuyến vượt số lượng khách đặt.</div>
+
+  <h2>Xác nhận đã giao</h2>
+  <ol class="steps">
+    <li>Bấm <span class="ui primary">Giao xong</span> ở chuyến (trên màn hình Giao hàng hoặc thẻ Giao hàng của đơn).</li>
+    <li>Kiểm tra cột <b>Thực giao</b> từng mặt hàng. Giao thiếu thì sửa số thực giao: phần thiếu tự quay về “chưa lên chuyến” để xếp chuyến khác.</li>
+    <li>Ghi <b>thời gian giao</b>, <b>người nhận</b>.</li>
+    <li>Nếu thu tiền tại chỗ, tích <b>Thu tiền trong chuyến này</b>, nhập số tiền và hình thức.</li>
+    <li>Bấm <span class="ui primary">Xác nhận đã giao</span>.</li>
+  </ol>
+  <p>Giao nhầm? Bấm <span class="ui">Mở lại</span> ở chuyến đã giao để đưa về “Chờ giao”. Chuyến chưa giao thì <span class="ui">Sửa</span> hoặc <span class="ui">Huỷ</span> được.</p>
+
+  <h2>Khách ký nghiệm thu</h2>
+  <figure><img src="img/order-step6.jpg" alt="Đơn đã nghiệm thu"><figcaption>Đơn đã hoàn tất sau khi khách ký nghiệm thu.</figcaption></figure>
+  <ol class="steps">
+    <li>Bấm <span class="ui">In biên bản</span> để in biên bản nghiệm thu và bàn giao cho khách ký.</li>
+    <li>Khách ký xong, bấm <span class="ui primary">Khách đã ký</span> (hoặc <span class="ui primary">Khách đã ký nghiệm thu</span> trên đơn), nhập <b>người ký bên khách</b> và ghi chú.</li>
+    <li>Đơn chuyển sang <b>Hoàn thành</b>. Doanh thu và công nợ của đơn tự vào sổ kế toán.</li>
+  </ol>
+  <div class="note bad">Chỉ ký nghiệm thu được khi đã giao <b>đủ</b> mọi mặt hàng. Sau khi ký, không mở lại chuyến, không sửa hàng hoá và không huỷ đơn được nữa.</div>
+</section>
+
+<section class="doc" id="thanh-toan" data-group="crm" data-title="Thanh toán & công nợ">
+  <div class="crumb"><span class="dot" style="background:var(--acc)"></span>Kế toán · cũng dùng từ CRM</div>
+  <h1>Thanh toán và công nợ</h1>
+  <p class="lead">Ghi nhận tiền khách trả (cọc hoặc thanh toán) và xem ai còn nợ. Mỗi khoản thu tự vào sổ kế toán.</p>
+  <div class="who"><span>Dành cho: <b>Kinh doanh, Kế toán</b></span><span>Menu: <b>Kế toán → Thanh toán & công nợ</b></span></div>
+  <figure><img src="img/payments.jpg" alt="Thanh toán và công nợ"><figcaption>Màn hình Thanh toán & công nợ.</figcaption></figure>
+
+  <h2>Đọc màn hình</h2>
+  <ul>
+    <li><b>4 ô số liệu:</b> đã thu tháng này, công nợ đơn đã giao (cần thu ngay), còn phải thu đơn chưa giao, tiền cọc đang giữ.</li>
+    <li><b>Công nợ:</b> các đơn còn nợ, đơn đã giao xếp trước. Bật “Chỉ đơn đã giao hàng” để tập trung đòi tiền.</li>
+    <li><b>Khoản thu:</b> mọi khoản đã thu, lọc theo khoảng ngày, hình thức, hiện cả khoản đã huỷ; có tổng tiền theo bộ lọc.</li>
+  </ul>
+
+  <h2>Ghi nhận một khoản thu</h2>
+  <ol class="steps">
+    <li>Bấm <span class="ui">Thu</span> ở dòng đơn trong bảng Công nợ, hoặc <span class="ui">Ghi nhận thanh toán</span> trên trang chi tiết đơn.</li>
+    <li>Nhập <b>Số tiền</b>, chọn <b>Hình thức</b> (Tiền mặt / Chuyển khoản / Khác) và <b>Ngày nhận</b>.</li>
+    <li>Nếu là tiền cọc, tích <b>Đây là tiền cọc</b>. Nếu thu trong một chuyến giao, chọn chuyến đó.</li>
+    <li>Bấm <span class="ui primary">Lưu</span>.</li>
+  </ol>
+  <div class="note tip">Chuyển khoản vào sổ tài khoản <b>112 (ngân hàng)</b>, tiền mặt và hình thức khác vào <b>111 (tiền mặt)</b>.</div>
+
+  <h2>Ghi nhầm thì sao?</h2>
+  <p>Mở đơn → thẻ <b>Thanh toán</b> → bấm <span class="ui danger">Huỷ</span> ở khoản đó và ghi lý do. Khoản bị huỷ vẫn hiện trong lịch sử (gạch ngang) nhưng không còn tính vào số đã nhận. Khoản thu không bao giờ bị xoá hẳn.</p>
+  <p>Biểu tượng tải ở cuối dòng công nợ để tải <b>hoá đơn bán hàng</b> (nội bộ).</p>
+</section>
+
+<section class="doc" id="chung-tu" data-group="crm" data-title="In và tải chứng từ PDF">
+  <div class="crumb"><span class="dot" style="background:var(--crm)"></span>CRM</div>
+  <h1>In và tải chứng từ PDF</h1>
+  <p class="lead">Phần mềm tạo sẵn 6 loại chứng từ PDF. Chứng từ chỉ có khi đơn đã tới bước tương ứng.</p>
+  <table>
+    <tr><th>Chứng từ</th><th>Có từ khi</th></tr>
+    <tr><td>Báo giá</td><td>Lập báo giá</td></tr>
+    <tr><td>Đơn đặt hàng</td><td>Có đơn hàng (bước 2)</td></tr>
+    <tr><td>Phiếu duyệt thiết kế</td><td>Khách duyệt maket (bước 3–4)</td></tr>
+    <tr><td>Lệnh sản xuất</td><td>Khoá thiết kế (bước 5)</td></tr>
+    <tr><td>Biên bản nghiệm thu và bàn giao</td><td>Giao đủ hàng (bước 6)</td></tr>
+    <tr><td>Hoá đơn bán hàng (nội bộ)</td><td>Đơn có giá</td></tr>
+  </table>
+  <h2>Ba cách tải</h2>
+  <ul>
+    <li><b>Từ danh sách:</b> biểu tượng tải ở cuối mỗi dòng báo giá / đơn hàng / công nợ — không cần mở chi tiết.</li>
+    <li><b>Trên trang chi tiết đơn:</b> nút <span class="ui">In / tải tài liệu</span> → chọn từng chứng từ, hoặc <span class="ui">Tải cả bộ (.zip)</span>.</li>
+    <li><b>Trong hồ sơ khách hàng:</b> tải riêng từng file, cả bộ từng đơn, hoặc chọn loại tài liệu rồi tải toàn bộ.</li>
+  </ul>
+  <div class="note tip">Mẫu chứng từ hiện là mẫu tạm; sẽ thay bằng biểu mẫu của công ty. Người không có quyền xem tiền không tải được chứng từ có giá.</div>
+</section>
+
+<!-- ======================= KẾ TOÁN ======================= -->
+<section class="doc acc" id="kt-hieu" data-group="acc" data-title="Kế toán hoạt động thế nào">
+  <div class="crumb"><span class="dot" style="background:var(--acc)"></span>Kế toán</div>
+  <h1>Phân hệ Kế toán hoạt động thế nào</h1>
+  <p class="lead">Đây là sổ kế toán nội bộ theo Thông tư 133. Phần lớn bút toán được ghi tự động; kế toán chủ yếu nhập chứng từ chi, kho, tài sản và khoá sổ mỗi cuối tháng.</p>
+
+  <h2>Ba khái niệm cần nắm</h2>
+  <h3>1. Kỳ kế toán = một tháng</h3>
+  <p>Sổ chia theo tháng (ví dụ kỳ 10/2026). Mỗi kỳ ở trạng thái <b>Đang mở</b> (được ghi chứng từ) hoặc <b>Đã khoá sổ</b> (chỉ xem). Cuối tháng kế toán chạy 5 bước rồi khoá sổ; số dư tự chuyển sang tháng sau.</p>
+  <p>Mọi màn hình kế toán có <b>ô chọn kỳ</b> ở cạnh tiêu đề. Mặc định là kỳ đang mở sớm nhất (kỳ cần khoá tiếp theo).</p>
+  <h3>2. Những gì tự ghi sổ</h3>
+  <table>
+    <tr><th>Việc xảy ra</th><th>Phần mềm tự ghi</th></tr>
+    <tr><td>Thu tiền khách ở CRM</td><td>Phiếu thu PT: tiền vào 111/112, giảm công nợ 131</td></tr>
+    <tr><td>Huỷ khoản thu</td><td>Xoá phiếu thu (kỳ đang mở) hoặc ghi bút toán đảo (kỳ đã khoá)</td></tr>
+    <tr><td>Khách ký nghiệm thu</td><td>Doanh thu DT: công nợ 131 = tổng đơn + 8% VAT; doanh thu 511; thuế đầu ra 33311</td></tr>
+    <tr><td>Kế toán lập phiếu nhập, xuất, chi, mua tài sản</td><td>Bút toán tương ứng (xem từng mục)</td></tr>
+    <tr><td>Chạy 5 bước cuối kỳ</td><td>Giá vốn, khấu hao, phân bổ, khấu trừ thuế, kết chuyển lãi lỗ</td></tr>
+  </table>
+  <h3>3. Tài khoản thường gặp</h3>
+  <div class="tbl"><table>
+    <tr><th>TK</th><th>Tên</th><th>TK</th><th>Tên</th></tr>
+    <tr><td>111</td><td>Tiền mặt</td><td>331</td><td>Phải trả nhà cung cấp</td></tr>
+    <tr><td>112</td><td>Tiền gửi ngân hàng</td><td>33311</td><td>Thuế GTGT đầu ra</td></tr>
+    <tr><td>131</td><td>Phải thu khách hàng</td><td>411</td><td>Vốn chủ sở hữu</td></tr>
+    <tr><td>1331</td><td>Thuế GTGT đầu vào được khấu trừ</td><td>421</td><td>Lợi nhuận chưa phân phối</td></tr>
+    <tr><td>152</td><td>Nguyên vật liệu</td><td>511</td><td>Doanh thu</td></tr>
+    <tr><td>154</td><td>Chi phí sản xuất dở dang</td><td>632</td><td>Giá vốn hàng bán</td></tr>
+    <tr><td>211 / 214</td><td>Tài sản cố định / Hao mòn</td><td>6421</td><td>Chi phí bán hàng</td></tr>
+    <tr><td>242</td><td>Chi phí trả trước (công cụ dụng cụ)</td><td>6422</td><td>Chi phí quản lý doanh nghiệp</td></tr>
+  </table></div>
+
+  <h2>Lịch làm việc của kế toán</h2>
+  <table>
+    <tr><th>Khi nào</th><th>Việc</th><th>Mục hướng dẫn</th></tr>
+    <tr><td>Một lần duy nhất</td><td>Chọn tháng bắt đầu, nhập số dư và tồn kho đầu kỳ</td><td><a href="#kt-bat-dau">Bắt đầu ghi sổ</a></td></tr>
+    <tr><td>Hằng ngày</td><td>Phiếu chi, phiếu nhập, phiếu xuất cho đơn</td><td><a href="#kt-thu-chi">Thu – chi</a>, <a href="#kt-kho">Kho NVL</a></td></tr>
+    <tr><td>Khi mua tài sản</td><td>Thêm TSCĐ / CCDC</td><td><a href="#kt-tai-san">TSCĐ & CCDC</a></td></tr>
+    <tr><td>Đầu tháng sau</td><td>Chạy 5 bước, khoá sổ tháng trước</td><td><a href="#kt-khoa-so">Khoá sổ cuối tháng</a></td></tr>
+    <tr><td>Bất cứ lúc nào</td><td>Xem công nợ, thuế, sổ sách, báo cáo</td><td><a href="#kt-bao-cao">Báo cáo & sổ sách</a></td></tr>
+  </table>
+</section>
+
+<section class="doc acc" id="kt-bat-dau" data-group="acc" data-title="Bắt đầu ghi sổ (làm một lần)">
+  <div class="crumb"><span class="dot" style="background:var(--acc)"></span>Kế toán</div>
+  <h1>Bắt đầu ghi sổ</h1>
+  <p class="lead">Việc làm một lần khi mới dùng: chọn tháng đầu tiên ghi sổ, nhập số dư các tài khoản và tồn kho vật tư tại ngày đầu tháng đó.</p>
+  <div class="who"><span>Dành cho: <b>Kế toán trưởng</b> (cần quyền khoá sổ)</span></div>
+
+  <div class="note tip"><b class="h">Chuẩn bị trước</b>
+    <ul>
+      <li>Số dư cuối tháng trước của các tài khoản, lấy từ sổ cũ (tiền mặt, ngân hàng, công nợ, tài sản, vốn…).</li>
+      <li>Biên bản kiểm kê kho: số lượng và đơn giá từng vật tư.</li>
+      <li>Danh sách tài sản cố định và công cụ dụng cụ đang dùng.</li>
+    </ul>
+  </div>
+
+  <h2>Bước 1: Chọn tháng bắt đầu</h2>
+  <ol class="steps">
+    <li>Vào phân hệ <span class="menu acc">Kế toán</span> → <span class="menu acc">Tổng quan & khoá sổ</span>. Khi chưa có sổ, màn hình hiện “Sổ sách chưa bắt đầu”.</li>
+    <li>Chọn tháng ở ô chọn tháng, bấm <span class="ui primary">Bắt đầu ghi sổ</span>.</li>
+  </ol>
+  <div class="note warn">Khoản thu và đơn nghiệm thu <b>trước</b> tháng bắt đầu không được ghi vào sổ, vì chúng đã nằm trong số dư đầu kỳ. Chọn tháng sao cho khớp với số dư bạn lấy từ sổ cũ.</div>
+
+  <h2>Bước 2: Danh mục vật tư và nhà cung cấp</h2>
+  <p>Vào <span class="menu acc">Kho NVL</span> → thẻ <b>Danh mục vật tư</b> và <b>Nhà cung cấp</b> để thêm hoặc sửa (phần mềm có sẵn dữ liệu mẫu). Xem chi tiết ở mục <a href="#kt-kho">Kho NVL</a>.</p>
+
+  <h2>Bước 3: Tồn kho đầu kỳ</h2>
+  <ol class="steps">
+    <li>Vào <span class="menu acc">Kỳ kế toán</span> → thẻ <b>Tồn kho đầu kỳ</b>.</li>
+    <li>Nhập <b>số lượng</b> và <b>đơn giá</b> từng vật tư theo kiểm kê.</li>
+    <li>Bấm <span class="ui primary">Lưu tồn kho đầu kỳ</span>. Tổng giá trị tự thành số dư đầu kỳ của tài khoản 152.</li>
+  </ol>
+
+  <h2>Bước 4: Số dư đầu kỳ các tài khoản</h2>
+  <figure><img src="img/acc-periods.jpg" alt="Kỳ kế toán và số dư đầu kỳ"><figcaption>Màn hình Kỳ kế toán: danh sách kỳ, số dư đầu kỳ, tồn kho đầu kỳ, nhật ký khoá sổ.</figcaption></figure>
+  <ol class="steps">
+    <li>Vào <span class="menu acc">Kỳ kế toán</span> → thẻ <b>Số dư đầu kỳ</b>.</li>
+    <li>Nhập số dư từng tài khoản vào cột <b>Dư Nợ</b> hoặc <b>Dư Có</b> (tài khoản 152 tự lấy từ tồn kho).</li>
+    <li>Kiểm tra dòng <b>Tổng</b>: tổng Dư Nợ phải bằng tổng Dư Có. Nếu lệch, phần mềm báo số tiền lệch.</li>
+    <li>Bấm <span class="ui primary">Lưu số dư đầu kỳ</span>.</li>
+  </ol>
+  <div class="note warn">Số dư đầu kỳ <b>phải cân</b> thì mới chạy được các bước cuối kỳ. Số dư đầu kỳ chỉ sửa được khi tháng đầu tiên còn mở.</div>
+
+  <h2>Bước 5: Tài sản đang có</h2>
+  <p>Vào <span class="menu acc">TSCĐ & CCDC</span> → <span class="ui primary">Thêm tài sản</span>, <b>tắt</b> “Mua trong kỳ” cho các tài sản đã có từ trước. Xem mục <a href="#kt-tai-san">TSCĐ & CCDC</a>.</p>
+</section>
+
+<section class="doc acc" id="kt-tong-quan" data-group="acc" data-title="Tổng quan & khoá sổ">
+  <div class="crumb"><span class="dot" style="background:var(--acc)"></span>Kế toán</div>
+  <h1>Tổng quan & khoá sổ</h1>
+  <p class="lead">Trang chủ của kế toán: số dư quan trọng, lãi lỗ tạm tính của tháng và danh sách 5 bước khoá sổ.</p>
+  <div class="who"><span>Menu: <b>Kế toán → Tổng quan & khoá sổ</b></span></div>
+  <figure><img src="img/acc-overview.jpg" alt="Tổng quan kế toán"><figcaption>Tổng quan: 6 ô số dư, 5 bước cuối kỳ, đơn chưa có phiếu xuất kho.</figcaption></figure>
+  <ul>
+    <li><b>6 ô số liệu:</b> tiền mặt (111), ngân hàng (112), phải thu khách (131), phải trả nhà cung cấp (331), tồn kho vật tư (152), lợi nhuận của kỳ. Kỳ chưa khoá thì lợi nhuận ghi “tạm tính”.</li>
+    <li><b>Khoá sổ cuối kỳ:</b> 5 bước với nút <span class="ui primary">Chạy</span>, kèm số liệu từng bước. Xem <a href="#kt-khoa-so">Khoá sổ cuối tháng</a>.</li>
+    <li><b>Đơn đang sản xuất chưa có phiếu xuất kho:</b> nhắc lập phiếu xuất vật tư cho đơn, nếu không giá vốn của đơn sẽ bằng 0 khi nghiệm thu. Bấm <span class="ui">Lập phiếu xuất</span> để sang Kho NVL.</li>
+  </ul>
+  <p>Số âm ở ô <b>Phải thu khách</b> nghĩa là khách đã trả trước (tiền cọc) nhiều hơn số đã nghiệm thu.</p>
+</section>
+
+<section class="doc acc" id="kt-thu-chi" data-group="acc" data-title="Thu – chi & phiếu chi">
+  <div class="crumb"><span class="dot" style="background:var(--acc)"></span>Kế toán</div>
+  <h1>Thu – chi và phiếu chi</h1>
+  <p class="lead">Sổ quỹ tiền mặt và ngân hàng, cùng nơi lập phiếu chi cho mọi khoản tiền ra: chi phí hoặc trả nợ nhà cung cấp.</p>
+  <div class="who"><span>Menu: <b>Kế toán → Thu – chi</b></span></div>
+  <figure><img src="img/acc-cash.jpg" alt="Thu chi"><figcaption>Sổ quỹ: tồn đầu, tổng thu, tổng chi, tồn cuối và từng dòng phát sinh.</figcaption></figure>
+
+  <h2>Xem sổ quỹ</h2>
+  <ul>
+    <li>Chọn <b>Tiền mặt + ngân hàng</b>, <b>Tiền mặt (111)</b> hoặc <b>Ngân hàng (112)</b>.</li>
+    <li>Mỗi dòng có ngày, số chứng từ, diễn giải, thu, chi và số <b>tồn</b> sau dòng đó.</li>
+    <li>Khoản thu của khách tự hiện ở đây (ghi từ <a href="#thanh-toan">Thanh toán & công nợ</a>), không phải nhập lại.</li>
+  </ul>
+
+  <h2>Lập phiếu chi</h2>
+  <ol class="steps">
+    <li>Bấm <span class="ui primary">Lập phiếu chi</span> (chỉ có ở kỳ đang mở).</li>
+    <li>Chọn loại: <b>Chi phí</b> hoặc <b>Trả nợ nhà cung cấp</b>.</li>
+    <li>Chọn <b>ngày chi</b> (phải trong kỳ đang mở) và chi bằng <b>Tiền mặt</b> hay <b>Chuyển khoản</b>.</li>
+    <li>Chi phí: chọn <b>khoản mục</b> (thuê mặt bằng, điện nước, lương…). Trả nợ: chọn <b>nhà cung cấp</b>.</li>
+    <li>Ghi <b>diễn giải</b>, <b>số tiền</b> (chi phí: số tiền trước thuế, chọn thuế GTGT nếu có hoá đơn). Bấm <span class="ui primary">Ghi phiếu chi</span>.</li>
+  </ol>
+  <figure><img src="img/acc-cash-modal.jpg" alt="Lập phiếu chi"><figcaption>Hộp lập phiếu chi.</figcaption></figure>
+  <p>Phiếu chi được đánh số tự động <code>PC-YYMM-NNNN</code>.</p>
+
+  <h2>Khoản mục chi phí</h2>
+  <p>Mỗi khoản mục quy định chi phí được chia vào đâu: <b>154</b> (chi phí sản xuất chung — sau này vào giá vốn), <b>6421</b> (bán hàng), <b>6422</b> (quản lý). Ví dụ “Điện, nước”: 60% vào 154, 40% vào 6422.</p>
+  <ul>
+    <li>Bảng khoản mục ở cuối trang Thu – chi, kèm số đã chi trong kỳ.</li>
+    <li>Kế toán trưởng bấm <span class="ui">Thêm khoản mục</span> hoặc biểu tượng sửa để đổi tỷ lệ. Tổng tỷ lệ phải bằng 100%.</li>
+    <li>Khoản mục không dùng nữa thì tắt “Đang dùng”.</li>
+  </ul>
+</section>
+
+<section class="doc acc" id="kt-kho" data-group="acc" data-title="Kho nguyên vật liệu">
+  <div class="crumb"><span class="dot" style="background:var(--acc)"></span>Kế toán</div>
+  <h1>Kho nguyên vật liệu</h1>
+  <p class="lead">Theo dõi nhập, xuất, tồn từng vật tư. Vật tư xuất cho đơn nào sẽ thành giá vốn của đơn đó khi khách nghiệm thu.</p>
+  <div class="who"><span>Menu: <b>Kế toán → Kho NVL</b></span></div>
+  <figure><img src="img/acc-stock.jpg" alt="Kho NVL"><figcaption>Thẻ Tồn kho: đầu kỳ, nhập, xuất, tồn cuối và đơn giá từng vật tư.</figcaption></figure>
+
+  <h2>Các thẻ</h2>
+  <ul>
+    <li><b>Tồn kho:</b> số lượng và giá trị đầu kỳ, nhập, xuất, tồn cuối. Số tồn âm hiện màu đỏ.</li>
+    <li><b>Phiếu nhập</b>, <b>Phiếu xuất:</b> danh sách phiếu trong kỳ, có nút xoá ở kỳ đang mở.</li>
+    <li><b>Danh mục vật tư</b>, <b>Nhà cung cấp:</b> thêm, sửa, ngừng dùng.</li>
+  </ul>
+
+  <h2>Lập phiếu nhập kho (mua vật tư)</h2>
+  <ol class="steps">
+    <li>Bấm <span class="ui">Phiếu nhập</span>.</li>
+    <li>Chọn <b>ngày nhập</b>, <b>nhà cung cấp</b>, cách <b>thanh toán</b>: Tiền mặt (111), Chuyển khoản (112) hoặc <b>Mua chịu (331)</b> nếu chưa trả tiền.</li>
+    <li>Chọn <b>thuế GTGT</b> theo hoá đơn (mặc định 8%).</li>
+    <li>Thêm từng dòng vật tư: chọn vật tư, nhập số lượng và đơn giá (chưa thuế). Bấm <span class="ui primary">Ghi phiếu nhập</span>.</li>
+  </ol>
+  <figure><img src="img/acc-receipt-modal.jpg" alt="Phiếu nhập"><figcaption>Phiếu nhập kho.</figcaption></figure>
+  <p>Mua chịu thì sau này trả tiền bằng <a href="#kt-thu-chi">phiếu chi → Trả nợ nhà cung cấp</a>.</p>
+
+  <h2>Lập phiếu xuất kho (xuất cho sản xuất)</h2>
+  <ol class="steps">
+    <li>Bấm <span class="ui primary">Phiếu xuất</span>.</li>
+    <li>Chọn <b>ngày xuất</b> và <b>đơn hàng</b> được xuất vật tư (gõ mã đơn hoặc tên khách). Vật tư dùng chung cho xưởng (keo, mực vệ sinh máy…) thì để trống ô đơn hàng.</li>
+    <li>Chọn vật tư và số lượng. Danh sách hiện số tồn hiện có để bạn kiểm tra. Bấm <span class="ui primary">Ghi phiếu xuất</span>.</li>
+  </ol>
+  <figure><img src="img/acc-issue-modal.jpg" alt="Phiếu xuất"><figcaption>Phiếu xuất kho cho sản xuất.</figcaption></figure>
+  <div class="note warn">Không xuất được quá số đang tồn. Nếu báo “Không đủ tồn kho”, hãy kiểm tra đã lập phiếu nhập chưa.</div>
+
+  <h2>Giá xuất kho tính thế nào?</h2>
+  <p>Phần mềm dùng <b>giá bình quân cả tháng</b>: (giá trị tồn đầu + giá trị nhập trong tháng) ÷ (số lượng tồn đầu + số lượng nhập). Trong tháng, phiếu xuất dùng giá <b>tạm tính</b> theo bình quân tới lúc xuất; cuối tháng, bước “Tính giá xuất kho” tính lại cho đúng.</p>
+  <div class="note tip"><b class="h">Vì sao nên xuất kho theo đơn?</b>Vật tư xuất cho đơn nằm “dở dang” trong 154 cho tới khi khách nghiệm thu, rồi thành giá vốn của đơn. Nhờ vậy báo cáo lãi lỗ phản ánh đúng chi phí của từng đơn đã bán.</div>
+</section>
+
+<section class="doc acc" id="kt-tai-san" data-group="acc" data-title="TSCĐ & công cụ dụng cụ">
+  <div class="crumb"><span class="dot" style="background:var(--acc)"></span>Kế toán</div>
+  <h1>Tài sản cố định và công cụ dụng cụ</h1>
+  <p class="lead">Máy in, xe giao hàng (TSCĐ) được khấu hao hằng tháng; máy cán, máy tính (CCDC) được phân bổ dần. Phần mềm tự tính mỗi tháng khi khoá sổ.</p>
+  <div class="who"><span>Menu: <b>Kế toán → TSCĐ & CCDC</b></span></div>
+  <figure><img src="img/acc-assets.jpg" alt="TSCĐ và CCDC"><figcaption>Danh sách tài sản: nguyên giá, mỗi tháng, đã tính, luỹ kế, còn lại.</figcaption></figure>
+
+  <h2>Thêm tài sản</h2>
+  <ol class="steps">
+    <li>Bấm <span class="ui primary">Thêm tài sản</span>.</li>
+    <li>Chọn <b>Tài sản cố định</b> hoặc <b>Công cụ dụng cụ</b>, nhập tên và <b>nguyên giá</b> (chưa thuế).</li>
+    <li>Chọn <b>kỳ bắt đầu</b> khấu hao / phân bổ, <b>số tháng</b>, và <b>tính vào chi phí</b> nào: 154 (máy móc xưởng), 6421 (bán hàng, ví dụ xe giao hàng), 6422 (văn phòng).</li>
+    <li>
+      <b>Mua trong kỳ</b>:
+      <ul>
+        <li><b>Bật</b> nếu vừa mua: nhập ngày mua, cách thanh toán, thuế GTGT, nhà cung cấp (bắt buộc khi mua chịu). Phần mềm ghi bút toán mua.</li>
+        <li><b>Tắt</b> nếu tài sản đã có trước khi bắt đầu sổ: nguyên giá và hao mòn đã nằm trong số dư đầu kỳ.</li>
+      </ul>
+    </li>
+    <li>Bấm <span class="ui primary">Lưu</span>. Tài sản được đánh mã <code>TS-01</code>, <code>CC-01</code>…</li>
+  </ol>
+  <p>Mỗi tháng trích đều nguyên giá ÷ số tháng; tháng cuối nhận phần lẻ cho tròn nguyên giá.</p>
+  <div class="note warn">Chỉ xoá được tài sản chưa được trích ở kỳ đã khoá sổ.</div>
+</section>
+
+<section class="doc acc" id="kt-but-toan" data-group="acc" data-title="Sổ & bút toán">
+  <div class="crumb"><span class="dot" style="background:var(--acc)"></span>Kế toán</div>
+  <h1>Sổ & bút toán</h1>
+  <p class="lead">Nơi xem toàn bộ bút toán của kỳ (nhật ký chung), bảng cân đối số phát sinh, và ghi các bút toán khác ngoài các phiếu ở trên.</p>
+  <div class="who"><span>Menu: <b>Kế toán → Sổ & bút toán</b></span></div>
+  <figure><img src="img/acc-journal.jpg" alt="Nhật ký chung"><figcaption>Nhật ký chung. Bấm vào dòng để xem định khoản Nợ / Có.</figcaption></figure>
+
+  <h2>Nhật ký chung</h2>
+  <ul>
+    <li>Lọc: <b>Tất cả</b>, <b>Tự động</b>, <b>Nhập tay / đã sửa</b>, <b>Cuối kỳ</b>.</li>
+    <li>Cột <b>Loại</b> cho biết nguồn bút toán (Thu tiền, Doanh thu, Nhập kho, Chi phí, Khấu hao…). Nhãn <b>đã sửa</b> kèm lý do khi rê chuột.</li>
+    <li>Dòng màu cam dưới diễn giải là ghi chú, ví dụ chứng từ thuộc tháng đã khoá nên được ghi vào tháng này.</li>
+  </ul>
+
+  <h2>Ghi bút toán khác (PKT)</h2>
+  <p>Dùng cho nghiệp vụ không có phiếu riêng: góp vốn, vay, rút tiền ngân hàng về quỹ, điều chỉnh…</p>
+  <ol class="steps">
+    <li>Bấm <span class="ui primary">Bút toán khác</span>.</li>
+    <li>Chọn ngày, ghi diễn giải.</li>
+    <li>Mỗi dòng chọn tài khoản và nhập số tiền vào cột <b>Nợ</b> hoặc <b>Có</b>. Thêm dòng nếu cần.</li>
+    <li>Tổng Nợ phải bằng tổng Có (phần mềm báo số lệch). Bấm <span class="ui primary">Lưu</span>.</li>
+  </ol>
+  <p>Ví dụ rút 10.000.000 đ từ ngân hàng về quỹ: Nợ 111 10.000.000 / Có 112 10.000.000.</p>
+
+  <h2>Sửa và xoá</h2>
+  <ul>
+    <li><b>Bút toán nhập tay:</b> sửa hoặc xoá tự do khi kỳ còn mở.</li>
+    <li><b>Bút toán tự động</b> (phiếu nhập, xuất, chi…): kế toán trưởng sửa được nhưng <b>phải ghi lý do</b>; bút toán gốc được giữ lại để đối chiếu. Xoá thì phiếu gốc cũng bị xoá.</li>
+    <li><b>Không sửa / xoá được</b>: bút toán từ CRM (thu tiền, doanh thu) và bút toán do 5 bước cuối kỳ tạo. Muốn điều chỉnh thì ghi bút toán khác.</li>
+  </ul>
+
+  <h2>Cân đối số phát sinh</h2>
+  <figure><img src="img/acc-trial.jpg" alt="Cân đối số phát sinh"><figcaption>Bảng cân đối số phát sinh của kỳ.</figcaption></figure>
+  <p>Mỗi tài khoản có số dư đầu kỳ, phát sinh Nợ, phát sinh Có và số dư cuối kỳ (ghi rõ dư Nợ hay dư Có). Dòng tổng: tổng phát sinh Nợ luôn bằng tổng phát sinh Có.</p>
+</section>
+
+<section class="doc acc" id="kt-khoa-so" data-group="acc" data-title="Khoá sổ cuối tháng (5 bước)">
+  <div class="crumb"><span class="dot" style="background:var(--acc)"></span>Kế toán</div>
+  <h1>Khoá sổ cuối tháng</h1>
+  <p class="lead">Đầu mỗi tháng, kế toán trưởng chạy lần lượt 5 bước cho tháng trước rồi khoá sổ. Khoá xong, số dư và tồn kho tự chuyển sang tháng sau.</p>
+  <div class="who"><span>Dành cho: <b>Kế toán trưởng</b> (quyền khoá sổ)</span><span>Menu: <b>Kế toán → Tổng quan & khoá sổ</b></span></div>
+
+  <h2>Trước khi khoá: kiểm tra</h2>
+  <ul class="check">
+    <li>Đã nhập đủ phiếu chi, phiếu nhập, phiếu xuất của tháng.</li>
+    <li>Các đơn đã nghiệm thu trong tháng đều có phiếu xuất vật tư (xem cảnh báo trên trang Tổng quan).</li>
+    <li>Tài sản mua mới trong tháng đã được thêm.</li>
+    <li>Kỳ trước đã khoá sổ, số dư đầu kỳ cân.</li>
+  </ul>
+
+  <h2>Chạy 5 bước</h2>
+  <figure><img src="img/acc-overview.jpg" alt="5 bước cuối kỳ"><figcaption>Bấm Chạy ở từng bước theo thứ tự.</figcaption></figure>
+  <ol class="steps">
+    <li><b>Tính giá xuất kho bình quân:</b> tính lại giá các phiếu xuất theo bình quân cả tháng, và ghi <b>giá vốn</b> (Nợ 632 / Có 154) cho các đơn nghiệm thu trong tháng.</li>
+    <li><b>Khấu hao TSCĐ:</b> ghi khấu hao tháng của tài sản cố định (Có 214).</li>
+    <li><b>Phân bổ công cụ dụng cụ:</b> ghi phân bổ tháng (Có 242).</li>
+    <li><b>Khấu trừ thuế GTGT:</b> trừ thuế đầu vào vào thuế đầu ra (Nợ 33311 / Có 1331), lấy số nhỏ hơn.</li>
+    <li><b>Kết chuyển lãi lỗ:</b> đưa chi phí sản xuất chung vào giá vốn, doanh thu và chi phí vào 911, lãi hoặc lỗ vào 421.</li>
+  </ol>
+  <p>Bấm <span class="ui primary">Chạy</span> ở bước đang sáng. Chạy xong bước nào sẽ có dấu ✓ và số liệu của bước đó.</p>
+
+  <h2>Khoá sổ</h2>
+  <ol class="steps">
+    <li>Đủ 5 bước thì nút <span class="ui danger">Khoá sổ kỳ MM/YYYY</span> sáng lên. Bấm nút.</li>
+    <li>Đọc thông báo, bấm <span class="ui primary">Khoá sổ</span> để xác nhận.</li>
+  </ol>
+  <p>Sau khi khoá: kỳ chuyển sang “Đã khoá sổ”, kết quả kinh doanh được lưu, số dư cuối kỳ và tồn kho (số lượng, đơn giá bình quân) thành số đầu kỳ của tháng sau.</p>
+
+  <div class="note warn"><b class="h">Các bước tự đặt lại</b>Nếu sau khi chạy bước bạn lại nhập thêm chứng từ làm đổi số liệu tháng (phiếu chi, nhập, xuất, nghiệm thu mới…), 5 bước sẽ tự đặt lại về chưa chạy để số liệu luôn đúng. Chỉ cần chạy lại từ bước 1. Thu tiền và trả nợ nhà cung cấp không làm đặt lại.</div>
+  <div class="note tip"><b class="h">Chứng từ đến muộn</b>Khoản thu hoặc đơn nghiệm thu ở CRM có ngày thuộc tháng đã khoá sẽ tự ghi vào tháng đang mở đầu tiên, kèm ghi chú. Chứng từ kế toán (phiếu chi, nhập, xuất) thì phải chọn ngày trong kỳ đang mở.</div>
+</section>
+
+<section class="doc acc" id="kt-mo-lai" data-group="acc" data-title="Kỳ kế toán & mở lại kỳ">
+  <div class="crumb"><span class="dot" style="background:var(--acc)"></span>Kế toán</div>
+  <h1>Kỳ kế toán và mở lại kỳ</h1>
+  <p class="lead">Danh sách các tháng đã ghi sổ, kết quả từng tháng, ai khoá và lúc nào. Kỳ đã khoá có thể mở lại khi cần sửa.</p>
+  <div class="who"><span>Menu: <b>Kế toán → Kỳ kế toán</b></span></div>
+  <figure><img src="img/acc-periods.jpg" alt="Kỳ kế toán"><figcaption>Danh sách kỳ và các thẻ số dư đầu kỳ, tồn kho đầu kỳ, nhật ký.</figcaption></figure>
+  <ul>
+    <li>Mỗi dòng: kỳ, trạng thái, số bước cuối kỳ đã chạy, doanh thu, lợi nhuận (tạm tính nếu chưa khoá), người khoá và thời điểm.</li>
+    <li>Bấm vào tên kỳ để mở Tổng quan của kỳ đó.</li>
+    <li>Thẻ <b>Nhật ký khoá sổ</b> ghi mọi thao tác: chạy bước, đặt lại bước, khoá, mở lại, sửa bút toán.</li>
+  </ul>
+
+  <h2>Mở lại một kỳ đã khoá</h2>
+  <ol class="steps">
+    <li>Bấm <span class="ui">Mở lại kỳ</span> ở kỳ đã khoá <b>gần nhất</b>.</li>
+    <li>Ghi lý do (bắt buộc), bấm <span class="ui danger">Mở lại kỳ</span>.</li>
+    <li>Sửa chứng từ cần sửa, rồi chạy lại 5 bước và khoá sổ lại.</li>
+  </ol>
+  <div class="note warn">Chỉ mở lại được kỳ khoá gần nhất. Muốn sửa tháng cũ hơn, phải mở lại lần lượt từ tháng mới nhất về. Quyền mở lại kỳ là quyền riêng, mặc định chỉ quản trị viên có.</div>
+</section>
+
+<section class="doc acc" id="kt-bao-cao" data-group="acc" data-title="Công nợ, thuế & báo cáo">
+  <div class="crumb"><span class="dot" style="background:var(--acc)"></span>Kế toán</div>
+  <h1>Công nợ, thuế GTGT và báo cáo</h1>
+  <p class="lead">Ba màn hình chỉ để xem, giúp trả lời: ai còn nợ mình, mình còn nợ ai, tháng này nộp bao nhiêu thuế và lãi hay lỗ.</p>
+
+  <h2>Phải thu – phải trả</h2>
+  <div class="who"><span>Menu: <b>Kế toán → Phải thu – phải trả</b></span></div>
+  <figure><img src="img/acc-debts.jpg" alt="Phải thu phải trả"><figcaption>Công nợ tại cuối kỳ đang chọn.</figcaption></figure>
+  <ul>
+    <li><b>Phải thu khách (131):</b> còn nợ (gồm 8% VAT), trả trước (tiền cọc), nợ từ ngày nào; nhãn đỏ <b>quá 30 ngày</b>.</li>
+    <li><b>Phải trả nhà cung cấp (331):</b> mua chịu, đã trả, còn phải trả.</li>
+    <li>Dòng “Số dư đầu kỳ chưa phân theo khách / nhà cung cấp” là phần công nợ nhập ở số dư đầu kỳ.</li>
+  </ul>
+
+  <h2>Thuế GTGT</h2>
+  <div class="who"><span>Menu: <b>Kế toán → Thuế GTGT</b></span></div>
+  <figure><img src="img/acc-tax.jpg" alt="Thuế GTGT"><figcaption>Thuế đầu ra, đầu vào và số phải nộp của kỳ.</figcaption></figure>
+  <ul>
+    <li><b>Thuế đầu ra:</b> 8% trên doanh thu các đơn nghiệm thu trong kỳ.</li>
+    <li><b>Thuế đầu vào:</b> từ phiếu nhập, phiếu chi, mua tài sản có thuế.</li>
+    <li><b>Phải nộp</b> = đầu ra − đầu vào − đầu vào kỳ trước chuyển sang. Nếu âm thì là số <b>còn được khấu trừ chuyển kỳ sau</b>.</li>
+  </ul>
+  <div class="note tip">Đây là sổ nội bộ, không xuất hoá đơn điện tử. Số liệu dùng để tham khảo khi kê khai thuế.</div>
+
+  <h2>Báo cáo</h2>
+  <div class="who"><span>Menu: <b>Kế toán → Báo cáo</b></span></div>
+  <figure><img src="img/acc-reports.jpg" alt="Báo cáo kết quả kinh doanh"><figcaption>Kết quả kinh doanh 6 kỳ gần nhất và luỹ kế năm.</figcaption></figure>
+  <ul>
+    <li><b>Kết quả kinh doanh:</b> doanh thu, giá vốn (gồm chi phí sản xuất chung), chi phí bán hàng, chi phí quản lý, thu nhập / chi phí khác, lợi nhuận trước thuế. Kỳ chưa khoá có nhãn <b>tạm</b>.</li>
+    <li><b>Sổ cái tài khoản:</b> chọn một tài khoản để xem số dư đầu kỳ, từng phát sinh kèm tài khoản đối ứng và số dư sau mỗi dòng.</li>
+  </ul>
+</section>
+
+<!-- ======================= KHO ======================= -->
+<section class="doc kho" id="kho-hieu" data-group="kho" data-title="Phân hệ Kho dùng để làm gì">
+  <div class="crumb"><span class="dot" style="background:var(--kho)"></span>Kho</div>
+  <h1>Phân hệ Kho dùng để làm gì</h1>
+  <p class="lead">Kho là phân hệ của thủ kho: theo dõi giấy, màng, keo… theo từng khổ, và quản lý khuôn bế: khuôn đang nằm ở kệ nào, đang ở xưởng nào, bao giờ về.</p>
+  <figure><img src="img/kho-overview.jpg" alt="Tổng quan kho"><figcaption>Tổng quan kho: số khuôn, khuôn ở xưởng ngoài, quá hẹn, cần xác nhận; khuôn theo xưởng; vật tư dưới mức tối thiểu; phiếu gần đây.</figcaption></figure>
+
+  <h2>Các menu</h2>
+  <table>
+    <tr><th>Menu</th><th>Dùng để</th></tr>
+    <tr><td><span class="menu kho">Tổng quan kho</span></td><td>Xem nhanh việc cần làm: khuôn quá hẹn chưa về, khuôn chờ kiểm, vật tư sắp hết. Bấm vào ô số để mở đúng danh sách.</td></tr>
+    <tr><td><span class="menu kho">Tồn kho & phiếu</span></td><td>Tồn từng vật tư / khổ, thẻ kho, lập phiếu nhập, xuất, nhập lại.</td></tr>
+    <tr><td><span class="menu kho">Khuôn</span></td><td>Danh sách khuôn, tìm khuôn theo kích thước, hồ sơ và lịch sử từng khuôn, xuất / nhận khuôn.</td></tr>
+    <tr><td><span class="menu kho">Giao nhận khuôn</span></td><td>Biên bản giao / nhận nhiều khuôn một lần với xưởng bế, in ra để ký.</td></tr>
+    <tr><td><span class="menu kho">Kiểm kê</span></td><td>Kiểm kê vật tư (lệch thì duyệt điều chỉnh) và kiểm kê khuôn theo kệ hoặc theo xưởng.</td></tr>
+    <tr><td><span class="menu kho">Danh mục kho</span></td><td>Vật tư và khổ, đối tác, vị trí kệ, ký hiệu khuôn, chốt tồn tháng, nhập bảng khuôn Excel.</td></tr>
+  </table>
+
+  <div class="note tip"><b class="h">Kho tách riêng với CRM và Kế toán</b>Phiếu ở phân hệ Kho không tạo bút toán và không làm thay đổi <a href="#kt-kho">Kho NVL của kế toán</a>. Tên khách, số lệnh sản xuất ghi tay vào phiếu để tra cứu. Kế toán vẫn lập phiếu nhập / xuất của mình theo chứng từ.</div>
+
+  <h2>Ai làm được gì</h2>
+  <table>
+    <tr><th>Quyền</th><th>Làm được</th></tr>
+    <tr><td>Xem kho</td><td>Xem tồn, phiếu, khuôn, lịch sử, biên bản</td></tr>
+    <tr><td>Lập phiếu kho</td><td>Lập phiếu nhập / xuất / nhập lại, huỷ phiếu</td></tr>
+    <tr><td>Quản lý khuôn</td><td>Tạo, sửa khuôn, xuất / nhận / kiểm khuôn, giao nhận nhiều khuôn, ảnh khuôn</td></tr>
+    <tr><td>Kiểm kê</td><td>Lập phiếu kiểm kê, nhập số đếm, kiểm kê khuôn</td></tr>
+    <tr><td>Quản lý kho</td><td>Danh mục, duyệt kiểm kê, chốt tồn tháng, nhập bảng khuôn Excel</td></tr>
+  </table>
+  <p>Nhóm <b>Thủ kho</b> có sẵn ba quyền: lập phiếu, quản lý khuôn, kiểm kê. Quản trị viên cấp thêm “Quản lý kho” cho người phụ trách duyệt.</p>
+</section>
+
+<section class="doc kho" id="kho-bat-dau" data-group="kho" data-title="Bắt đầu dùng kho (làm một lần)">
+  <div class="crumb"><span class="dot" style="background:var(--kho)"></span>Kho</div>
+  <h1>Bắt đầu dùng kho</h1>
+  <p class="lead">Làm một lần khi mới đưa phần mềm vào dùng, theo thứ tự dưới đây. Cần quyền Quản lý kho.</p>
+  <div class="who"><span>Menu: <b>Kho → Danh mục kho</b></span></div>
+
+  <h2>1. Khai báo vật tư và khổ</h2>
+  <ol class="steps">
+    <li>Thẻ <b>Vật tư & khổ</b> → <span class="ui primary">Thêm vật tư</span>.</li>
+    <li>Chọn <b>nhóm</b> (Giấy, Màng, Keo…), gõ <b>tên vật tư</b> (ví dụ <i>Giấy Ivory 300</i>) và <b>đơn vị</b> (tờ, kg, cuộn…).</li>
+    <li>Vật tư mua theo khổ thì để bật <b>Theo khổ</b>, mỗi khổ một dòng: rộng × dài (cm) và <b>tồn tối thiểu</b> nếu muốn được nhắc khi sắp hết. Bấm <span class="ui">Thêm khổ</span> để thêm dòng.</li>
+    <li>Vật tư không theo khổ (keo, mực) thì tắt <b>Theo khổ</b>. Bấm <span class="ui primary">Lưu</span>.</li>
+  </ol>
+  <figure><img src="img/kho-material.jpg" alt="Sửa vật tư"><figcaption>Một vật tư có hai khổ. “27x23” và “27 x 23” là một khổ, phần mềm không cho ghi trùng.</figcaption></figure>
+  <div class="note warn">Khổ đã có phiếu thì không sửa số được nữa (để thẻ kho không bị sai). Muốn đổi, thêm khổ mới và gạt khổ cũ sang <b>Tắt</b>.</div>
+
+  <h2>2. Đối tác, vị trí kệ, ký hiệu khuôn</h2>
+  <ul>
+    <li><b>Đối tác:</b> xưởng bế, nơi làm khuôn, nhà cung cấp giấy. Xưởng bế cần có ở đây để xuất khuôn đi.</li>
+    <li><b>Vị trí kệ:</b> nên đặt mã theo Tầng-Kệ-Ô, ví dụ <code>T4-K02-O03</code>.</li>
+    <li><b>Ký hiệu khuôn:</b> đã có sẵn TUI (túi), HOP (hộp), KEF (kẹp file), TEM, LIX, PBI… Mã khuôn = ký hiệu + số thứ tự, ví dụ <code>TUI-001</code>.</li>
+  </ul>
+  <figure><img src="img/kho-symbols.jpg" alt="Ký hiệu khuôn"><figcaption>Thẻ Ký hiệu khuôn: số khuôn và mã sẽ cấp tiếp cho mỗi ký hiệu.</figcaption></figure>
+
+  <h2>3. Nhập bảng khuôn Excel đang dùng</h2>
+  <p>Xem mục <a href="#kho-nhap-excel">Nhập bảng khuôn Excel</a>. Sau khi nhập, rà bộ lọc <b>Cần xác nhận</b> trong menu Khuôn.</p>
+
+  <h2>4. Nhập tồn đầu của vật tư</h2>
+  <p>Lập một <a href="#kho-kiem-ke">phiếu kiểm kê vật tư</a>, đếm thực tế từng khổ và nhập số. Người quản lý kho duyệt là tồn kho có số đầu.</p>
+</section>
+
+<section class="doc kho" id="kho-ton" data-group="kho" data-title="Tồn kho & phiếu nhập / xuất">
+  <div class="crumb"><span class="dot" style="background:var(--kho)"></span>Kho</div>
+  <h1>Tồn kho và phiếu nhập / xuất</h1>
+  <p class="lead">Mỗi lần giấy, màng, keo vào hoặc ra khỏi kho đều lập phiếu. Phần mềm cộng trừ tồn ngay khi lưu.</p>
+  <div class="who"><span>Menu: <b>Kho → Tồn kho & phiếu</b></span><span>Quyền: <b>Lập phiếu kho</b></span></div>
+  <figure><img src="img/kho-stock.jpg" alt="Tồn kho"><figcaption>Thẻ Tồn kho. Số đỏ và nhãn “Dưới tối thiểu” là vật tư cần mua thêm.</figcaption></figure>
+
+  <h2>Xem tồn</h2>
+  <ul>
+    <li>Gõ tên hoặc khổ vào ô tìm (ví dụ <code>27 x 23</code>), lọc theo nhóm, hoặc chọn <b>Dưới tối thiểu</b>.</li>
+    <li><span class="ui">Xuất CSV</span> để mở danh sách tồn bằng Excel.</li>
+    <li><b>Bấm vào một dòng</b> để xem <b>thẻ kho</b>: từng phiếu nhập, xuất và số tồn sau mỗi phiếu.</li>
+  </ul>
+  <figure><img src="img/kho-card.jpg" alt="Thẻ kho"><figcaption>Thẻ kho của một khổ giấy, phiếu mới nhất ở trên.</figcaption></figure>
+
+  <h2>Ba loại phiếu</h2>
+  <table>
+    <tr><th>Nút</th><th>Khi nào</th><th>Số phiếu</th></tr>
+    <tr><td><span class="ui">Nhập kho</span></td><td>Hàng mua về. Ghi nhà cung cấp, số hoá đơn, đơn giá nếu có.</td><td>NK-</td></tr>
+    <tr><td><span class="ui primary">Xuất kho</span></td><td>Đưa vật tư ra xưởng. Bắt buộc ghi <b>người nhận</b>; nên ghi mục đích và số lệnh sản xuất.</td><td>XK-</td></tr>
+    <tr><td><span class="ui">Nhập lại</span></td><td>Xưởng dùng thừa, trả lại kho.</td><td>NL-</td></tr>
+  </table>
+
+  <h2>Lập phiếu xuất kho</h2>
+  <ol class="steps">
+    <li>Bấm <span class="ui primary">Xuất kho</span>.</li>
+    <li>Chọn ngày, ghi <b>người nhận</b>, mục đích, lệnh sản xuất.</li>
+    <li>Chọn vật tư · khổ (danh sách hiện số tồn), gõ số lượng. Nhiều vật tư thì bấm <span class="ui">Thêm dòng</span>.</li>
+    <li>Bấm <span class="ui primary">Lưu phiếu</span>.</li>
+  </ol>
+  <figure><img src="img/kho-slip.jpg" alt="Phiếu xuất kho"><figcaption>Phiếu xuất kho.</figcaption></figure>
+  <div class="note warn">Không xuất được quá số tồn. Thông báo ghi rõ ví dụ “Giấy Ivory 300 · 65 x 86: còn 390, cần 600”. Kiểm tra lại số, hoặc lập phiếu nhập trước nếu hàng đã về mà chưa nhập.</div>
+
+  <h2>Xem và huỷ phiếu</h2>
+  <p>Thẻ <b>Phiếu kho</b> liệt kê phiếu theo tháng, lọc theo loại, tìm theo số phiếu, người nhận, lệnh. Phiếu lập sai thì bấm <span class="ui">Huỷ</span> và ghi lý do: tồn được trả lại như trước, phiếu vẫn còn trong danh sách (chữ mờ, nhãn “Đã huỷ”) để tra.</p>
+  <figure><img src="img/kho-slips.jpg" alt="Danh sách phiếu kho"><figcaption>Danh sách phiếu kho trong tháng.</figcaption></figure>
+  <ul>
+    <li>Không huỷ được phiếu nhập nếu hàng đã xuất bớt (huỷ sẽ làm tồn âm).</li>
+    <li>Phiếu điều chỉnh (DC-) sinh ra từ kiểm kê không huỷ được.</li>
+    <li>Tháng đã <a href="#kho-chot-thang">chốt tồn</a> thì không lập hay huỷ phiếu trong tháng đó.</li>
+  </ul>
+</section>
+
+<section class="doc kho" id="kho-khuon" data-group="kho" data-title="Danh sách khuôn & tìm khuôn">
+  <div class="crumb"><span class="dot" style="background:var(--kho)"></span>Kho</div>
+  <h1>Danh sách khuôn và tìm khuôn</h1>
+  <p class="lead">Mỗi khuôn có một mã cố định, một trạng thái (sẵn sàng, đang bế, chờ kiểm…) và một vị trí (kệ nào trong kho, hoặc đang ở xưởng nào).</p>
+  <div class="who"><span>Menu: <b>Kho → Khuôn</b></span></div>
+  <figure><img src="img/kho-dies.jpg" alt="Danh sách khuôn"><figcaption>Danh sách khuôn: mã, tên, kích thước, số mảnh, trạng thái, ở đâu, hẹn về.</figcaption></figure>
+
+  <h2>Trạng thái khuôn</h2>
+  <table>
+    <tr><th>Trạng thái</th><th>Nghĩa</th></tr>
+    <tr><td><span class="stt green">Sẵn sàng</span></td><td>Dùng được ngay. Nằm trên kệ, hoặc đang gửi giữ ở xưởng.</td></tr>
+    <tr><td><span class="stt blue">Đang bế</span></td><td>Đã xuất cho một lệnh, đang chạy máy.</td></tr>
+    <tr><td><span class="stt gold">Chờ kiểm</span></td><td>Vừa về kho, chưa kiểm dao.</td></tr>
+    <tr><td><span class="stt orange">Lỗi</span> / <span class="stt red">Hỏng</span></td><td>Dao mẻ, cong, gãy. Lỗi thì gửi sửa được.</td></tr>
+    <tr><td><span class="stt purple">Đang sửa</span></td><td>Đang ở nơi sửa khuôn.</td></tr>
+    <tr><td><span class="stt">Đã thanh lý</span></td><td>Không dùng nữa, ẩn khỏi danh sách (lọc trạng thái để xem).</td></tr>
+  </table>
+
+  <h2>Lọc danh sách</h2>
+  <ul>
+    <li>Ô tìm: mã, tên khuôn, tên khách, ghi chú (gõ không dấu cũng được).</li>
+    <li><b>Ký hiệu</b>, <b>Trạng thái</b>, <b>Ở đâu</b> (kho Âu Việt hoặc từng xưởng).</li>
+    <li><b>Cần chú ý:</b> <i>Quá hẹn chưa về</i>, <i>Cần xác nhận</i>, <i>Đang ở xưởng ngoài</i>.</li>
+    <li><span class="ui">Xuất CSV</span> lưu danh sách đang lọc ra file Excel.</li>
+  </ul>
+
+  <h2>Tìm khuôn dùng lại theo kích thước</h2>
+  <p>Trước khi đặt làm khuôn mới, kiểm tra kho đã có khuôn vừa chưa:</p>
+  <ol class="steps">
+    <li>Nhập <b>dài</b>, <b>rộng</b>, <b>cao</b> (cm) ở dòng “Tìm khuôn dùng lại theo kích thước”. Có thể bỏ trống chiều không cần.</li>
+    <li>Ô <b>±</b> là độ lệch cho phép, mặc định 0,5 cm. Bấm <span class="ui primary">Tìm</span>.</li>
+    <li>Không có dòng nào nghĩa là chưa có khuôn gần kích thước đó: cần làm khuôn mới.</li>
+  </ol>
+  <figure><img src="img/kho-size.jpg" alt="Tìm khuôn theo kích thước"><figcaption>Tìm khuôn 32 × 24 × 8 cm, lệch ±0,5 cm.</figcaption></figure>
+
+  <h2>Hồ sơ khuôn</h2>
+  <p>Bấm vào một khuôn để mở hồ sơ: thông tin, ảnh, các nút thao tác được phép ở trạng thái hiện tại, khuôn gần giống kích thước, và <b>lịch sử</b> mọi lần xuất, nhận, kiểm, sửa.</p>
+  <figure><img src="img/kho-die.jpg" alt="Hồ sơ khuôn"><figcaption>Hồ sơ khuôn TUI-001 đang bế ở Mê Linh.</figcaption></figure>
+  <ul>
+    <li><span class="ui">Thêm ảnh</span>: chụp khuôn bằng điện thoại và tải lên để dễ nhận ra.</li>
+    <li><span class="ui">Sửa thông tin</span>: sửa tên, kích thước, số mảnh, khách… Mã khuôn không đổi được.</li>
+    <li>Khuôn có khung vàng <b>Cần xác nhận</b>: kiểm tra thực tế, sửa nếu sai, rồi bấm <span class="ui">Đã kiểm, đúng</span>.</li>
+  </ul>
+
+  <h2>Tạo khuôn mới</h2>
+  <ol class="steps">
+    <li>Bấm <span class="ui primary">Khuôn mới</span>, chọn <b>ký hiệu</b>. Phần mềm cho biết mã sẽ cấp (ví dụ <code>TUI-255</code>).</li>
+    <li>Gõ tên khuôn, khách, dài / rộng / cao, dọc hay ngang, số mảnh, nơi làm khuôn, giá.</li>
+    <li>Chọn <b>kệ cất</b> nếu khuôn đã kiểm xong, hoặc <b>giao thẳng tới xưởng</b> nếu nơi làm khuôn giao luôn cho xưởng bế. Bỏ trống cả hai thì khuôn ở trạng thái Chờ kiểm.</li>
+    <li>Bấm <span class="ui primary">Tạo khuôn</span>.</li>
+  </ol>
+  <figure><img src="img/kho-die-new.jpg" alt="Cảnh báo khuôn gần giống"><figcaption>Đã có khuôn cùng ký hiệu, lệch dưới 0,5 cm mỗi chiều: phần mềm dừng lại để bạn xem có dùng lại được không.</figcaption></figure>
+  <div class="note tip">Nếu thật sự cần khuôn mới (khác kiểu quai, khác số mảnh…), bấm <span class="ui">Vẫn tạo khuôn mới</span>.</div>
+</section>
+
+<section class="doc kho" id="kho-luan-chuyen" data-group="kho" data-title="Xuất, nhận, kiểm khuôn">
+  <div class="crumb"><span class="dot" style="background:var(--kho)"></span>Kho</div>
+  <h1>Xuất, nhận và kiểm khuôn</h1>
+  <p class="lead">Mỗi bước khuôn đi đâu, về đâu đều ghi lại bằng một nút trong hồ sơ khuôn. Phần mềm chỉ hiện các nút hợp lệ, nên không thể ghi “kiểm đạt” cho khuôn chưa về kho.</p>
+  <div class="who"><span>Menu: <b>Kho → Khuôn → bấm vào khuôn</b></span><span>Quyền: <b>Quản lý khuôn</b></span></div>
+
+  <h2>Vòng đi của một khuôn</h2>
+  <div class="cycle">
+    <span class="stt green">Sẵn sàng</span> → <b>Xuất khuôn</b> → <span class="stt blue">Đang bế</span> → <b>Nhập lại kho</b> → <span class="stt gold">Chờ kiểm</span> → <b>Kiểm đạt, lên kệ</b> → <span class="stt green">Sẵn sàng</span>
+  </div>
+  <table>
+    <tr><th>Nút</th><th>Khi nào</th><th>Cần ghi</th></tr>
+    <tr><td><span class="ui primary">Xuất khuôn</span></td><td>Giao khuôn cho xưởng bế một lệnh. Bế tại xưởng Âu Việt thì bỏ trống xưởng.</td><td>Xưởng, ngày hẹn lấy lại, lệnh sản xuất</td></tr>
+    <tr><td><span class="ui">Xưởng giữ lại</span></td><td>Bế xong nhưng để khuôn lại xưởng cho lần sau. Khuôn thành Sẵn sàng, vị trí vẫn ở xưởng.</td><td>—</td></tr>
+    <tr><td><span class="ui">Nhập lại kho</span></td><td>Khuôn về kho Âu Việt.</td><td>Lệnh (nếu có)</td></tr>
+    <tr><td><span class="ui">Kiểm đạt, lên kệ</span></td><td>Kiểm dao xong, dùng tốt.</td><td>Kệ cất</td></tr>
+    <tr><td><span class="ui">Báo lỗi / hỏng</span></td><td>Dao mẻ, cong… Tích “Hỏng hẳn” nếu không sửa được.</td><td>Ghi chú lỗi</td></tr>
+    <tr><td><span class="ui">Gửi sửa</span> / <span class="ui">Nhận về sau sửa</span></td><td>Đưa khuôn lỗi đi sửa và nhận về (về thì chờ kiểm lại).</td><td>Nơi sửa, ngày hẹn</td></tr>
+    <tr><td><span class="ui">Đổi vị trí</span></td><td>Chuyển kệ, hoặc gửi giữ khuôn ở xưởng.</td><td>Kệ mới hoặc xưởng</td></tr>
+    <tr><td><span class="ui">Thanh lý</span></td><td>Không dùng nữa.</td><td>Lý do</td></tr>
+  </table>
+  <figure><img src="img/kho-die-action.jpg" alt="Nhập lại kho"><figcaption>Ghi nhận khuôn về kho.</figcaption></figure>
+  <div class="note warn"><b class="h">Quá hẹn</b>Khuôn đang bế hoặc đang sửa mà qua ngày hẹn lấy lại sẽ hiện chữ đỏ, và đếm ở ô <b>Quá hẹn chưa về</b> trên Tổng quan kho. Gọi xưởng hỏi. Khuôn đã về thì bấm <b>Nhập lại kho</b>. Xưởng còn bế tiếp thì bấm <b>Xưởng giữ lại</b> rồi <b>Xuất khuôn</b> lại với ngày hẹn mới.</div>
+</section>
+
+<section class="doc kho" id="kho-giao-nhan" data-group="kho" data-title="Giao nhận nhiều khuôn">
+  <div class="crumb"><span class="dot" style="background:var(--kho)"></span>Kho</div>
+  <h1>Giao nhận nhiều khuôn một lần</h1>
+  <p class="lead">Khi mang nhiều khuôn sang xưởng hoặc lấy nhiều khuôn về, lập một biên bản giao nhận thay vì bấm từng khuôn. Biên bản có số GN- và in ra để hai bên ký.</p>
+  <div class="who"><span>Menu: <b>Kho → Giao nhận khuôn</b>, hoặc chọn khuôn ở menu <b>Khuôn</b></span></div>
+
+  <h2>Giao khuôn cho xưởng</h2>
+  <ol class="steps">
+    <li>Bấm <span class="ui primary">Giao khuôn cho xưởng</span>.</li>
+    <li>Chọn ngày, <b>xưởng</b>, ngày hẹn lấy lại, lệnh sản xuất.</li>
+    <li>Tích các khuôn cần giao (chỉ hiện khuôn đang Sẵn sàng). Bấm <span class="ui primary">Lập biên bản</span>.</li>
+    <li>Phần mềm hỏi <b>In biên bản?</b> → <span class="ui">In</span>. Hai bên ký, ghi tình trạng khuôn khi giao.</li>
+  </ol>
+  <figure><img src="img/kho-batch.jpg" alt="Giao khuôn cho xưởng"><figcaption>Chọn 3 khuôn giao cho xưởng Mê Linh.</figcaption></figure>
+
+  <h2>Nhận khuôn về</h2>
+  <p>Bấm <span class="ui">Nhận khuôn về</span>, chọn xưởng: danh sách hiện các khuôn đang ở xưởng đó. Tích các khuôn mang về và lập biên bản. Khuôn về ở trạng thái <b>Chờ kiểm</b>, sau đó kiểm từng khuôn và bấm <b>Kiểm đạt, lên kệ</b>.</p>
+
+  <h2>Chọn khuôn từ danh sách Khuôn</h2>
+  <p>Ở menu <span class="menu kho">Khuôn</span>, tích ô đầu dòng các khuôn cần giao rồi bấm <span class="ui">Xuất N khuôn</span> hoặc <span class="ui">Nhận về N khuôn</span>. Tiện khi đã lọc theo ký hiệu hay theo xưởng.</p>
+  <figure><img src="img/kho-batches.jpg" alt="Danh sách biên bản"><figcaption>Danh sách biên bản giao nhận; nút máy in để in lại.</figcaption></figure>
+  <div class="note tip">Một biên bản là <b>tất cả hoặc không</b>: nếu có một khuôn không giao được (ví dụ đang ở xưởng khác), phần mềm báo mã khuôn đó và không ghi khuôn nào.</div>
+</section>
+
+<section class="doc kho" id="kho-kiem-ke" data-group="kho" data-title="Kiểm kê vật tư & khuôn">
+  <div class="crumb"><span class="dot" style="background:var(--kho)"></span>Kho</div>
+  <h1>Kiểm kê vật tư và khuôn</h1>
+  <p class="lead">Đếm thực tế để sổ khớp với kho. Nên kiểm kê vật tư cuối mỗi tháng trước khi chốt tồn, và kiểm kê khuôn theo từng kệ khi rảnh.</p>
+  <div class="who"><span>Menu: <b>Kho → Kiểm kê</b></span><span>Quyền: <b>Kiểm kê</b>; duyệt cần <b>Quản lý kho</b></span></div>
+
+  <h2>Kiểm kê vật tư</h2>
+  <ol class="steps">
+    <li>Thẻ <b>Vật tư</b> → <span class="ui primary">Phiếu kiểm kê mới</span>. Chọn ngày và nhóm vật tư (bỏ trống để kiểm tất cả).</li>
+    <li>Phần mềm ghi sẵn số <b>theo sổ</b>. Đếm thực tế và gõ vào cột <b>Đếm thực tế</b>; cột <b>Chênh lệch</b> tự tính. Bấm <span class="ui">Lưu số đếm</span> (làm nhiều lần được).</li>
+    <li>Người quản lý kho mở phiếu, bật <b>Chỉ dòng lệch</b> để soát, rồi bấm <span class="ui primary">Duyệt</span>.</li>
+  </ol>
+  <figure><img src="img/kho-count.jpg" alt="Phiếu kiểm kê vật tư"><figcaption>Phiếu kiểm kê: 2/4 dòng đã đếm, một dòng thiếu 12 tờ.</figcaption></figure>
+  <p>Khi duyệt, chênh lệch thành <b>phiếu điều chỉnh DC-</b> và tồn kho bằng đúng số đếm. Dòng chưa đếm giữ nguyên. Mỗi lúc chỉ có một phiếu kiểm kê vật tư đang mở.</p>
+
+  <h2>Kiểm kê khuôn</h2>
+  <ol class="steps">
+    <li>Thẻ <b>Khuôn</b> → <span class="ui primary">Kiểm kê khuôn</span>. Chọn <b>một kệ</b>, <b>toàn kho</b> hoặc <b>khuôn ở một xưởng</b>, bấm <span class="ui primary">Bắt đầu</span>.</li>
+    <li>Cầm danh sách đi kệ: thấy khuôn nào, gõ (hoặc quét) mã vào ô trên cùng rồi Enter, hoặc bấm <span class="ui">Thấy</span> ở dòng đó.</li>
+    <li>Thấy một khuôn mà sổ ghi ở nơi khác: vẫn gõ mã, khuôn được thêm vào với nhãn cam.</li>
+    <li>Xong bấm <span class="ui primary">Kết thúc</span>.</li>
+  </ol>
+  <figure><img src="img/kho-die-count.jpg" alt="Kiểm kê khuôn"><figcaption>Kiểm kê kệ Tầng 4: dấu xanh là khuôn đã thấy.</figcaption></figure>
+  <p>Khi kết thúc: khuôn <b>không thấy</b> được gắn “Cần xác nhận” để tìm lại; khuôn lạ thấy trên kệ đang kiểm được chuyển vị trí về kệ đó.</p>
+</section>
+
+<section class="doc kho" id="kho-nhap-excel" data-group="kho" data-title="Nhập bảng khuôn Excel">
+  <div class="crumb"><span class="dot" style="background:var(--kho)"></span>Kho</div>
+  <h1>Nhập bảng khuôn Excel</h1>
+  <p class="lead">Đưa file Excel quản lý khuôn đang dùng vào phần mềm, giữ nguyên mã khuôn cũ. Làm một lần lúc bắt đầu; chạy lại cũng không tạo trùng.</p>
+  <div class="who"><span>Menu: <b>Kho → Danh mục kho → Nhập bảng khuôn Excel</b></span><span>Quyền: <b>Quản lý kho</b></span></div>
+  <ol class="steps">
+    <li>Kéo file <code>.xlsx</code> vào ô, hoặc bấm để chọn. File cần có sheet <b>DANH_SACH_KHUON</b> (dòng tiêu đề bắt đầu bằng “Mã khuôn”); sheet <b>NHAP_LIEU</b> nếu có sẽ được giữ làm lịch sử.</li>
+    <li>Bấm <span class="ui">Xem trước</span>. Phần mềm chưa ghi gì, chỉ cho biết sẽ nhập bao nhiêu khuôn, trạng thái, đối tác và kệ sẽ tạo, và các điểm cần xem.</li>
+    <li>Đọc danh sách điểm cần xem. Nếu sai nhiều, sửa file Excel rồi xem trước lại.</li>
+    <li>Bấm <span class="ui primary">Nhập</span> → xác nhận.</li>
+  </ol>
+  <figure><img src="img/kho-import.jpg" alt="Xem trước nhập Excel"><figcaption>Xem trước: 440 khuôn mới, 126 điểm cần xem.</figcaption></figure>
+
+  <h2>Phần mềm hiểu file thế nào</h2>
+  <table>
+    <tr><th>Trong Excel</th><th>Trong phần mềm</th></tr>
+    <tr><td>TRONG KHO</td><td>Sẵn sàng, ở kho Âu Việt, kệ theo cột “Vị trí kệ”</td></tr>
+    <tr><td>ĐANG SẢN XUẤT + nơi bế</td><td>Đang bế ở xưởng đó, ngày hẹn theo cột “Ngày dự kiến lấy lại”</td></tr>
+    <tr><td>Trạng thái khác (CHƯA XÁC NHẬN…)</td><td>Sẵn sàng ở kho, gắn <b>Cần xác nhận</b></td></tr>
+    <tr><td>Kích thước “32x24x8”, “35x35x12c”, “Túi lịch 65x43”</td><td>Dài / rộng / cao để tìm theo số</td></tr>
+    <tr><td>Kích thước chỉ ghi chữ (“38 cm”, hai khuôn ghép)</td><td>Giữ nguyên chữ, không tìm theo số được</td></tr>
+    <tr><td>NOTE 1, NOTE 2 (Dọc / Ngang, “2 mảnh”, “8 bát/1 khuôn”)</td><td>Dọc / ngang, số mảnh, số SP trên khuôn; còn lại vào ghi chú</td></tr>
+    <tr><td>Nơi ra khuôn lặp lại từ 3 dòng</td><td>Đối tác “Nơi làm khuôn”; tên chỉ xuất hiện 1–2 lần thì vào ghi chú</td></tr>
+    <tr><td>Các dòng XUẤT / NHẬP ở NHAP_LIEU</td><td>Lịch sử của khuôn</td></tr>
+  </table>
+  <p>Khuôn được gắn <b>Cần xác nhận</b> khi: trùng kích thước với khuôn khác cùng ký hiệu, ra xưởng hơn 45 ngày, trạng thái không rõ, nơi bế “Khác”, hoặc không có dòng TẠO KHUÔN. Sau khi nhập, vào <span class="menu kho">Khuôn</span> → lọc <b>Cần xác nhận</b> và rà dần.</p>
+  <div class="note warn"><b class="h">Ngày tháng trong Excel</b>Excel đôi khi hiểu “6/11/2026” thành ngày 11 tháng 6. Khuôn có ngày lạ thì sửa trong hồ sơ khuôn sau khi nhập.</div>
+</section>
+
+<section class="doc kho" id="kho-chot-thang" data-group="kho" data-title="Chốt tồn tháng">
+  <div class="crumb"><span class="dot" style="background:var(--kho)"></span>Kho</div>
+  <h1>Chốt tồn tháng</h1>
+  <p class="lead">Sau khi kiểm kê và báo cáo tồn cuối tháng, chốt tháng đó để không ai lập thêm hay huỷ phiếu có ngày trong tháng, làm lệch số đã báo cáo.</p>
+  <div class="who"><span>Menu: <b>Kho → Danh mục kho → Chốt tồn tháng</b></span><span>Quyền: <b>Quản lý kho</b></span></div>
+  <ol class="steps">
+    <li>Kiểm kê vật tư và duyệt phiếu kiểm kê của tháng.</li>
+    <li>Chọn tháng, bấm <span class="ui primary">Chốt tồn tháng</span>.</li>
+    <li>Cần sửa phiếu trong tháng đã chốt: bấm <span class="ui">Mở lại</span>, sửa, rồi chốt lại.</li>
+  </ol>
+  <p>Chốt tồn của Kho độc lập với khoá sổ kế toán. Luân chuyển khuôn không bị ảnh hưởng bởi chốt tháng.</p>
+</section>
+
+<!-- ======================= QUẢN TRỊ ======================= -->
+<section class="doc adm" id="tai-khoan" data-group="adm" data-title="Tài khoản người dùng">
+  <div class="crumb"><span class="dot" style="background:var(--adm)"></span>Quản trị</div>
+  <h1>Tài khoản người dùng</h1>
+  <p class="lead">Quản trị viên tạo tài khoản cho từng nhân viên, chọn nhóm quyền, đặt lại mật khẩu và khoá tài khoản khi nhân viên nghỉ.</p>
+  <div class="who"><span>Dành cho: <b>Quản trị viên</b></span><span>Menu: <b>Quản trị → Tài khoản</b></span></div>
+  <figure><img src="img/accounts.jpg" alt="Tài khoản"><figcaption>Danh sách tài khoản và trạng thái.</figcaption></figure>
+
+  <h2>Tạo tài khoản</h2>
+  <ol class="steps">
+    <li>Bấm <span class="ui primary">Tạo tài khoản</span>.</li>
+    <li>Nhập <b>Họ tên</b>, <b>Tên đăng nhập</b> (3–32 ký tự: chữ thường không dấu, số, dấu chấm, gạch ngang; ví dụ <code>lan.nguyen</code>).</li>
+    <li>Chọn <b>Nhóm quyền</b>. Email, điện thoại không bắt buộc.</li>
+    <li><b>Mật khẩu ban đầu:</b> chọn <b>Tạo mật khẩu tạm ngẫu nhiên</b> (khuyên dùng) hoặc tự nhập (ít nhất 8 ký tự). Bấm <span class="ui primary">Lưu</span>.</li>
+    <li>Mật khẩu tạm <b>chỉ hiện một lần</b>: bấm <span class="ui">Chép</span> và gửi cho nhân viên qua Zalo hoặc nói trực tiếp. Lần đầu đăng nhập, nhân viên phải đổi mật khẩu.</li>
+  </ol>
+
+  <h2>Các thao tác khác</h2>
+  <p>Bấm biểu tượng <b>⋯</b> ở cuối dòng tài khoản:</p>
+  <ul>
+    <li><b>Sửa thông tin, nhóm quyền.</b></li>
+    <li><b>Đặt lại mật khẩu:</b> khi nhân viên quên mật khẩu; tạo mật khẩu tạm mới.</li>
+    <li><b>Đăng xuất mọi thiết bị:</b> khi nghi lộ mật khẩu.</li>
+    <li><b>Khoá tài khoản:</b> người đó bị đăng xuất ngay và không đăng nhập được tới khi mở khoá. Dùng khi nhân viên nghỉ việc (không xoá tài khoản để giữ lịch sử).</li>
+  </ul>
+  <div class="note warn">Không tự khoá, tự đổi nhóm quyền của chính mình được. Phải luôn còn ít nhất một quản trị viên đang hoạt động.</div>
+</section>
+
+<section class="doc adm" id="nhom-quyen" data-group="adm" data-title="Nhóm quyền">
+  <div class="crumb"><span class="dot" style="background:var(--adm)"></span>Quản trị</div>
+  <h1>Nhóm quyền</h1>
+  <p class="lead">Nhóm quyền quy định một nhóm nhân viên được làm gì trong từng chức năng. Sửa nhóm thì mọi tài khoản trong nhóm đổi theo.</p>
+  <div class="who"><span>Dành cho: <b>Quản trị viên</b></span><span>Menu: <b>Quản trị → Nhóm quyền</b></span></div>
+  <figure><img src="img/roles.jpg" alt="Nhóm quyền"><figcaption>Danh sách nhóm bên trái, bảng quyền bên phải.</figcaption></figure>
+
+  <h2>Sửa hoặc tạo nhóm</h2>
+  <ol class="steps">
+    <li>Chọn một nhóm ở bên trái, hoặc bấm <span class="ui primary">Thêm nhóm</span>.</li>
+    <li>Nhập tên và mô tả nhóm.</li>
+    <li>Tích quyền trong bảng: mỗi hàng là một chức năng (báo giá, đơn hàng, thiết kế, sản xuất, giao hàng, thanh toán, kế toán, tiền, khách hàng, sản phẩm, tài khoản, nhóm quyền), mỗi cột là một thao tác (xem, thêm, sửa…).</li>
+    <li>Bấm <span class="ui primary">Lưu</span>.</li>
+  </ol>
+  <h2>Một số quyền cần chú ý</h2>
+  <table>
+    <tr><th>Quyền</th><th>Ý nghĩa</th></tr>
+    <tr><td>Tiền · xem</td><td>Thấy giá, tổng tiền, công nợ. Không có quyền này thì mọi số tiền bị ẩn.</td></tr>
+    <tr><td>Kế toán · xem</td><td>Xem phân hệ Kế toán (tự kèm quyền xem tiền).</td></tr>
+    <tr><td>Kế toán · ghi sổ</td><td>Lập phiếu nhập, xuất, chi, tài sản, bút toán khác; danh mục vật tư, nhà cung cấp.</td></tr>
+    <tr><td>Kế toán · khoá sổ</td><td>Bắt đầu sổ, số dư đầu kỳ, khoản mục chi phí, chạy 5 bước, khoá sổ, sửa bút toán tự động.</td></tr>
+    <tr><td>Kế toán · mở lại kỳ</td><td>Mở lại kỳ đã khoá. Nên chỉ cấp cho người có trách nhiệm.</td></tr>
+  </table>
+  <div class="note tip">Phần mềm tự thêm các quyền nền cần thiết (ví dụ có quyền sửa thì tự có quyền xem). Nhóm “Quản trị viên” luôn toàn quyền và không sửa được. Không ai sửa được nhóm của chính mình, để tránh tự cấp thêm quyền.</div>
+  <p>Chỉ xoá được nhóm khi không còn tài khoản nào dùng nhóm đó.</p>
+</section>
+
+<!-- ======================= HỖ TRỢ ======================= -->
+<section class="doc adm" id="ket-noi-kenh" data-group="adm" data-title="Kết nối fanpage Facebook">
+  <div class="crumb"><span class="dot" style="background:var(--adm)"></span>Quản trị</div>
+  <h1>Kết nối fanpage Facebook</h1>
+  <p class="lead">Đưa tin nhắn và bình luận của fanpage về màn hình Hội thoại. Làm một lần cho mỗi fanpage.</p>
+  <div class="who"><span>Dành cho: <b>Quản trị viên</b></span><span>Menu: <b>Quản trị → Kết nối kênh</b></span></div>
+  <figure><img src="img/channels.jpg" alt="Kết nối kênh"><figcaption>Cấu hình máy chủ, danh sách fanpage và trạng thái nhận tin.</figcaption></figure>
+
+  <h2>Trước khi kết nối</h2>
+  <ul>
+    <li>Ô <b>Cấu hình máy chủ</b> phải có đủ ba dấu tích xanh. Thiếu mục nào, người cài đặt máy chủ thêm vào tệp cấu hình rồi khởi động lại.</li>
+    <li>Ứng dụng Meta đã khai báo <b>Callback URL</b> (chép từ màn hình này) và mã xác minh; quyền đã được Meta duyệt thì mới nhận tin của khách thật.</li>
+    <li>Có mã truy cập (access token) của <b>người dùng hệ thống</b> trong Business Manager, hạn “Không bao giờ”.</li>
+  </ul>
+
+  <h2>Kết nối</h2>
+  <ol class="steps">
+    <li>Bấm <span class="ui primary">Kết nối Facebook</span>, dán mã truy cập, bấm <span class="ui">Lấy danh sách fanpage</span>.</li>
+    <li>Tích các fanpage cần nối rồi bấm <span class="ui primary">Kết nối</span>.</li>
+    <li>Mỗi fanpage hiện <b>Đang nhận tin</b>. Nhắn thử vào fanpage: cột <b>Sự kiện cuối</b> cập nhật và tin hiện ở CRM → Hội thoại.</li>
+  </ol>
+  <figure><img src="img/channels-connect.jpg" alt="Chọn fanpage"><figcaption>Chọn fanpage. Mã bạn dán không được lưu; CRM chỉ lưu mã riêng của từng trang, đã mã hoá.</figcaption></figure>
+
+  <h2>Khi có lỗi</h2>
+  <ul>
+    <li><b>Lỗi</b> + “Mã truy cập không còn hiệu lực”: tạo mã mới cho người dùng hệ thống rồi kết nối lại; xong bấm <span class="ui">Kiểm tra</span>.</li>
+    <li>Thông báo đỏ “sự kiện không xử lý được”: CRM đã thử 5 lần. Sửa nguyên nhân (thường là mã truy cập) rồi bấm <span class="ui">Chạy lại</span>.</li>
+    <li><span class="ui">Ngắt</span>: dừng nhận tin của fanpage và xoá mã; hội thoại cũ vẫn giữ.</li>
+  </ul>
+</section>
+
+<section class="doc" id="mot-ngay" data-group="help" data-title="Việc hằng ngày theo vai trò">
+  <div class="crumb">Hỗ trợ</div>
+  <h1>Việc hằng ngày theo vai trò</h1>
+  <p class="lead">Danh sách việc ngắn gọn cho từng vị trí. In ra dán cạnh bàn làm việc trong những tuần đầu.</p>
+  <h2>Kinh doanh</h2>
+  <ul class="check">
+    <li>Mở <span class="menu">Bảng điều phối</span>, xem đơn <b>Quá hạn</b> và <b>Hạn trong 7 ngày</b>.</li>
+    <li>Lập báo giá mới, bấm <b>Đã gửi khách</b> sau khi gửi.</li>
+    <li>Khách chốt → <b>Khách chốt → tạo đơn</b>; xác nhận đơn (cần thiết kế / có file sẵn).</li>
+    <li>Ghi nhận tiền cọc, tiền khách trả ngay khi nhận.</li>
+    <li>Xếp chuyến giao cho đơn đã sản xuất xong; ghi nghiệm thu khi khách ký.</li>
+  </ul>
+  <h2>Thiết kế</h2>
+  <ul class="check">
+    <li>Mở <span class="menu">Thiết kế</span>, bật <b>Chỉ việc của tôi</b>.</li>
+    <li>Gửi maket xong → <b>Đã gửi maket vN</b>; có phản hồi → ghi <b>yêu cầu sửa</b> hoặc <b>duyệt</b>.</li>
+    <li>Hoàn thiện file in → tích hoàn thiện → <b>Khoá thiết kế</b>.</li>
+  </ul>
+  <h2>Xưởng sản xuất</h2>
+  <ul class="check">
+    <li>Mở <span class="menu">Sản xuất</span>, làm lệnh <b>GẤP</b> và lệnh sắp tới hạn trước.</li>
+    <li>Xong mỗi công đoạn bấm chuyển công đoạn; xong hết bấm <b>Chuyển giao hàng</b>.</li>
+  </ul>
+  <h2>Giao hàng</h2>
+  <ul class="check">
+    <li>Mở <span class="menu">Giao hàng</span> → thẻ <b>Hôm nay</b>.</li>
+    <li>Giao xong mỗi chuyến bấm <b>Giao xong</b>, ghi số thực giao, người nhận, tiền thu tại chỗ.</li>
+  </ul>
+  <h2>Thủ kho</h2>
+  <ul class="check">
+    <li>Đầu ngày mở <span class="menu kho">Tổng quan kho</span>: gọi xưởng về các khuôn <b>quá hẹn</b>; kiểm các khuôn <b>chờ kiểm</b>; báo mua vật tư <b>dưới tối thiểu</b>.</li>
+    <li>Vật tư vào / ra kho: lập phiếu nhập, xuất (ghi người nhận và lệnh), nhập lại ngay lúc giao nhận.</li>
+    <li>Khuôn đi xưởng / về kho: ghi nhận trong hồ sơ khuôn, hoặc lập biên bản giao nhận khi nhiều khuôn.</li>
+    <li>Rảnh: kiểm kê khuôn một kệ; rà bộ lọc <b>Cần xác nhận</b>.</li>
+    <li>Cuối tháng: kiểm kê vật tư, nhờ người quản lý kho duyệt và chốt tồn tháng.</li>
+  </ul>
+  <h2>Kế toán</h2>
+  <ul class="check">
+    <li>Hằng ngày: lập phiếu chi, phiếu nhập; phiếu xuất vật tư cho các đơn đang sản xuất.</li>
+    <li>Hằng tuần: xem <b>Phải thu – phải trả</b>, nhắc kinh doanh đòi nợ quá 30 ngày.</li>
+    <li>Đầu tháng: kiểm tra, chạy 5 bước, khoá sổ tháng trước; xem báo cáo kết quả kinh doanh và thuế.</li>
+  </ul>
+</section>
+
+<section class="doc" id="loi" data-group="help" data-title="Thông báo lỗi thường gặp">
+  <div class="crumb">Hỗ trợ</div>
+  <h1>Thông báo lỗi thường gặp</h1>
+  <p class="lead">Khi không làm được, phần mềm hiện thông báo màu đỏ ở đầu màn hình cho biết lý do. Dưới đây là các thông báo hay gặp và cách xử lý.</p>
+  <div class="tbl"><table>
+    <tr><th>Thông báo</th><th>Vì sao</th><th>Làm gì</th></tr>
+    <tr><td>Bạn không có quyền làm việc này</td><td>Nhóm quyền của bạn không có thao tác đó</td><td>Nhờ quản trị viên cấp thêm quyền</td></tr>
+    <tr><td>Phiên đăng nhập đã hết</td><td>Lâu không dùng hoặc bị đăng xuất từ xa</td><td>Đăng nhập lại</td></tr>
+    <tr><td>Số điện thoại này đã thuộc về một khách hàng khác</td><td>Khách đã có trong danh bạ</td><td>Tìm khách đó thay vì tạo mới</td></tr>
+    <tr><td>Số lượng lên chuyến vượt quá số lượng đặt</td><td>Tổng các chuyến lớn hơn số khách đặt</td><td>Giảm số lượng chuyến hoặc sửa hàng hoá của đơn</td></tr>
+    <tr><td>Chưa giao đủ hàng, chưa ký nghiệm thu được</td><td>Còn mặt hàng chưa giao</td><td>Giao nốt hoặc sửa số lượng đặt</td></tr>
+    <tr><td>Đơn đã nghiệm thu / hoàn thành, không huỷ hay sửa hạng mục được nữa</td><td>Doanh thu đã ghi sổ</td><td>Nếu thật sự cần, nhờ kế toán ghi bút toán điều chỉnh</td></tr>
+    <tr><td>Maket trước đang chờ khách phản hồi</td><td>Chưa ghi phản hồi bản trước</td><td>Ghi “yêu cầu sửa” hoặc “duyệt” trước</td></tr>
+    <tr><td>Kỳ kế toán của ngày chứng từ đã khoá sổ</td><td>Chọn ngày thuộc tháng đã khoá</td><td>Chọn ngày trong kỳ đang mở, hoặc mở lại kỳ</td></tr>
+    <tr><td>Kỳ trước chưa khoá sổ</td><td>Phải khoá theo thứ tự tháng</td><td>Khoá sổ tháng trước trước</td></tr>
+    <tr><td>Chạy các bước cuối kỳ theo đúng thứ tự</td><td>Bấm bước sau khi bước trước chưa chạy</td><td>Chạy từ bước đang sáng</td></tr>
+    <tr><td>Số dư đầu kỳ chưa cân</td><td>Tổng Dư Nợ khác tổng Dư Có</td><td>Sửa ở Kỳ kế toán → Số dư đầu kỳ</td></tr>
+    <tr><td>Bút toán chưa cân</td><td>Tổng Nợ khác tổng Có</td><td>Sửa số tiền các dòng cho bằng nhau</td></tr>
+    <tr><td>Không đủ tồn kho</td><td>Xuất nhiều hơn số đang có</td><td>Lập phiếu nhập trước hoặc giảm số xuất</td></tr>
+    <tr><td>Kho: Không đủ tồn kho … còn X, cần Y</td><td>Phiếu xuất nhiều hơn tồn của khổ đó</td><td>Kiểm tra số; nếu hàng đã về thì lập phiếu nhập trước</td></tr>
+    <tr><td>Tháng này đã chốt tồn kho</td><td>Ngày phiếu thuộc tháng đã chốt</td><td>Chọn ngày khác, hoặc nhờ quản lý kho mở lại tháng</td></tr>
+    <tr><td>Khuôn đang ở trạng thái không làm được thao tác này</td><td>Ví dụ xuất khuôn đang ở xưởng, kiểm khuôn chưa về</td><td>Xem trạng thái trong hồ sơ khuôn, làm bước đúng trước</td></tr>
+    <tr><td>Đã có khuôn cùng ký hiệu, kích thước gần giống</td><td>Có khuôn lệch dưới 0,5 cm</td><td>Xem khuôn đó có dùng lại được không; cần thì bấm “Vẫn tạo khuôn mới”</td></tr>
+    <tr><td>Huỷ phiếu này sẽ làm tồn kho âm</td><td>Hàng của phiếu nhập đã xuất bớt</td><td>Lập phiếu điều chỉnh qua kiểm kê thay vì huỷ</td></tr>
+    <tr><td>Tỷ lệ phân bổ phải cộng đủ 100%</td><td>Tổng % khoản mục khác 100</td><td>Sửa tỷ lệ</td></tr>
+    <tr><td>Đã quá 7 ngày từ tin cuối của khách</td><td>Facebook không cho trang nhắn trước sau 7 ngày</td><td>Chờ khách nhắn lại, hoặc gọi điện</td></tr>
+    <tr><td>Đã nhắn riêng cho bình luận này rồi</td><td>Facebook chỉ cho nhắn riêng một lần</td><td>Trả lời công khai, mời khách nhắn tin cho trang</td></tr>
+    <tr><td>Fanpage đã ngắt kết nối</td><td>Quản trị viên đã ngắt hoặc mã hết hạn</td><td>Báo quản trị viên kết nối lại</td></tr>
+    <tr><td>Không kết nối được máy chủ</td><td>Mất mạng hoặc máy chủ đang tắt</td><td>Kiểm tra mạng, thử lại; báo quản trị viên nếu kéo dài</td></tr>
+  </table></div>
+</section>
+
+<section class="doc" id="thuat-ngu" data-group="help" data-title="Thuật ngữ">
+  <div class="crumb">Hỗ trợ</div>
+  <h1>Thuật ngữ</h1>
+  <div class="tbl"><table>
+    <tr><th>Từ</th><th>Nghĩa</th></tr>
+    <tr><td>Maket</td><td>Bản thiết kế gửi khách xem trước khi in (v1, v2… là các lần gửi).</td></tr>
+    <tr><td>Lệnh sản xuất (LSX)</td><td>Phiếu giao việc cho xưởng, tạo khi khoá thiết kế hoặc khi khách có file sẵn.</td></tr>
+    <tr><td>Chuyến giao (GH)</td><td>Một lần mang hàng đi giao; một đơn có thể có nhiều chuyến.</td></tr>
+    <tr><td>Chưa lên chuyến</td><td>Số hàng của đơn chưa được xếp vào chuyến giao nào.</td></tr>
+    <tr><td>Nghiệm thu</td><td>Khách ký biên bản xác nhận đã nhận đủ hàng; đơn hoàn tất và ghi doanh thu.</td></tr>
+    <tr><td>Công nợ</td><td>Số tiền khách còn nợ (phải thu) hoặc mình còn nợ nhà cung cấp (phải trả).</td></tr>
+    <tr><td>Kỳ kế toán</td><td>Một tháng sổ sách.</td></tr>
+    <tr><td>Khoá sổ</td><td>Chốt số liệu một tháng; sau đó không ghi thêm chứng từ vào tháng đó.</td></tr>
+    <tr><td>Số dư đầu kỳ</td><td>Số dư các tài khoản tại ngày đầu tháng.</td></tr>
+    <tr><td>Bút toán / định khoản</td><td>Một nghiệp vụ ghi sổ gồm các dòng Nợ và Có bằng nhau.</td></tr>
+    <tr><td>Giá vốn</td><td>Chi phí làm ra hàng đã bán (vật tư + chi phí sản xuất chung).</td></tr>
+    <tr><td>Giá bình quân</td><td>Đơn giá vật tư tính trung bình theo cả tháng, dùng để tính giá xuất kho.</td></tr>
+    <tr><td>Khấu hao / phân bổ</td><td>Chia dần giá trị tài sản / công cụ vào chi phí từng tháng.</td></tr>
+    <tr><td>TSCĐ / CCDC</td><td>Tài sản cố định / công cụ dụng cụ.</td></tr>
+    <tr><td>VAT / thuế GTGT</td><td>Thuế giá trị gia tăng. Đầu ra: thu của khách; đầu vào: trả khi mua.</td></tr>
+    <tr><td>Khổ</td><td>Kích thước tờ giấy / cuộn màng (rộng × dài, cm). Mỗi khổ có tồn riêng.</td></tr>
+    <tr><td>Thẻ kho</td><td>Danh sách phiếu nhập, xuất của một khổ và số tồn sau mỗi phiếu.</td></tr>
+    <tr><td>Khuôn bế</td><td>Khuôn dao để bế (cắt) hộp, túi, tem. Mã dạng <code>TUI-001</code>, cấp một lần, không đổi.</td></tr>
+    <tr><td>Xưởng giữ</td><td>Khuôn bế xong để lại ở xưởng ngoài cho lần sau, vẫn sẵn sàng.</td></tr>
+    <tr><td>Chốt tồn tháng</td><td>Khoá phiếu kho của một tháng sau khi đã kiểm kê, báo cáo.</td></tr>
+    <tr><td>Mã chứng từ</td><td>KH (khách), NCC (nhà cung cấp), BG (báo giá), DH (đơn), LSX, GH, PT (phiếu thu), PN (nhập kho), PX (xuất kho), PC (phiếu chi), PKT (bút toán khác). Phân hệ Kho: NK (nhập kho), XK (xuất kho), NL (nhập lại), DC (điều chỉnh), KKV (kiểm kê vật tư), GN (giao nhận khuôn). Dạng <code>DH-2611-0001</code> = đơn số 1 tháng 11/2026.</td></tr>
+  </table></div>
+  <div class="note tip">Cần hỗ trợ thêm? Liên hệ quản trị viên phần mềm của công ty.</div>
+</section>
+
+</div>
+</main>
+</div>
+<div class="lightbox" id="lb" role="dialog" aria-label="Ảnh phóng to"><img id="lbImg" alt=""></div>
+
+<script>
+(function () {
+  var GROUPS = [
+    { key: 'start', title: 'Bắt đầu', color: '#5f6670', cls: '' },
+    { key: 'crm', title: 'CRM', color: 'var(--crm)', cls: 'g-crm' },
+    { key: 'acc', title: 'Kế toán', color: 'var(--acc)', cls: 'g-acc' },
+    { key: 'kho', title: 'Kho', color: 'var(--kho)', cls: 'g-kho' },
+    { key: 'adm', title: 'Quản trị', color: 'var(--adm)', cls: 'g-adm' },
+    { key: 'help', title: 'Hỗ trợ', color: '#5f6670', cls: '' }
+  ];
+  var sections = Array.prototype.slice.call(document.querySelectorAll('section.doc'));
+  // Thanh toán belongs to the accounting menu in the app; list it there too.
+  var navHost = document.getElementById('navGroups');
+  var links = {};
+  GROUPS.forEach(function (g) {
+    var items = sections.filter(function (s) { return s.dataset.group === g.key || (g.key === 'acc' && s.id === 'thanh-toan'); });
+    if (!items.length) return;
+    var box = document.createElement('div');
+    box.className = 'group ' + g.cls;
+    box.innerHTML = '<div class="gtitle"><span class="dot" style="background:' + g.color + '"></span>' + g.title + '</div>';
+    items.forEach(function (s) {
+      var a = document.createElement('a');
+      a.className = 'item';
+      a.href = '#' + s.id;
+      a.textContent = s.dataset.title;
+      a.dataset.text = (s.dataset.title + ' ' + s.textContent).toLowerCase();
+      box.appendChild(a);
+      (links[s.id] = links[s.id] || []).push(a);
+    });
+    navHost.appendChild(box);
+  });
+
+  // Reading order for prev / next
+  var order = [];
+  GROUPS.forEach(function (g) { sections.forEach(function (s) { if (s.dataset.group === g.key) order.push(s); }); });
+  order.forEach(function (s, i) {
+    var pager = document.createElement('div');
+    pager.className = 'pager';
+    var prev = order[i - 1], next = order[i + 1];
+    pager.innerHTML = (prev ? '<a class="prev" href="#' + prev.id + '"><small>← Mục trước</small>' + prev.dataset.title + '</a>' : '<span></span>') +
+      (next ? '<a class="next" href="#' + next.id + '"><small>Mục sau →</small>' + next.dataset.title + '</a>' : '');
+    s.appendChild(pager);
+  });
+
+  var side = document.getElementById('side');
+  function show() {
+    var id = decodeURIComponent(location.hash.slice(1)) || 'gioi-thieu';
+    var target = document.getElementById(id);
+    if (!target || !target.classList.contains('doc')) { target = sections[0]; id = target.id; }
+    sections.forEach(function (s) { s.classList.toggle('show', s === target); });
+    Object.keys(links).forEach(function (k) { links[k].forEach(function (a) { a.classList.toggle('active', k === id); }); });
+    document.title = target.dataset.title + ' · Hướng dẫn sử dụng Inauviet ERP';
+    window.scrollTo(0, 0);
+    setTimeout(function () { window.scrollTo(0, 0); }, 0);
+    side.classList.remove('open');
+    try { localStorage.setItem('hdsd-last', id); } catch (e) {}
+  }
+  if (!location.hash) { try { var last = localStorage.getItem('hdsd-last'); if (last) history.replaceState(null, '', '#' + last); } catch (e) {} }
+  window.addEventListener('hashchange', show);
+  window.addEventListener('load', function () { window.scrollTo(0, 0); });
+  show();
+
+  document.getElementById('menuBtn').addEventListener('click', function () { side.classList.toggle('open'); });
+
+  // Search over titles and section text
+  var search = document.getElementById('search');
+  search.addEventListener('input', function () {
+    var q = search.value.trim().toLowerCase();
+    var any = false;
+    document.querySelectorAll('nav.side .group').forEach(function (g) {
+      var vis = 0;
+      g.querySelectorAll('a.item').forEach(function (a) {
+        var hit = !q || a.dataset.text.indexOf(q) !== -1;
+        a.style.display = hit ? '' : 'none';
+        if (hit) vis++;
+      });
+      g.style.display = vis ? '' : 'none';
+      if (vis) any = true;
+    });
+    document.getElementById('nores').style.display = any ? 'none' : 'block';
+  });
+
+  // Lightbox
+  var lb = document.getElementById('lb'), lbImg = document.getElementById('lbImg');
+  document.addEventListener('click', function (e) {
+    if (e.target.tagName === 'IMG' && e.target.closest('figure')) { lbImg.src = e.target.src; lbImg.alt = e.target.alt; lb.classList.add('open'); }
+    else if (e.target.closest('#lb')) { lb.classList.remove('open'); }
+  });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') lb.classList.remove('open'); });
+})();
+</script>
+</body>
+</html>

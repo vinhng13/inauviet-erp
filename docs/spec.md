@@ -651,5 +651,5 @@ Separate module for the storekeeper. Customer names and order numbers are typed 
 ### 15.4 Endpoints (`/api/v1/warehouse`)
 `GET overview` · `GET/POST/PUT partners` · `GET/POST/PUT locations` · `GET/PUT symbols` · `GET/POST/PUT materials` · `GET/POST/DELETE month-locks` · `GET stock?all=` · `GET stock/:id/card` · `GET/POST slips` · `GET slips/:id` · `POST slips/:id/void` · `GET/POST counts` · `GET/PUT counts/:id` · `POST counts/:id/approve|cancel` · `GET dies` (q, status, symbol, place = home | partner id, flag = overdue | review | out, l / w / h / tol) · `GET/PUT dies/:id` · `POST dies` · `POST dies/:id/actions` · `POST/GET dies/:id/photo` · `POST dies/import` · `GET/POST batches` · `GET batches/:id` · `GET/POST die-counts` · `GET die-counts/:id` · `POST die-counts/:id/marks|finish`.
 
-Photos are stored next to chat files (`<CHAT_FILES_DIR>/../warehouse`). Paper stock has no file to import yet: the first stock count enters opening quantities.
+Photos are stored next to chat files (`<CHAT_FILES_DIR>/../warehouse`). The user guide is a static page in `web/public/huong-dan/` (served at `/huong-dan/index.html`, opened from the "Hướng dẫn" button in the header, which jumps to the chapter of the current module). Paper stock has no file to import yet: the first stock count enters opening quantities.
 
