@@ -70,11 +70,12 @@ interface FormModalProps {
   open: boolean;
   customer?: Schemas['CustomerDto'];
   initialName?: string;
+  initialPhone?: string;
   onClose: () => void;
   onSaved: (c: Schemas['CustomerDto']) => void;
 }
 
-export function CustomerFormModal({ open, customer, initialName, onClose, onSaved }: FormModalProps) {
+export function CustomerFormModal({ open, customer, initialName, initialPhone, onClose, onSaved }: FormModalProps) {
   const { message, modal } = App.useApp();
   const [form] = Form.useForm<Schemas['CreateCustomerDto']>();
   const { create, update } = useCustomerMutations();
@@ -119,7 +120,7 @@ export function CustomerFormModal({ open, customer, initialName, onClose, onSave
         form={form}
         layout="vertical"
         preserve={false}
-        initialValues={customer ?? { name: initialName && !/^\d/.test(initialName) ? initialName : undefined, phone: initialName && /^\d/.test(initialName) ? initialName : undefined }}
+        initialValues={customer ?? { name: initialName && !/^\d/.test(initialName) ? initialName : undefined, phone: initialPhone ?? (initialName && /^\d/.test(initialName) ? initialName : undefined) }}
       >
         <Form.Item name="name" label="Tên khách / người liên hệ" rules={[{ required: true, whitespace: true, message: 'Nhập tên' }]}>
           <Input id="cust-name" maxLength={200} autoFocus />

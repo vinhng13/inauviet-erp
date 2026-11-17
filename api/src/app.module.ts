@@ -4,6 +4,7 @@ import { AccountingModule } from './accounting/accounting.module';
 import { AccessModule } from './access/access.module';
 import { ActivityModule } from './activity/activity.module';
 import { AuthModule } from './auth/auth.module';
+import { ChannelsModule } from './channels/channels.module';
 import { CatalogModule } from './catalog/catalog.module';
 import { ConfigModule } from './config/config.module';
 import { CustomersModule } from './customers/customers.module';
@@ -12,6 +13,7 @@ import { NumberingModule } from './numbering/numbering.module';
 import { DocumentsModule } from './documents/documents.module';
 import { OrdersModule } from './orders/orders.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { WarehouseModule } from './warehouse/warehouse.module';
 
 const isProd = process.env.NODE_ENV === 'production';
 const isTest = process.env.NODE_ENV === 'test';
@@ -40,6 +42,8 @@ const isTest = process.env.NODE_ENV === 'test';
     OrdersModule,
     DocumentsModule,
     AccountingModule,
+    ChannelsModule,
+    WarehouseModule,
   ],
   controllers: [HealthController],
 })

@@ -9,3 +9,5 @@ api/src/generated/
 .DS_Store
 Thumbs.db
 backups/
+api/data/
+.sync/

@@ -1,4 +1,5 @@
 import {
+  ApiOutlined,
   AppstoreOutlined,
   BankOutlined,
   BarChartOutlined,
@@ -8,10 +9,17 @@ import {
   CalendarOutlined,
   CarOutlined,
   ContainerOutlined,
+  DatabaseOutlined,
+  AuditOutlined,
+  BlockOutlined,
+  InboxOutlined,
+  DeploymentUnitOutlined,
+  ProfileOutlined,
   DashboardOutlined,
   DollarOutlined,
   FileDoneOutlined,
   FileTextOutlined,
+  MessageOutlined,
   PercentageOutlined,
   SafetyCertificateOutlined,
   SettingOutlined,
@@ -25,7 +33,7 @@ import {
 import type { ReactNode } from 'react';
 import type { Permission } from './access';
 
-export type ModuleKey = 'crm' | 'accounting' | 'admin';
+export type ModuleKey = 'crm' | 'accounting' | 'warehouse' | 'admin';
 
 export interface NavItem {
   key: string;
@@ -43,16 +51,17 @@ export interface AppModule {
   nav: NavItem[];
 }
 
-/** The three modules. After sign-in people choose one; each module shows only its own menu. */
+/** The modules. After sign-in people choose one; each module shows only its own menu. */
 export const MODULES: AppModule[] = [
   {
     key: 'crm',
     name: 'CRM',
-    description: 'Báo giá, đơn hàng, thiết kế, sản xuất, giao hàng và khách hàng',
+    description: 'Hội thoại Facebook, báo giá, đơn hàng, thiết kế, sản xuất, giao hàng và khách hàng',
     icon: <AppstoreOutlined />,
     color: '#0a6f9c',
     nav: [
       { key: '/board', icon: <AppstoreOutlined />, label: 'Bảng điều phối', permission: 'orders.view' },
+      { key: '/conversations', icon: <MessageOutlined />, label: 'Hội thoại', permission: 'conversations.view' },
       { key: '/quotes', icon: <FileDoneOutlined />, label: 'Báo giá', permission: 'quotes.view' },
       { key: '/orders', icon: <FileTextOutlined />, label: 'Đơn hàng', permission: 'orders.view' },
       { key: '/design', icon: <BgColorsOutlined />, label: 'Thiết kế', permission: 'design.view' },
@@ -82,14 +91,30 @@ export const MODULES: AppModule[] = [
     ],
   },
   {
+    key: 'warehouse',
+    name: 'Kho',
+    description: 'Giấy, màng, vật tư theo khổ; khuôn bế và vòng luân chuyển khuôn với các xưởng; kiểm kê',
+    icon: <InboxOutlined />,
+    color: '#b5651d',
+    nav: [
+      { key: '/warehouse', icon: <DashboardOutlined />, label: 'Tổng quan kho', permission: 'warehouse.view' },
+      { key: '/warehouse/stock', icon: <DatabaseOutlined />, label: 'Tồn kho & phiếu', permission: 'warehouse.view' },
+      { key: '/warehouse/dies', icon: <BlockOutlined />, label: 'Khuôn', permission: 'warehouse.view' },
+      { key: '/warehouse/batches', icon: <DeploymentUnitOutlined />, label: 'Giao nhận khuôn', permission: 'warehouse.view' },
+      { key: '/warehouse/counts', icon: <AuditOutlined />, label: 'Kiểm kê', permission: 'warehouse.view' },
+      { key: '/warehouse/catalog', icon: <ProfileOutlined />, label: 'Danh mục kho', permission: 'warehouse.view' },
+    ],
+  },
+  {
     key: 'admin',
     name: 'Quản trị',
-    description: 'Tài khoản người dùng và nhóm quyền',
+    description: 'Tài khoản người dùng, nhóm quyền và kết nối fanpage',
     icon: <SettingOutlined />,
     color: '#7a4fb5',
     nav: [
       { key: '/accounts', icon: <UserOutlined />, label: 'Tài khoản', permission: 'accounts.view' },
       { key: '/roles', icon: <SafetyCertificateOutlined />, label: 'Nhóm quyền', permission: 'roles.view' },
+      { key: '/channels', icon: <ApiOutlined />, label: 'Kết nối kênh', permission: 'channels.manage' },
     ],
   },
 ];

@@ -22,6 +22,20 @@ const MESSAGES: Record<string, string> = {
   ROLE_IN_USE: 'Còn tài khoản trong nhóm này. Chuyển họ sang nhóm khác trước khi xoá.',
   SYSTEM_ROLE: 'Nhóm Quản trị viên có sẵn, không sửa hoặc xoá được.',
   OWN_ROLE: 'Không thể sửa nhóm quyền của chính mình. Nhờ quản trị viên.',
+  CHANNEL_KEY_MISSING: 'Máy chủ chưa có CHANNEL_SECRET_KEY nên chưa lưu được mã truy cập. Thêm vào .env của API rồi khởi động lại.',
+  FB_TOKEN_REJECTED: 'Facebook không nhận mã truy cập này. Kiểm tra mã còn hạn và có đủ quyền fanpage.',
+  FB_PAGE_NOT_FOUND: 'Mã truy cập này không quản lý fanpage đã chọn.',
+  CHANNEL_NOT_FOUND: 'Không tìm thấy fanpage.',
+  CHANNEL_DISCONNECTED: 'Fanpage đã ngắt kết nối. Quản trị viên cần kết nối lại trước khi nhắn.',
+  CONVERSATION_NOT_FOUND: 'Không tìm thấy hội thoại, hoặc hội thoại đã giao cho người khác.',
+  REPLY_WINDOW_CLOSED: 'Đã quá 7 ngày từ tin cuối của khách: Facebook không cho trang nhắn trước. Chờ khách nhắn lại.',
+  PRIVATE_REPLY_USED: 'Đã nhắn riêng cho bình luận này rồi; Facebook chỉ cho một lần.',
+  PRIVATE_REPLY_EXPIRED: 'Bình luận đã quá 7 ngày, không nhắn riêng được nữa.',
+  NOTHING_TO_REPLY: 'Chưa có bình luận nào của khách để trả lời.',
+  FILE_REQUIRED: 'Chọn tệp cần gửi.',
+  FILE_NOT_ALLOWED: 'Chỉ gửi được tệp trong tin nhắn Messenger, không gửi trong bình luận.',
+  ASSIGNEE_NOT_ALLOWED: 'Tài khoản này không có quyền xử lý hội thoại.',
+  ATTACHMENT_NOT_FOUND: 'Không tìm thấy tệp đính kèm.',
   VALIDATION_FAILED: 'Thông tin nhập chưa hợp lệ. Kiểm tra lại các ô được đánh dấu.',
   INVALID_DATE: 'Ngày không hợp lệ.',
   INVALID_PHONE: 'Số điện thoại không hợp lệ.',
@@ -101,6 +115,36 @@ const MESSAGES: Record<string, string> = {
   STOCKRECEIPT_NOT_FOUND: 'Không tìm thấy phiếu nhập.',
   FIXEDASSET_NOT_FOUND: 'Không tìm thấy tài sản.',
   ASSET_CHARGED: 'Tài sản đã được trích ở kỳ đã khoá sổ, không xoá được.',
+  WH_ADJUST_FIXED: 'Phiếu điều chỉnh từ kiểm kê không huỷ được.',
+  WH_COUNT_CLOSED: 'Phiếu kiểm kê đã kết thúc.',
+  WH_COUNT_EMPTY: 'Không có vật tư nào để kiểm.',
+  WH_COUNT_OPEN: 'Đang có một phiếu kiểm kê vật tư chưa duyệt. Duyệt hoặc huỷ phiếu đó trước.',
+  WH_DIE_ACTION_NOT_ALLOWED: 'Khuôn đang ở trạng thái không làm được thao tác này.',
+  WH_DIE_SIMILAR_EXISTS: 'Đã có khuôn cùng ký hiệu, kích thước gần giống.',
+  WH_IMPORT_BAD_FILE: 'Không đọc được file. Chọn file Excel .xlsx.',
+  WH_IMPORT_NO_HEADER: 'Không thấy dòng tiêu đề "Mã khuôn" trong sheet DANH_SACH_KHUON.',
+  WH_IMPORT_NO_SHEET: 'File không có sheet DANH_SACH_KHUON.',
+  WH_ITEM_NOT_FOUND: 'Không tìm thấy vật tư / khổ.',
+  WH_LINE_DUPLICATE: 'Một vật tư / khổ được ghi hai lần trong phiếu.',
+  WH_LOCATION_EXISTS: 'Mã vị trí này đã có.',
+  WH_LOCATION_REQUIRED: 'Chọn vị trí kệ.',
+  WH_MATERIAL_EXISTS: 'Nhóm này đã có vật tư trùng tên.',
+  WH_MONTH_LOCKED: 'Tháng này đã chốt tồn kho, không lập hay huỷ phiếu được.',
+  WH_PARTNER_EXISTS: 'Đã có đối tác trùng tên.',
+  WH_PARTNER_REQUIRED: 'Chọn xưởng / đối tác.',
+  WH_PHOTO_IMAGE_ONLY: 'Ảnh khuôn phải là file ảnh.',
+  WH_RECEIVER_REQUIRED: 'Phiếu xuất cần ghi người nhận.',
+  WH_SIZE_DUPLICATE: 'Một khổ được ghi hai lần.',
+  WH_SIZE_IN_USE: 'Khổ đã có phiếu, không sửa kích thước được. Thêm khổ mới.',
+  WH_SIZE_REQUIRED: 'Mỗi khổ cần đủ chiều rộng và chiều dài.',
+  WH_SLIP_VOIDED: 'Phiếu đã huỷ.',
+  WH_STOCK_SHORT: 'Không đủ tồn kho.',
+  WH_SYMBOL_NOT_FOUND: 'Ký hiệu khuôn không có trong danh mục.',
+  WH_SYMBOL_REQUIRED: 'Chọn ký hiệu khuôn.',
+  WH_VOID_NEGATIVE: 'Huỷ phiếu này sẽ làm tồn kho âm (hàng đã xuất bớt).',
+  WHDIE_NOT_FOUND: 'Không tìm thấy khuôn.',
+  WHPARTNER_NOT_FOUND: 'Không tìm thấy đối tác.',
+  WHLOCATION_NOT_FOUND: 'Không tìm thấy vị trí.',
 };
 
 export function errorMessage(err: unknown): string {
@@ -113,6 +157,11 @@ export function errorMessage(err: unknown): string {
       return `${base} ${lines}`;
     }
     if (err.code === 'WEAK_PASSWORD') return err.message;
+    if ((err.code === 'WH_STOCK_SHORT' || err.code === 'WH_VOID_NEGATIVE') && err.body.details?.item) {
+      const d = err.body.details as { item: string; onHand: number; requested: number };
+      return `${base} ${d.item}: còn ${d.onHand}, cần ${d.requested}.`;
+    }
+    if (err.code === 'WH_DIE_ACTION_NOT_ALLOWED' && err.body.details?.code) return `${base} (${err.body.details.code as string})`;
     if (err.code === 'STOCK_SHORT' && err.body.details?.onHand !== undefined) return `${base} ${err.message.replace(/^Not enough (.*) in stock \((.*)\)$/, '$1: còn $2')}`;
     if (err.code === 'OPENINGS_UNBALANCED' && typeof err.body.details?.differenceVnd === 'number') return `${base} Lệch ${new Intl.NumberFormat('vi-VN').format(Math.abs(err.body.details.differenceVnd as number))} đ.`;
     if (err.code === 'VALIDATION_FAILED' && Array.isArray(err.body.details?.errors)) {

@@ -1,7 +1,8 @@
-import { AppstoreOutlined, DownOutlined, KeyOutlined, LogoutOutlined, MenuOutlined, UserOutlined } from '@ant-design/icons';
-import { Button, Drawer, Dropdown, Grid, Input, Layout, Menu, Modal, Space, Typography, theme } from 'antd';
-import { useState } from 'react';
+import { AppstoreOutlined, DownOutlined, KeyOutlined, LogoutOutlined, MenuOutlined, QuestionCircleOutlined, UserOutlined } from '@ant-design/icons';
+import { Badge, Button, Drawer, Dropdown, Grid, Input, Layout, Menu, Modal, Space, Typography, theme } from 'antd';
+import { useEffect, useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router';
+import { useChatStream, useUnreadConversations } from '../api/chat';
 import { useAuthActions, useMe } from '../api/hooks';
 import { ChangePasswordForm } from '../components/ChangePasswordForm';
 import { useCan, type Permission } from '../lib/access';
@@ -23,10 +24,27 @@ export function AppLayout() {
   const [drawer, setDrawer] = useState(false);
   const { token } = theme.useToken();
 
+  const chat = can('conversations.view');
+  useChatStream(chat);
+  const unread = useUnreadConversations(chat).data?.conversations ?? 0;
+  useEffect(() => {
+    const base = document.title.replace(/^\(\d+\) /, '');
+    document.title = unread ? `(${unread}) ${base}` : base;
+  }, [unread]);
+
   const modules = allowedModules(can);
   const current = navItemOf(location.pathname);
   const module = modules.find((m) => m.key === current?.module.key) ?? modules[0];
-  const items = (module?.allowed ?? []).map((n) => ({ key: n.key, icon: n.icon, label: <Link to={n.key}>{n.label}</Link> }));
+  const items = (module?.allowed ?? []).map((n) => ({
+    key: n.key,
+    icon: n.icon,
+    label: (
+      <Link to={n.key}>
+        {n.label}
+        {n.key === '/conversations' && unread > 0 && <Badge count={unread} size="small" style={{ marginInlineStart: 8 }} />}
+      </Link>
+    ),
+  }));
   const selected = current?.item.key ?? '';
   const menu = <Menu mode="inline" selectedKeys={[selected]} items={items} onClick={() => setDrawer(false)} style={{ borderInlineEnd: 0 }} />;
   const compact = !screens.lg;
@@ -124,13 +142,34 @@ export function Brand({ inline }: { inline?: boolean }) {
   );
 }
 
+/** Chapter of the static user guide (web/public/huong-dan) for the page being viewed */
+function guideHref(path: string): string {
+  const chapter = path.startsWith('/warehouse')
+    ? 'kho-hieu'
+    : path.startsWith('/accounting')
+      ? 'kt-hieu'
+      : path.startsWith('/accounts') || path.startsWith('/roles')
+        ? 'tai-khoan'
+        : path.startsWith('/channels')
+          ? 'ket-noi-kenh'
+          : path === '/'
+            ? 'gioi-thieu'
+            : '';
+  return `/huong-dan/index.html${chapter ? `#${chapter}` : ''}`;
+}
+
 export function UserMenu() {
   const { data: me } = useMe();
+  const { pathname } = useLocation();
+  const compact = !Grid.useBreakpoint().md;
   const { logout } = useAuthActions();
   const navigate = useNavigate();
   const [changing, setChanging] = useState(false);
   return (
-    <>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+      <Button type="text" icon={<QuestionCircleOutlined />} href={guideHref(pathname)} target="_blank" rel="noopener" aria-label="Hướng dẫn sử dụng">
+        {!compact && 'Hướng dẫn'}
+      </Button>
       <Dropdown
         trigger={['click']}
         menu={{
@@ -164,6 +203,6 @@ export function UserMenu() {
       <Modal open={changing} title="Đổi mật khẩu" footer={null} onCancel={() => setChanging(false)} destroyOnHidden>
         <ChangePasswordForm onDone={() => setChanging(false)} />
       </Modal>
-    </>
+    </div>
   );
 }

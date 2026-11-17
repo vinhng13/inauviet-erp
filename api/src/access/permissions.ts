@@ -76,6 +76,34 @@ export const PERMISSION_MODULES = [
     ],
   },
   {
+    key: 'conversations',
+    label: 'Hội thoại',
+    actions: [
+      { key: 'view', label: 'Xem', description: 'Hội thoại được giao cho mình và hội thoại chưa ai nhận' },
+      { key: 'viewAll', label: 'Xem tất cả', description: 'Mọi hội thoại, kể cả của người khác' },
+      { key: 'reply', label: 'Trả lời', description: 'Nhắn tin, trả lời bình luận, nhận hội thoại chưa ai nhận, gắn khách hàng' },
+      { key: 'assign', label: 'Phân công', description: 'Giao hội thoại cho người khác' },
+    ],
+  },
+  {
+    key: 'channels',
+    label: 'Kết nối kênh',
+    actions: [
+      { key: 'manage', label: 'Quản lý', description: 'Kết nối, ngắt kết nối fanpage Facebook; xem lỗi và chạy lại sự kiện' },
+    ],
+  },
+  {
+    key: 'warehouse',
+    label: 'Kho',
+    actions: [
+      { key: 'view', label: 'Xem', description: 'Tồn kho, thẻ kho, phiếu, danh sách khuôn, tổng quan kho' },
+      { key: 'slip', label: 'Lập phiếu', description: 'Phiếu nhập, xuất, nhập lại vật tư; huỷ phiếu có lý do' },
+      { key: 'dies', label: 'Quản lý khuôn', description: 'Tạo, sửa khuôn; xuất, nhận, kiểm, sửa, thanh lý khuôn; giao nhận nhiều khuôn' },
+      { key: 'count', label: 'Kiểm kê', description: 'Kiểm kê vật tư và khuôn; duyệt chênh lệch' },
+      { key: 'manage', label: 'Quản lý danh mục', description: 'Vật tư và khổ, ký hiệu khuôn, vị trí, đối tác; nhập dữ liệu Excel; chốt tồn tháng' },
+    ],
+  },
+  {
     key: 'money',
     label: 'Giá & số tiền',
     actions: [
@@ -158,6 +186,13 @@ export const IMPLIED: Partial<Record<Permission, Permission[]>> = {
   'accounting.post': ['accounting.view'],
   'accounting.close': ['accounting.view'],
   'accounting.reopen': ['accounting.close'],
+  'conversations.viewAll': ['conversations.view'],
+  'conversations.reply': ['conversations.view'],
+  'warehouse.slip': ['warehouse.view'],
+  'warehouse.dies': ['warehouse.view'],
+  'warehouse.count': ['warehouse.view'],
+  'warehouse.manage': ['warehouse.view'],
+  'conversations.assign': ['conversations.view'],
   'customers.create': ['customers.view'],
   'customers.update': ['customers.view'],
   'accounts.create': ['accounts.view', 'roles.view'],
@@ -188,6 +223,7 @@ export const DEFAULT_ROLES: Array<{ name: string; description: string; permissio
       'orders.create', 'orders.update', 'orders.cancel', 'design.assign', 'production.view',
       'deliveries.create', 'deliveries.update', 'deliveries.deliver', 'deliveries.cancel', 'deliveries.accept',
       'payments.create', 'customers.create', 'customers.update',
+      'conversations.reply',
     ]),
   },
   {
@@ -209,5 +245,10 @@ export const DEFAULT_ROLES: Array<{ name: string; description: string; permissio
     name: 'Sản xuất',
     description: 'Xem lệnh sản xuất, chuyển công đoạn in, gia công, kiểm tra. Không thấy giá tiền.',
     permissions: normalizePermissions(['production.update']),
+  },
+  {
+    name: 'Thủ kho',
+    description: 'Phân hệ Kho: phiếu nhập xuất giấy, vật tư, khuôn, kiểm kê. Không thấy giá tiền.',
+    permissions: normalizePermissions(['warehouse.slip', 'warehouse.dies', 'warehouse.count']),
   },
 ];

@@ -10,7 +10,9 @@
 }
 
 :80 {
-	encode zstd gzip
+	# Không nén luồng cập nhật tức thời (Server-Sent Events) của màn hình Hội thoại, để tin nhắn tới ngay
+	@compressible not path /api/v1/conversations/stream
+	encode @compressible zstd gzip
 
 	handle /api/* {
 		reverse_proxy api:3000

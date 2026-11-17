@@ -50,7 +50,7 @@ function wrap(agent: ReturnType<typeof request.agent>): Api {
 
 export async function createTestApp(): Promise<TestContext> {
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
-  const app = moduleRef.createNestApplication();
+  const app = moduleRef.createNestApplication({ rawBody: true });
   setupApp(app);
   await app.init();
   const prisma = app.get(PrismaService);
@@ -77,8 +77,9 @@ export async function createTestApp(): Promise<TestContext> {
 export async function resetDatabase(t: TestContext): Promise<void> {
   t.app.get(LoginLimiter).reset();
   await t.prisma.$executeRawUnsafe(
-    'TRUNCATE "Session", "Payment", "DeliveryLine", "Delivery", "OrderLine", "DesignVersion", "Order", "QuoteLine", "Quote", "Product", "Customer", "ActivityLog", "DocumentSequence", "User", "Role", "JournalEntry", "PeriodOpening", "MaterialOpening", "StockReceipt", "StockIssue", "CashPayment", "AccountingPeriod", "FixedAsset", "Material", "Supplier" CASCADE',
+    'TRUNCATE "Session", "Payment", "DeliveryLine", "Delivery", "OrderLine", "DesignVersion", "Order", "QuoteLine", "Quote", "Product", "Customer", "ActivityLog", "DocumentSequence", "User", "Role", "JournalEntry", "PeriodOpening", "MaterialOpening", "StockReceipt", "StockIssue", "CashPayment", "AccountingPeriod", "FixedAsset", "Material", "Supplier", "Message", "Conversation", "ChannelContact", "ChannelAccount", "WebhookEvent", "WhDieCountLine", "WhDieCount", "WhDieMove", "WhDieBatch", "WhDie", "WhCountLine", "WhCount", "WhSlipLine", "WhSlip", "WhStockItem", "WhMaterial", "WhMonthLock", "WhLocation", "WhPartner" CASCADE',
   );
+  await t.prisma.$executeRawUnsafe('UPDATE "WhDieSymbol" SET "lastNo" = 0');
   const passwordHash = await hashPassword(PASSWORD);
   const admin = await t.prisma.role.create({ data: { name: 'Quản trị viên', isSystem: true } });
   const staff = await t.prisma.role.create({ data: { name: 'Nhân viên', permissions: normalizePermissions(STAFF_PERMISSIONS) } });

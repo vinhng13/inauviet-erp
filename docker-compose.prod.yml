@@ -39,6 +39,12 @@ services:
       SEED_ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
       SEED_ADMIN_NAME: ${ADMIN_NAME:-Quản trị viên}
       SEED_SAMPLE_DATA: "false"
+      CHANNEL_SECRET_KEY: ${CHANNEL_SECRET_KEY:-}
+      FB_APP_SECRET: ${FB_APP_SECRET:-}
+      FB_VERIFY_TOKEN: ${FB_VERIFY_TOKEN:-}
+      CHAT_FILES_DIR: /app/api/data/chat-files
+    volumes:
+      - chat_files:/app/api/data   # images and files exchanged in Facebook chats
 
   web:
     build:
@@ -83,3 +89,4 @@ services:
 
 volumes:
   db_data:
+  chat_files:

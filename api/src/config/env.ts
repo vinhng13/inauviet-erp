@@ -23,6 +23,18 @@ const envSchema = z.object({
   COMPANY_ADDRESS: z.string().default('[Địa chỉ cửa hàng]'),
   COMPANY_PHONE: z.string().default('[Số điện thoại]'),
   COMPANY_TAX_CODE: z.string().default('[Mã số thuế]'),
+  /** Encrypts channel access tokens at rest (AES-256-GCM): 32 bytes as 64 hex characters or base64. */
+  CHANNEL_SECRET_KEY: z.string().optional(),
+  /** Facebook app: the App Secret signs every webhook call (X-Hub-Signature-256). */
+  FB_APP_SECRET: z.string().optional(),
+  /** Any random string; typed into the app's webhook settings so Meta can verify the callback URL. */
+  FB_VERIFY_TOKEN: z.string().optional(),
+  FB_GRAPH_URL: z.string().url().default('https://graph.facebook.com'),
+  FB_GRAPH_VERSION: z.string().regex(/^v\d+\.\d+$/).default('v24.0'),
+  /** Copies of images and files exchanged in chats */
+  CHAT_FILES_DIR: z.string().default('./data/chat-files'),
+  /** Process webhook events in the background. Off in tests, which drain the queue themselves. */
+  CHANNEL_WORKER: bool,
 });
 
 export type Env = z.infer<typeof envSchema> & { cookieSecure: boolean };

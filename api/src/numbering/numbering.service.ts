@@ -3,7 +3,9 @@ import { ENV, type Env } from '../config/env';
 import { periodInZone } from '../common/utils/dates';
 import type { Tx } from '../prisma/prisma.service';
 
-export type DocumentPrefix = 'KH' | 'BG' | 'DH' | 'LSX' | 'GH' | 'NCC' | 'PT' | 'PN' | 'PX' | 'PC' | 'PKT';
+export type DocumentPrefix = 'KH' | 'BG' | 'DH' | 'LSX' | 'GH' | 'NCC' | 'PT' | 'PN' | 'PX' | 'PC' | 'PKT'
+  // Kho: phiếu nhập, xuất, nhập lại, điều chỉnh, kiểm kê vật tư, giao nhận khuôn
+  | 'NK' | 'XK' | 'NL' | 'DC' | 'KKV' | 'GN';
 
 /** Codes that run on without restarting each month */
 const RUNNING: DocumentPrefix[] = ['KH', 'NCC'];

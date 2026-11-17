@@ -1,10 +1,20 @@
-# Inauviet ERP — Technical Spec (v0.8)
+# Inauviet ERP — Technical Spec (v0.10)
 
 **Backend:** Node.js 22 LTS · NestJS · Prisma 7 · PostgreSQL
 **Frontend:** React 19 · TypeScript · Vite · Ant Design 6
 **Repository:** `Inauviet/ERP/` with `api/` and `web/` (npm workspaces), next to `Inauviet/CMS/`
 **Scope:** A simple order and delivery tracker. Staff create orders with a delivery plan, follow every order on a board, mark deliveries done, and optionally record payments.
 **Status:** Codebase initialized 29 Oct 2026 (milestones M0–M3 built and tested, M4 deployment files in place). Open questions are in section 12.
+
+**Changes in v0.10 (Kho module, 17 Nov 2026)**
+- New module **Kho** (menu: Tổng quan kho, Tồn kho & phiếu, Khuôn, Giao nhận khuôn, Kiểm kê, Danh mục kho), independent of CRM and accounting: own catalogs, no foreign keys to `Customer`, `Order`, `Material` or `Supplier`.
+- Materials kept by size (khổ), receipts / issues / returns, stock card, stock count with adjustment, month lock. Dies with fixed codes, life cycle state machine, multi-die hand-over slips, size search, die counts, import of the existing Excel die list.
+- New permissions `warehouse.view / slip / dies / count / manage`; group "Thủ kho" gets slip + dies + count. See section 15.
+
+**Changes in v0.9 (Facebook fanpage chat, 11 Nov 2026)**
+- CRM → **Hội thoại**: Messenger messages and fanpage comments, answered from the CRM (text, images, files; public reply or one private reply to a comment). Live updates over server-sent events, unread badge and chime.
+- Quản trị → **Kết nối kênh**: connect fanpages with a system-user (or page) access token; tokens stored AES-256-GCM encrypted; health, last event, failed events with retry.
+- New permissions `conversations.view / viewAll / reply / assign` and `channels.manage`; the "Kinh doanh" group gets view + reply. See section 14.
 
 **Changes in v0.8 (separate modules and the accounting module, 05 Nov 2026)**
 - After sign-in a module picker (`/`) shows only the modules the account may use: **CRM**, **Kế toán**, **Quản trị**. Each module has its own sidebar menu and a switcher at the top of the menu (also "Chọn module" in the user menu). CRM paths are unchanged; accounting lives under `/accounting/*` plus `/payments`.
@@ -561,3 +571,85 @@ Any posting that changes the month's figures (everything except customer receipt
 | POST | /receipts · /issues · /cash-payments · /assets · /entries | vouchers |
 | PUT | /entries/:id | manual entry, or automatic entry with `reason` |
 | DELETE | /entries/:id · /receipts/:id · /issues/:id · /assets/:id | voucher and its entry; CRM and month-end entries can't be deleted |
+
+## 14. Facebook fanpage chat
+
+Phase 3 of the channel design (Messenger + comments). Lead ads, Zalo OA, lead records and source reports come later on the same tables.
+
+### 14.1 Flow
+1. Meta calls `POST /api/v1/webhooks/facebook`. The API checks `X-Hub-Signature-256` (HMAC-SHA256 of the raw body with `FB_APP_SECRET`), stores each `entry` as a `WebhookEvent` and answers 200 at once. `GET` on the same path answers Meta's verify-token handshake (`FB_VERIFY_TOKEN`).
+2. An in-process worker claims due events (`FOR UPDATE SKIP LOCKED`, sorted by arrival so messages keep their order), every 5 s and right after each webhook call. Failures wait 30 s, 2 min, 10 min, 30 min; the 5th failure marks the event failed and writes the error on the channel. "Chạy lại" puts failed events back.
+3. Each Messenger message or comment becomes a `Message` (deduplicated by its Facebook id) in a `Conversation` of a `ChannelContact` (one person on one page; name and picture from the Graph API). Echoes of messages the CRM sent carry `metadata = inauviet-erp` and are skipped; messages typed in Meta Business Suite are stored as `outsideCrm`. Images and files are downloaded to `CHAT_FILES_DIR` (Facebook links expire).
+4. Staff answer from the CRM: Messenger Send API with `messaging_type RESPONSE` within 24 h of the customer's last message, `MESSAGE_TAG / HUMAN_AGENT` until day 7, refused after that (`REPLY_WINDOW_CLOSED`). Comments: public reply under the customer's latest comment, or one private reply (`recipient.comment_id`) within 7 days. A refusal from Facebook is stored as a FAILED message with a Vietnamese reason; error 190 also marks the channel ERROR.
+
+### 14.2 Model
+| Table | Holds |
+|---|---|
+| `ChannelAccount` | platform, page id, name, picture, page token (encrypted), status ACTIVE / ERROR / DISCONNECTED, last event, last error, who connected |
+| `WebhookEvent` | raw entry, attempts, next attempt, lock, processed / failed time, last error |
+| `ChannelContact` | page, PSID or user id (unique per page), name, avatar, first phone number written, linked `Customer` |
+| `Conversation` | kind MESSAGE / COMMENT, thread key (`m`, or `c:<postId>` per commenter and post), post link, assignee, OPEN / DONE, last message preview / time / direction, last inbound time, unread count, private reply used |
+| `Message` | direction IN / OUT, Facebook id (unique), type, text, attachments JSON, sender (staff), outsideCrm, privateReply, status RECEIVED / SENDING / SENT / FAILED, error |
+
+### 14.3 Rules
+- Visibility: with `conversations.viewAll` everything; otherwise conversations assigned to me plus unassigned ones (so new chats can be picked up before round-robin assignment exists).
+- Replying to an unassigned conversation assigns it to the sender. Taking an unassigned one needs `reply`; any other change of assignee needs `assign`. A returning contact goes to the person who handled them last.
+- A new inbound message reopens a DONE conversation and increments its unread count; opening the conversation marks it read.
+- The first Vietnamese phone number in an inbound message is kept on the contact; "Tạo khách mới" pre-fills it. "Lập báo giá" opens `/quotes/new?customerId=`.
+
+### 14.4 Endpoints
+`GET/POST /webhooks/facebook` (public, signed) · `GET /channels` · `POST /channels/facebook/pages` (preview, token not stored) · `POST /channels/facebook/connect` · `POST /channels/:id/check` · `DELETE /channels/:id` · `POST /channels/events/retry` · `GET /conversations` (filter all / mine / unassigned / waiting, status, kind, channel, q, before) · `GET /conversations/unread` · `GET /conversations/assignees` · `GET /conversations/stream` (SSE) · `GET /conversations/:id` · `GET /conversations/:id/messages?before=` · `POST /conversations/:id/messages` · `POST /conversations/:id/files` (multipart, 25 MB) · `POST /conversations/:id/read` · `PATCH /conversations/:id` · `PUT /conversations/:id/customer` · `GET /conversations/:id/messages/:messageId/files/:index`.
+
+### 14.5 Configuration
+`CHANNEL_SECRET_KEY` (64 hex), `FB_APP_SECRET`, `FB_VERIFY_TOKEN`, `FB_GRAPH_VERSION` (default v24.0), `FB_GRAPH_URL` (tests point it at a fake), `CHAT_FILES_DIR`, `CHANNEL_WORKER` (off in tests). The reverse proxy must not compress or buffer `/api/v1/conversations/stream`.
+
+## 15. Kho (warehouse) module
+
+Separate module for the storekeeper. Customer names and order numbers are typed as text; nothing joins to CRM or accounting tables, so the accounting "Kho NVL" screen and this module do not affect each other.
+
+### 15.1 Model
+| Table | Holds |
+|---|---|
+| `WhPartner` | die makers, die-cutting shops, paper suppliers (kind DIE_MAKER / DIE_SHOP / SUPPLIER / OTHER) |
+| `WhLocation` | shelf codes (e.g. `T4-K02-O03`) |
+| `WhMaterial` · `WhStockItem` | material (group, name, unit, by size or not) and one stock item per size (width × length cm, unique per material); `qty` is the cached on-hand quantity (Decimal), `minQty` the alert level. A material without sizes has one 0 × 0 item |
+| `WhSlip` · `WhSlipLine` | NK receipt, XK issue, NL return, DC adjustment (monthly numbering); partner, receiver, purpose, typed reference, optional unit price; voided slips keep their lines |
+| `WhCount` · `WhCountLine` | stock count (KKV-): system qty frozen at creation, counted qty, DRAFT / APPROVED / CANCELLED |
+| `WhMonthLock` | months locked for slips |
+| `WhDieSymbol` | symbol (TUI, HOP, KEF…) and last number used |
+| `WhDie` | code `SYMBOL-NNN` (assigned once, never reused), kind, product, customer text, length / width / height cm or size text, orientation, pieces, ups, maker, owner, cost, photo, **status** and **place** kept apart: `holderId` = partner holding it (null = Âu Việt), `locationId` = shelf at home; expected back date, needs-review flag and note |
+| `WhDieMove` | every step: action, date, from / to status, place text, partner, shelf, reference, expected back, note, batch, user |
+| `WhDieBatch` | hand-over slip GN- (OUT to a shop / IN back to the store) |
+| `WhDieCount` · `WhDieCountLine` | die count of one shelf, the whole store or one shop: found / extra |
+
+### 15.2 Rules
+- Stock never goes negative: an issue decrements with `UPDATE … WHERE qty >= n` and fails with `WH_STOCK_SHORT` (item, on hand, requested). Voiding a receipt that was already used fails with `WH_VOID_NEGATIVE`. Adjustment slips from counts cannot be voided.
+- Slips dated in a locked month cannot be created or voided (`WH_MONTH_LOCKED`). Approving a count needs `warehouse.manage` and writes one DC slip for the differences against the current quantity (uncounted lines unchanged).
+- A size that already has slips cannot change its numbers (`WH_SIZE_IN_USE`); add a new size and switch the old one off.
+- Die life cycle (`api/src/warehouse/die-rules.ts`):
+
+| Action | From | To | Place |
+|---|---|---|---|
+| ISSUE xuất khuôn | READY | IN_USE | partner (or stays home for Âu Việt's own machine) |
+| KEEP xưởng giữ lại | IN_USE | READY | stays at partner |
+| RETURN nhập lại kho | IN_USE, READY | CHECKING | home |
+| PASS kiểm đạt | CHECKING | READY | home, shelf required |
+| DEFECT lỗi / hỏng | CHECKING, READY, IN_USE | DEFECT or BROKEN | unchanged |
+| SEND_REPAIR | DEFECT, CHECKING | REPAIRING | partner required |
+| BACK_REPAIR | REPAIRING | CHECKING | home |
+| DISPOSE | READY, DEFECT, BROKEN, CHECKING | DISPOSED | unchanged |
+| MOVE đổi vị trí | READY | READY | other shelf, or kept at a partner |
+
+  Anything else is refused with `WH_DIE_ACTION_NOT_ALLOWED`. "Overdue" = IN_USE / REPAIRING with an expected back date before today.
+- New die: code from the symbol counter inside the transaction. If a die with the same symbol is within 0.5 cm on each measured side, creation is refused with `WH_DIE_SIMILAR_EXISTS` (details list the similar dies) unless `force`. A new die goes to CHECKING at home, or READY when a shelf or a partner is chosen.
+- A batch applies ISSUE (OUT) or RETURN (IN) to every die in one transaction: all or nothing.
+- Finishing a die count marks every die not found as needs-review; a die found on the counted shelf that the books placed elsewhere is moved there (MOVE).
+
+### 15.3 Excel import
+`POST /warehouse/dies/import?dryRun=true|false` (multipart `file`, `warehouse.manage`). Reads sheet `DANH_SACH_KHUON` (header row "Mã khuôn") with a dependency-free xlsx reader; `NHAP_LIEU` rows other than "TẠO KHUÔN" become history moves. Mapping: TRONG KHO → READY at home (shelf from "Vị trí kệ"); ĐANG SẢN XUẤT at a shop → IN_USE there, expected back from the sheet; other states, "Khác", same size as another die (same symbol, all sides equal), no TẠO KHUÔN row, or out more than 45 days → needs-review with the reason. "Nơi ra khuôn" names used on 3+ rows become partners, others stay in the note. Existing codes are skipped, so running it again adds nothing; symbol counters move past the highest number imported. On the current file: 440 dies (371 READY, 69 IN_USE), 4 partners, 1 shelf, 126 points to review.
+
+### 15.4 Endpoints (`/api/v1/warehouse`)
+`GET overview` · `GET/POST/PUT partners` · `GET/POST/PUT locations` · `GET/PUT symbols` · `GET/POST/PUT materials` · `GET/POST/DELETE month-locks` · `GET stock?all=` · `GET stock/:id/card` · `GET/POST slips` · `GET slips/:id` · `POST slips/:id/void` · `GET/POST counts` · `GET/PUT counts/:id` · `POST counts/:id/approve|cancel` · `GET dies` (q, status, symbol, place = home | partner id, flag = overdue | review | out, l / w / h / tol) · `GET/PUT dies/:id` · `POST dies` · `POST dies/:id/actions` · `POST/GET dies/:id/photo` · `POST dies/import` · `GET/POST batches` · `GET batches/:id` · `GET/POST die-counts` · `GET die-counts/:id` · `POST die-counts/:id/marks|finish`.
+
+Photos are stored next to chat files (`<CHAT_FILES_DIR>/../warehouse`). The user guide is a static page in `web/public/huong-dan/` (served at `/huong-dan/index.html`, opened from the "Hướng dẫn" button in the header, which jumps to the chapter of the current module). Paper stock has no file to import yet: the first stock count enters opening quantities.
+

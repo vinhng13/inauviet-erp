@@ -1521,6 +1521,727 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/channels": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Connected pages, configuration checklist and failed webhook events */
+        get: operations["Channels_overview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/channels/facebook/pages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Pages the token can manage. 400 FB_TOKEN_REJECTED when Facebook refuses the token. */
+        post: operations["Channels_pages"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/channels/facebook/connect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Connects the chosen pages: stores each page token encrypted and subscribes to its events */
+        post: operations["Channels_connect"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/channels/{id}/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["Channels_check"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/channels/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["Channels_disconnect"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/channels/events/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["Channels_retry"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/conversations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Newest first; 50 per page */
+        get: operations["Conversations_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/conversations/unread": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** For the menu badge */
+        get: operations["Conversations_unread"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/conversations/assignees": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["Conversations_assignees"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/conversations/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["Conversations_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Assign (conversations.assign; taking an unassigned one needs only conversations.reply) or mark done / reopen */
+        patch: operations["Conversations_update"];
+        trace?: never;
+    };
+    "/api/v1/conversations/{id}/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 50 messages, oldest first; pass before= to load earlier ones */
+        get: operations["Conversations_messages"];
+        put?: never;
+        /**
+         * Messenger: 400 REPLY_WINDOW_CLOSED after 7 days of silence from the customer. Comments: public reply, or private=true
+         *     for the one private message Facebook allows (409 PRIVATE_REPLY_USED). A refusal by Facebook comes back as a FAILED message.
+         */
+        post: operations["Conversations_send"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/conversations/{id}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["Conversations_read"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/conversations/{id}/files": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Image or file (field "file", up to 25 MB), Messenger chats only */
+        post: operations["Conversations_sendFile"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/conversations/{id}/customer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["Conversations_linkCustomer"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/warehouse/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["Warehouse_overview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/warehouse/partners": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["Warehouse_partners"];
+        put?: never;
+        post: operations["Warehouse_createPartner"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/warehouse/partners/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["Warehouse_updatePartner"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/warehouse/locations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["Warehouse_locations"];
+        put?: never;
+        post: operations["Warehouse_createLocation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/warehouse/locations/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["Warehouse_updateLocation"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/warehouse/symbols": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["Warehouse_symbols"];
+        put: operations["Warehouse_saveSymbol"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/warehouse/materials": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["Warehouse_materials"];
+        put?: never;
+        post: operations["Warehouse_createMaterial"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/warehouse/materials/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["Warehouse_updateMaterial"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/warehouse/month-locks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["Warehouse_monthLocks"];
+        put?: never;
+        /** Chốt tồn tháng: phiếu trong tháng không lập / huỷ được nữa */
+        post: operations["Warehouse_lockMonth"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/warehouse/month-locks/{month}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["Warehouse_unlockMonth"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/warehouse/stock": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["Warehouse_items"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/warehouse/stock/{id}/card": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["Warehouse_card"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/warehouse/slips": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["Warehouse_slips"];
+        put?: never;
+        post: operations["Warehouse_createSlip"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/warehouse/slips/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["Warehouse_slip"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/warehouse/slips/{id}/void": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["Warehouse_voidSlip"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/warehouse/counts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["Warehouse_counts"];
+        put?: never;
+        post: operations["Warehouse_createCount"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/warehouse/counts/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["Warehouse_count"];
+        put: operations["Warehouse_updateCount"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/warehouse/counts/{id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Duyệt: tạo phiếu điều chỉnh chênh lệch (cần quyền quản lý kho) */
+        post: operations["Warehouse_approveCount"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/warehouse/counts/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["Warehouse_cancelCount"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/warehouse/dies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["Warehouse_dieList"];
+        put?: never;
+        /** Mã khuôn cấp tự động theo ký hiệu. Khuôn gần trùng kích thước bị chặn (WH_DIE_SIMILAR_EXISTS) trừ khi force */
+        post: operations["Warehouse_createDie"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/warehouse/dies/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["Warehouse_die"];
+        put: operations["Warehouse_updateDie"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/warehouse/dies/{id}/actions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Một bước luân chuyển (xuất, xưởng giữ, nhập lại, kiểm đạt, lỗi, sửa, thanh lý, đổi kệ) */
+        post: operations["Warehouse_dieAction"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/warehouse/dies/{id}/photo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["Warehouse_diePhoto"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/warehouse/dies/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Nhập bảng khuôn Excel. dryRun=true chỉ xem trước, không ghi */
+        post: operations["Warehouse_importDies"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/warehouse/batches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["Warehouse_batches"];
+        put?: never;
+        post: operations["Warehouse_createBatch"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/warehouse/batches/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["Warehouse_batch"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/warehouse/die-counts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["Warehouse_dieCounts"];
+        put?: never;
+        post: operations["Warehouse_createDieCount"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/warehouse/die-counts/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["Warehouse_dieCount"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/warehouse/die-counts/{id}/marks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["Warehouse_markDieCount"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/warehouse/die-counts/{id}/finish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["Warehouse_finishDieCount"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -3041,6 +3762,687 @@ export interface components {
             description?: string;
             /** @description Required when changing an automatic entry */
             reason?: string;
+        };
+        /** @enum {string} */
+        ChannelPlatform: "FACEBOOK" | "ZALO";
+        /** @enum {string} */
+        ChannelStatus: "ACTIVE" | "ERROR" | "DISCONNECTED";
+        ChannelDto: {
+            platform: components["schemas"]["ChannelPlatform"];
+            status: components["schemas"]["ChannelStatus"];
+            id: string;
+            externalId: string;
+            name: string;
+            pictureUrl: string | null;
+            /** Format: date-time */
+            lastEventAt: string | null;
+            lastError: string | null;
+            /** Format: date-time */
+            lastErrorAt: string | null;
+            /** Format: date-time */
+            connectedAt: string;
+            connectedBy: string | null;
+            conversations: number;
+        };
+        ChannelSetupDto: {
+            /** @description FB_APP_SECRET is set: webhook signatures can be checked */
+            appSecret: boolean;
+            /** @description FB_VERIFY_TOKEN is set */
+            verifyToken: boolean;
+            /** @description CHANNEL_SECRET_KEY is set and valid: tokens can be stored */
+            secretKey: boolean;
+            /** @description Path of the callback URL to enter in the Meta app (after the public address) */
+            callbackPath: string;
+            graphVersion: string;
+        };
+        FailedEventDto: {
+            id: string;
+            /** Format: date-time */
+            receivedAt: string;
+            attempts: number;
+            lastError: string | null;
+        };
+        ChannelOverviewDto: {
+            channels: components["schemas"]["ChannelDto"][];
+            setup: components["schemas"]["ChannelSetupDto"];
+            pendingEvents: number;
+            failedEvents: components["schemas"]["FailedEventDto"][];
+        };
+        FacebookTokenDto: {
+            /** @description User, system-user or page access token from Meta */
+            accessToken: string;
+        };
+        FacebookPageDto: {
+            id: string;
+            name: string;
+            pictureUrl?: string;
+            /** @description Already connected and active */
+            connected: boolean;
+        };
+        FacebookPagesDto: {
+            pages: components["schemas"]["FacebookPageDto"][];
+        };
+        ConnectFacebookDto: {
+            /** @description User, system-user or page access token from Meta */
+            accessToken: string;
+            /** @description Pages to connect, from the preview */
+            pageIds: string[];
+        };
+        ConnectResultDto: {
+            pageId: string;
+            name: string;
+            ok: boolean;
+            error?: string;
+        };
+        ConnectResultsDto: {
+            results: components["schemas"]["ConnectResultDto"][];
+        };
+        /** @enum {string} */
+        ConversationKind: "MESSAGE" | "COMMENT";
+        /** @enum {string} */
+        ConversationStatus: "OPEN" | "DONE";
+        ReplyWindowDto: {
+            /**
+             * @description RESPONSE: within 24 h of the customer's last message; HUMAN_AGENT: day 2–7, staff only; CLOSED: past 7 days; COMMENT: public reply under the post
+             * @enum {string}
+             */
+            mode: "RESPONSE" | "HUMAN_AGENT" | "CLOSED" | "COMMENT";
+            /**
+             * Format: date-time
+             * @description When the current mode ends
+             */
+            until: string | null;
+        };
+        ConversationRowDto: {
+            kind: components["schemas"]["ConversationKind"];
+            status: components["schemas"]["ConversationStatus"];
+            id: string;
+            channelId: string;
+            channelName: string;
+            contactName: string;
+            contactAvatarUrl: string | null;
+            customerName: string | null;
+            assignee: components["schemas"]["PersonRefDto"] | null;
+            /** Format: date-time */
+            lastMessageAt: string;
+            lastMessageText: string;
+            /** @description The customer wrote last: waiting for an answer */
+            lastMessageIn: boolean;
+            unreadCount: number;
+            window: components["schemas"]["ReplyWindowDto"];
+        };
+        ConversationListDto: {
+            items: components["schemas"]["ConversationRowDto"][];
+            /** @description More rows exist after the last one */
+            hasMore: boolean;
+        };
+        UnreadDto: {
+            /** @description Visible open conversations with unread messages */
+            conversations: number;
+        };
+        AssigneesDto: {
+            people: components["schemas"]["PersonRefDto"][];
+        };
+        CustomerRefDto: {
+            id: string;
+            code: string;
+            name: string;
+            phone: string;
+        };
+        ContactDto: {
+            id: string;
+            name: string;
+            avatarUrl: string | null;
+            /** @description First phone number the person wrote */
+            phone: string | null;
+            customer: components["schemas"]["CustomerRefDto"] | null;
+        };
+        ConversationDto: {
+            kind: components["schemas"]["ConversationKind"];
+            status: components["schemas"]["ConversationStatus"];
+            id: string;
+            channelId: string;
+            channelName: string;
+            contactName: string;
+            contactAvatarUrl: string | null;
+            customerName: string | null;
+            assignee: components["schemas"]["PersonRefDto"] | null;
+            /** Format: date-time */
+            lastMessageAt: string;
+            lastMessageText: string;
+            /** @description The customer wrote last: waiting for an answer */
+            lastMessageIn: boolean;
+            unreadCount: number;
+            window: components["schemas"]["ReplyWindowDto"];
+            contact: components["schemas"]["ContactDto"];
+            postId: string | null;
+            postUrl: string | null;
+            /** @description Comment threads: a private message can still be sent (once per comment, within 7 days) */
+            canPrivateReply: boolean;
+        };
+        /** @enum {string} */
+        MessageDirection: "IN" | "OUT";
+        /** @enum {string} */
+        MessageType: "TEXT" | "IMAGE" | "VIDEO" | "AUDIO" | "FILE" | "STICKER" | "OTHER";
+        /** @enum {string} */
+        MessageStatus: "RECEIVED" | "SENDING" | "SENT" | "FAILED";
+        AttachmentDto: {
+            /** @enum {string} */
+            type: "image" | "video" | "audio" | "file" | "sticker" | "other";
+            name: string | null;
+            mime: string | null;
+            size: number | null;
+            /** @description Download through the CRM (copy kept on the server, or Facebook's link) */
+            href: string | null;
+        };
+        MessageDto: {
+            direction: components["schemas"]["MessageDirection"];
+            type: components["schemas"]["MessageType"];
+            status: components["schemas"]["MessageStatus"];
+            id: string;
+            text: string | null;
+            attachments: components["schemas"]["AttachmentDto"][];
+            sender: components["schemas"]["PersonRefDto"] | null;
+            /** @description Sent by the page from Facebook / Meta Business Suite, not from the CRM */
+            outsideCrm: boolean;
+            privateReply: boolean;
+            error: string | null;
+            /** Format: date-time */
+            sentAt: string;
+        };
+        MessageListDto: {
+            items: components["schemas"]["MessageDto"][];
+            hasMore: boolean;
+        };
+        SendMessageDto: {
+            text: string;
+            /** @description Comment threads: send as a private Messenger message instead of a public reply */
+            private?: boolean;
+        };
+        UpdateConversationDto: {
+            /**
+             * Format: uuid
+             * @description null = nobody
+             */
+            assigneeId?: string | null;
+            /** @enum {string} */
+            status?: "OPEN" | "DONE";
+        };
+        LinkCustomerDto: {
+            /**
+             * Format: uuid
+             * @description null removes the link
+             */
+            customerId: string | null;
+        };
+        StockItemDto: {
+            id: string;
+            materialId: string;
+            group: string;
+            materialName: string;
+            unit: string;
+            hasSizes: boolean;
+            widthCm: number;
+            lengthCm: number;
+            /** @description "Giấy ngoại IC 145 · 18 x 50,5" */
+            label: string;
+            qty: number;
+            minQty: number | null;
+            low: boolean;
+            isActive: boolean;
+            /** @description Giá trị tồn tham khảo (bình quân các lần nhập có giá) */
+            valueVnd: number | null;
+        };
+        PlaceCountDto: {
+            holderId: string;
+            name: string;
+            inUse: number;
+            kept: number;
+            overdue: number;
+        };
+        /** @enum {string} */
+        WhDieKind: "CUT" | "FOIL" | "EMBOSS";
+        /** @enum {string} */
+        WhOrientation: "PORTRAIT" | "LANDSCAPE";
+        /** @enum {string} */
+        WhDieStatus: "READY" | "IN_USE" | "CHECKING" | "REPAIRING" | "DEFECT" | "BROKEN" | "DISPOSED";
+        DieRowDto: {
+            kind: components["schemas"]["WhDieKind"];
+            orientation: components["schemas"]["WhOrientation"] | null;
+            status: components["schemas"]["WhDieStatus"];
+            id: string;
+            code: string;
+            symbolCode: string;
+            productName: string;
+            customerName: string | null;
+            size: string | null;
+            lengthCm: number | null;
+            widthCm: number | null;
+            heightCm: number | null;
+            pieces: number | null;
+            ups: number | null;
+            /** @description "Kho · T4-K02" hoặc tên xưởng */
+            place: string;
+            holderId: string | null;
+            locationId: string | null;
+            expectedBackOn: string | null;
+            overdue: boolean;
+            needsReview: boolean;
+            reviewNote: string | null;
+        };
+        /** @enum {string} */
+        WhSlipKind: "RECEIPT" | "ISSUE" | "RETURN" | "ADJUST";
+        SlipLineDto: {
+            id: string;
+            stockItemId: string;
+            label: string;
+            unit: string;
+            qty: number;
+            unitPriceVnd: number | null;
+        };
+        SlipDto: {
+            kind: components["schemas"]["WhSlipKind"];
+            id: string;
+            code: string;
+            date: string;
+            partnerId: string | null;
+            partnerName: string | null;
+            receiver: string | null;
+            purpose: string | null;
+            reference: string | null;
+            note: string | null;
+            createdBy: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            voidedAt: string | null;
+            voidReason: string | null;
+            lines: components["schemas"]["SlipLineDto"][];
+        };
+        WarehouseOverviewDto: {
+            diesByStatus: {
+                [key: string]: number;
+            };
+            lowStock: components["schemas"]["StockItemDto"][];
+            diesTotal: number;
+            atPartners: components["schemas"]["PlaceCountDto"][];
+            overdue: components["schemas"]["DieRowDto"][];
+            checking: components["schemas"]["DieRowDto"][];
+            needsReview: number;
+            recentSlips: components["schemas"]["SlipDto"][];
+        };
+        /** @enum {string} */
+        WhPartnerKind: "DIE_MAKER" | "DIE_SHOP" | "SUPPLIER" | "OTHER";
+        PartnerDto: {
+            kind: components["schemas"]["WhPartnerKind"];
+            id: string;
+            name: string;
+            phone: string | null;
+            note: string | null;
+            isActive: boolean;
+            /** @description Khuôn đang ở đối tác này */
+            diesHeld: number;
+        };
+        PartnerInputDto: {
+            name: string;
+            /** @enum {string} */
+            kind: "OTHER" | "DIE_MAKER" | "DIE_SHOP" | "SUPPLIER";
+            phone?: string | null;
+            note?: string | null;
+            isActive?: boolean;
+        };
+        LocationDto: {
+            id: string;
+            code: string;
+            note: string | null;
+            isActive: boolean;
+            dies: number;
+        };
+        LocationInputDto: {
+            /** @description Ví dụ "T4-K02-O03" hoặc "Tầng 4" */
+            code: string;
+            note?: string | null;
+            isActive?: boolean;
+        };
+        SymbolDto: {
+            code: string;
+            name: string;
+            isActive: boolean;
+            lastNo: number;
+            dies: number;
+        };
+        SymbolInputDto: {
+            code: string;
+            name: string;
+            isActive?: boolean;
+        };
+        WhMaterialDto: {
+            id: string;
+            group: string;
+            name: string;
+            unit: string;
+            hasSizes: boolean;
+            isActive: boolean;
+            items: components["schemas"]["StockItemDto"][];
+        };
+        SizeInputDto: {
+            /** Format: uuid */
+            id?: string;
+            /** @description cm; 0 x 0 khi vật tư không theo khổ */
+            widthCm: number;
+            lengthCm: number;
+            minQty?: number | null;
+            isActive?: boolean;
+        };
+        WhMaterialInputDto: {
+            group: string;
+            name: string;
+            unit: string;
+            hasSizes: boolean;
+            isActive?: boolean;
+            /** @description Danh sách khổ (vật tư theo khổ) hoặc một dòng 0 x 0 */
+            sizes: components["schemas"]["SizeInputDto"][];
+        };
+        MonthLockDto: {
+            month: string;
+            lockedBy: string;
+            /** Format: date-time */
+            lockedAt: string;
+        };
+        MonthDto: {
+            month: string;
+        };
+        CardRowDto: {
+            kind: components["schemas"]["WhSlipKind"];
+            date: string;
+            slipId: string;
+            code: string;
+            partyText: string | null;
+            reference: string | null;
+            inQty: number;
+            outQty: number;
+            balance: number;
+        };
+        StockCardDto: {
+            item: components["schemas"]["StockItemDto"];
+            rows: components["schemas"]["CardRowDto"][];
+        };
+        SlipLineInputDto: {
+            /** Format: uuid */
+            stockItemId: string;
+            qty: number;
+            unitPriceVnd?: number | null;
+        };
+        SlipInputDto: {
+            /**
+             * Format: date
+             * @example 2026-11-02
+             */
+            date: string;
+            /** @enum {string} */
+            kind: "RECEIPT" | "ISSUE" | "RETURN";
+            /** Format: uuid */
+            partnerId?: string | null;
+            receiver?: string | null;
+            purpose?: string | null;
+            /** @description Số lệnh / đơn tham chiếu, gõ tay */
+            reference?: string | null;
+            note?: string | null;
+            lines: components["schemas"]["SlipLineInputDto"][];
+        };
+        VoidDto: {
+            reason: string;
+        };
+        /** @enum {string} */
+        WhCountStatus: "DRAFT" | "APPROVED" | "CANCELLED";
+        CountLineDto: {
+            stockItemId: string;
+            label: string;
+            group: string;
+            unit: string;
+            systemQty: number;
+            countedQty: number | null;
+            diff: number | null;
+        };
+        CountDto: {
+            status: components["schemas"]["WhCountStatus"];
+            id: string;
+            code: string;
+            date: string;
+            note: string | null;
+            createdBy: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            approvedAt: string | null;
+            adjustSlipCode: string | null;
+            counted: number;
+            total: number;
+            lines: components["schemas"]["CountLineDto"][];
+        };
+        CountCreateDto: {
+            /**
+             * Format: date
+             * @example 2026-11-02
+             */
+            date: string;
+            /** @description Chỉ kiểm các nhóm này; bỏ trống = tất cả */
+            groups?: string[];
+            note?: string | null;
+        };
+        CountEntryDto: {
+            /** Format: uuid */
+            stockItemId: string;
+            countedQty: number | null;
+        };
+        CountUpdateDto: {
+            entries: components["schemas"]["CountEntryDto"][];
+        };
+        DieListDto: {
+            items: components["schemas"]["DieRowDto"][];
+            total: number;
+        };
+        /** @enum {string} */
+        WhDieOwner: "AU_VIET" | "CUSTOMER" | "PARTNER";
+        /** @enum {string} */
+        WhDieAction: "CREATE" | "ISSUE" | "KEEP" | "RETURN" | "PASS" | "DEFECT" | "SEND_REPAIR" | "BACK_REPAIR" | "DISPOSE" | "MOVE" | "EDIT" | "IMPORT";
+        DieMoveDto: {
+            action: components["schemas"]["WhDieAction"];
+            toStatus: components["schemas"]["WhDieStatus"] | null;
+            id: string;
+            actionLabel: string;
+            date: string;
+            place: string | null;
+            reference: string | null;
+            expectedBackOn: string | null;
+            note: string | null;
+            batchCode: string | null;
+            user: string | null;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        DieDto: {
+            kind: components["schemas"]["WhDieKind"];
+            orientation: components["schemas"]["WhOrientation"] | null;
+            status: components["schemas"]["WhDieStatus"];
+            owner: components["schemas"]["WhDieOwner"];
+            allowedActions: ("ISSUE" | "KEEP" | "RETURN" | "PASS" | "DEFECT" | "SEND_REPAIR" | "BACK_REPAIR" | "DISPOSE" | "MOVE")[];
+            makerId: string | null;
+            makerName: string | null;
+            sizeText: string | null;
+            costVnd: number | null;
+            note: string | null;
+            hasPhoto: boolean;
+            /** @description Khuôn cùng ký hiệu, kích thước gần giống */
+            similar: components["schemas"]["DieRowDto"][];
+            moves: components["schemas"]["DieMoveDto"][];
+            id: string;
+            code: string;
+            symbolCode: string;
+            productName: string;
+            customerName: string | null;
+            size: string | null;
+            lengthCm: number | null;
+            widthCm: number | null;
+            heightCm: number | null;
+            pieces: number | null;
+            ups: number | null;
+            /** @description "Kho · T4-K02" hoặc tên xưởng */
+            place: string;
+            holderId: string | null;
+            locationId: string | null;
+            expectedBackOn: string | null;
+            overdue: boolean;
+            needsReview: boolean;
+            reviewNote: string | null;
+        };
+        DieInputDto: {
+            /** @description Chỉ khi tạo mới */
+            symbolCode?: string;
+            /** @enum {string} */
+            kind?: "CUT" | "FOIL" | "EMBOSS";
+            productName: string;
+            customerName?: string | null;
+            lengthCm?: number | null;
+            widthCm?: number | null;
+            heightCm?: number | null;
+            sizeText?: string | null;
+            /** @enum {string|null} */
+            orientation?: "PORTRAIT" | "LANDSCAPE" | null;
+            pieces?: number | null;
+            ups?: number | null;
+            /** Format: uuid */
+            makerId?: string | null;
+            /** @enum {string} */
+            owner?: "CUSTOMER" | "AU_VIET" | "PARTNER";
+            costVnd?: number | null;
+            note?: string | null;
+            /**
+             * Format: uuid
+             * @description Chỉ khi tạo mới: khuôn về kho chờ kiểm, ở thẳng một vị trí, hoặc giao thẳng tới xưởng
+             */
+            locationId?: string | null;
+            /** Format: uuid */
+            holderId?: string | null;
+            /** @description Bỏ qua cảnh báo trùng kích thước */
+            force?: boolean;
+            /** @description Đánh dấu đã xử lý xong việc cần xác nhận */
+            reviewed?: boolean;
+        };
+        DieActionDto: {
+            /**
+             * Format: date
+             * @example 2026-11-02
+             */
+            date: string;
+            /**
+             * Format: date
+             * @example 2026-11-02
+             */
+            expectedBackOn?: string | null;
+            /** @enum {string} */
+            action: "ISSUE" | "KEEP" | "RETURN" | "PASS" | "DEFECT" | "SEND_REPAIR" | "BACK_REPAIR" | "DISPOSE" | "MOVE";
+            /**
+             * Format: uuid
+             * @description Xưởng ngoài (xuất, chuyển sửa, gửi giữ); bỏ trống khi dùng / để tại kho Âu Việt
+             */
+            partnerId?: string | null;
+            /**
+             * Format: uuid
+             * @description Kệ trong kho (kiểm đạt, chuyển vị trí)
+             */
+            locationId?: string | null;
+            reference?: string | null;
+            note?: string | null;
+            /** @description Phát hiện lỗi: hỏng hẳn, không sửa được */
+            broken?: boolean;
+        };
+        ImportIssueDto: {
+            code: string | null;
+            row: number;
+            message: string;
+        };
+        ImportReportDto: {
+            byStatus: {
+                [key: string]: number;
+            };
+            dryRun: boolean;
+            dies: number;
+            skippedExisting: number;
+            history: number;
+            partnersCreated: string[];
+            locationsCreated: string[];
+            issues: components["schemas"]["ImportIssueDto"][];
+        };
+        /** @enum {string} */
+        WhBatchKind: "OUT" | "IN";
+        BatchDto: {
+            kind: components["schemas"]["WhBatchKind"];
+            id: string;
+            code: string;
+            date: string;
+            partnerId: string;
+            partnerName: string;
+            reference: string | null;
+            note: string | null;
+            createdBy: string;
+            /** Format: date-time */
+            createdAt: string;
+            dies: components["schemas"]["DieRowDto"][];
+        };
+        BatchInputDto: {
+            /**
+             * Format: date
+             * @example 2026-11-02
+             */
+            date: string;
+            /**
+             * Format: date
+             * @example 2026-11-02
+             */
+            expectedBackOn?: string | null;
+            /** @enum {string} */
+            kind: "IN" | "OUT";
+            /** Format: uuid */
+            partnerId: string;
+            dieIds: string[];
+            reference?: string | null;
+            note?: string | null;
+        };
+        DieCountLineDto: {
+            dieId: string;
+            code: string;
+            productName: string;
+            place: string;
+            found: boolean;
+            extra: boolean;
+        };
+        DieCountDto: {
+            id: string;
+            scope: string;
+            createdBy: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            finishedAt: string | null;
+            lines: components["schemas"]["DieCountLineDto"][];
+        };
+        DieCountCreateDto: {
+            /**
+             * Format: uuid
+             * @description Kệ cần kiểm; bỏ trống cùng holderId = toàn kho Âu Việt
+             */
+            locationId?: string | null;
+            /**
+             * Format: uuid
+             * @description Hoặc một xưởng ngoài
+             */
+            holderId?: string | null;
+        };
+        DieCountMarkDto: {
+            /** @description Mã khuôn (quét / gõ) hoặc id */
+            die: string;
+            found: boolean;
         };
     };
     responses: never;
@@ -5491,6 +6893,1280 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    Channels_overview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChannelOverviewDto"];
+                };
+            };
+        };
+    };
+    Channels_pages: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FacebookTokenDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FacebookPagesDto"];
+                };
+            };
+        };
+    };
+    Channels_connect: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConnectFacebookDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectResultsDto"];
+                };
+            };
+        };
+    };
+    Channels_check: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    Channels_disconnect: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    Channels_retry: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    Conversations_list: {
+        parameters: {
+            query?: {
+                /** @description all; mine = assigned to me; unassigned; waiting = the customer wrote last */
+                filter?: "all" | "mine" | "unassigned" | "waiting";
+                status?: "OPEN" | "DONE";
+                kind?: "MESSAGE" | "COMMENT";
+                channelId?: string;
+                /** @description Name or phone of the person */
+                q?: string;
+                /** @description Load conversations older than this (lastMessageAt of the last row shown) */
+                before?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConversationListDto"];
+                };
+            };
+        };
+    };
+    Conversations_unread: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnreadDto"];
+                };
+            };
+        };
+    };
+    Conversations_assignees: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssigneesDto"];
+                };
+            };
+        };
+    };
+    Conversations_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConversationDto"];
+                };
+            };
+        };
+    };
+    Conversations_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateConversationDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConversationDto"];
+                };
+            };
+        };
+    };
+    Conversations_messages: {
+        parameters: {
+            query?: {
+                /** @description Messages sent before this time (sentAt of the oldest one shown) */
+                before?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageListDto"];
+                };
+            };
+        };
+    };
+    Conversations_send: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SendMessageDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageDto"];
+                };
+            };
+        };
+    };
+    Conversations_read: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    Conversations_sendFile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageDto"];
+                };
+            };
+        };
+    };
+    Conversations_linkCustomer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LinkCustomerDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConversationDto"];
+                };
+            };
+        };
+    };
+    Warehouse_overview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WarehouseOverviewDto"];
+                };
+            };
+        };
+    };
+    Warehouse_partners: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerDto"][];
+                };
+            };
+        };
+    };
+    Warehouse_createPartner: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PartnerInputDto"];
+            };
+        };
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    Warehouse_updatePartner: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PartnerInputDto"];
+            };
+        };
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    Warehouse_locations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LocationDto"][];
+                };
+            };
+        };
+    };
+    Warehouse_createLocation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LocationInputDto"];
+            };
+        };
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    Warehouse_updateLocation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LocationInputDto"];
+            };
+        };
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    Warehouse_symbols: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SymbolDto"][];
+                };
+            };
+        };
+    };
+    Warehouse_saveSymbol: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SymbolInputDto"];
+            };
+        };
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    Warehouse_materials: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WhMaterialDto"][];
+                };
+            };
+        };
+    };
+    Warehouse_createMaterial: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WhMaterialInputDto"];
+            };
+        };
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    Warehouse_updateMaterial: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WhMaterialInputDto"];
+            };
+        };
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    Warehouse_monthLocks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonthLockDto"][];
+                };
+            };
+        };
+    };
+    Warehouse_lockMonth: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MonthDto"];
+            };
+        };
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    Warehouse_unlockMonth: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                month: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    Warehouse_items: {
+        parameters: {
+            query?: {
+                all?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StockItemDto"][];
+                };
+            };
+        };
+    };
+    Warehouse_card: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StockCardDto"];
+                };
+            };
+        };
+    };
+    Warehouse_slips: {
+        parameters: {
+            query?: {
+                kind?: "ISSUE" | "RECEIPT" | "RETURN" | "ADJUST";
+                month?: string;
+                q?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SlipDto"][];
+                };
+            };
+        };
+    };
+    Warehouse_createSlip: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SlipInputDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SlipDto"];
+                };
+            };
+        };
+    };
+    Warehouse_slip: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SlipDto"];
+                };
+            };
+        };
+    };
+    Warehouse_voidSlip: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VoidDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SlipDto"];
+                };
+            };
+        };
+    };
+    Warehouse_counts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CountDto"][];
+                };
+            };
+        };
+    };
+    Warehouse_createCount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CountCreateDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CountDto"];
+                };
+            };
+        };
+    };
+    Warehouse_count: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CountDto"];
+                };
+            };
+        };
+    };
+    Warehouse_updateCount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CountUpdateDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CountDto"];
+                };
+            };
+        };
+    };
+    Warehouse_approveCount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CountDto"];
+                };
+            };
+        };
+    };
+    Warehouse_cancelCount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    Warehouse_dieList: {
+        parameters: {
+            query?: {
+                q?: string;
+                status?: "DEFECT" | "READY" | "IN_USE" | "CHECKING" | "REPAIRING" | "BROKEN" | "DISPOSED";
+                symbol?: string;
+                /** @description "home" = kho Âu Việt, hoặc id xưởng */
+                place?: string;
+                flag?: "overdue" | "review" | "out";
+                /** @description Tìm theo kích thước, lệch tối đa `tol` cm mỗi chiều */
+                l?: number;
+                w?: number;
+                h?: number;
+                tol?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DieListDto"];
+                };
+            };
+        };
+    };
+    Warehouse_createDie: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DieInputDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DieDto"];
+                };
+            };
+        };
+    };
+    Warehouse_die: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DieDto"];
+                };
+            };
+        };
+    };
+    Warehouse_updateDie: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DieInputDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DieDto"];
+                };
+            };
+        };
+    };
+    Warehouse_dieAction: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DieActionDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DieDto"];
+                };
+            };
+        };
+    };
+    Warehouse_diePhoto: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    Warehouse_importDies: {
+        parameters: {
+            query?: {
+                dryRun?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportReportDto"];
+                };
+            };
+        };
+    };
+    Warehouse_batches: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BatchDto"][];
+                };
+            };
+        };
+    };
+    Warehouse_createBatch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BatchInputDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BatchDto"];
+                };
+            };
+        };
+    };
+    Warehouse_batch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BatchDto"];
+                };
+            };
+        };
+    };
+    Warehouse_dieCounts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DieCountDto"][];
+                };
+            };
+        };
+    };
+    Warehouse_createDieCount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DieCountCreateDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DieCountDto"];
+                };
+            };
+        };
+    };
+    Warehouse_dieCount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DieCountDto"];
+                };
+            };
+        };
+    };
+    Warehouse_markDieCount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DieCountMarkDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DieCountDto"];
+                };
+            };
+        };
+    };
+    Warehouse_finishDieCount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DieCountDto"];
+                };
             };
         };
     };
