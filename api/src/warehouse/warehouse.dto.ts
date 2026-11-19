@@ -30,6 +30,8 @@ import {
   WhOrientation,
   WhPartnerKind,
   WhSlipKind,
+  WhSlipStatus,
+  WhWarehouseKind,
 } from '../generated/prisma/enums';
 
 // ───────────── Danh mục ─────────────
@@ -94,41 +96,182 @@ export class SymbolDto {
   dies: number;
 }
 
-export class SizeInputDto {
+// ───────────── Kho ─────────────
+
+export class WarehouseInputDto {
+  /** Mã kho dùng trong số phiếu: GIAY, BAT, OFFSET… */
+  @IsString() @Matches(/^[A-Z0-9]{2,10}$/, { message: 'Mã kho là 2–10 chữ in hoa hoặc số' })
+  code: string;
+  @IsString() @IsNotEmpty() @MaxLength(120)
+  name: string;
+  @IsOptional() @IsString() @MaxLength(300)
+  address?: string | null;
+  /** Chỉ đặt khi tạo kho */
+  @IsOptional() @IsEnum(WhWarehouseKind)
+  kind?: WhWarehouseKind;
+  @IsOptional() @IsString() @MaxLength(500)
+  note?: string | null;
+  @IsOptional() @IsBoolean()
+  isActive?: boolean;
+  @IsOptional() @IsInt() @Min(0) @Max(10_000)
+  sortOrder?: number;
+  /** Thủ kho: người xác nhận phiếu của kho này */
+  @IsArray() @IsUUID('all', { each: true })
+  keeperIds: string[];
+}
+
+export class KeeperDto {
+  id: string;
+  fullName: string;
+}
+
+export class WarehouseDto {
+  id: string;
+  code: string;
+  name: string;
+  address: string | null;
+  @ApiProperty({ enum: WhWarehouseKind, enumName: 'WhWarehouseKind' })
+  kind: WhWarehouseKind;
+  note: string | null;
+  isActive: boolean;
+  sortOrder: number;
+  keepers: KeeperDto[];
+  /** Số vật tư có ở kho */
+  materials: number;
+  /** Người đang xem xác nhận được phiếu của kho này */
+  canConfirm: boolean;
+  /** Phiếu đang chờ xác nhận */
+  pending: number;
+  /** Quy cách dưới mức tối thiểu */
+  low: number;
+}
+
+// ───────────── Vật tư, quy cách, đơn vị tính ─────────────
+
+export class SpecInputDto {
   @IsOptional() @IsString() @IsUUID()
   id?: string;
-  /** cm; 0 x 0 khi vật tư không theo khổ */
-  @IsNumber() @Min(0) @Max(10_000)
+  /** cm; 0 x 0 khi vật tư không theo khổ; dài 0 = chỉ có khổ rộng (cuộn) */
+  @IsNumber() @Min(0) @Max(100_000)
   widthCm: number;
-  @IsNumber() @Min(0) @Max(10_000)
+  @IsNumber() @Min(0) @Max(100_000)
   lengthCm: number;
-  @IsOptional() @ValidateIf((_, v) => v !== null) @IsNumber() @Min(0)
-  minQty?: number | null;
   @IsOptional() @IsBoolean()
   isActive?: boolean;
 }
 
+export class UnitInputDto {
+  @IsOptional() @IsString() @IsUUID()
+  id?: string;
+  @IsString() @IsNotEmpty() @MaxLength(20)
+  name: string;
+  /** 1 đơn vị này = factor đơn vị cơ sở */
+  @IsNumber() @Min(0.0001) @Max(100_000_000)
+  factor: number;
+  /** Hệ số riêng cho một quy cách (khổ); bỏ trống = áp dụng mọi quy cách */
+  @IsOptional() @ValidateIf((_, v) => v !== null) @IsNumber() @Min(0)
+  widthCm?: number | null;
+  @IsOptional() @ValidateIf((_, v) => v !== null) @IsNumber() @Min(0)
+  lengthCm?: number | null;
+}
+
 export class WhMaterialInputDto {
+  @IsOptional() @ValidateIf((_, v) => v !== null) @IsString() @MaxLength(40)
+  code?: string | null;
   @IsString() @IsNotEmpty() @MaxLength(60)
   group: string;
   @IsString() @IsNotEmpty() @MaxLength(160)
   name: string;
+  /** Đơn vị cơ sở: tồn lưu theo đơn vị này */
   @IsString() @IsNotEmpty() @MaxLength(20)
   unit: string;
   @IsBoolean()
   hasSizes: boolean;
   @IsOptional() @IsBoolean()
   isActive?: boolean;
-  /** Danh sách khổ (vật tư theo khổ) hoặc một dòng 0 x 0 */
-  @IsArray() @ValidateNested({ each: true }) @Type(() => SizeInputDto)
-  sizes: SizeInputDto[];
+  /** Quy cách (khổ); vật tư không theo khổ để trống */
+  @IsArray() @ValidateNested({ each: true }) @Type(() => SpecInputDto)
+  specs: SpecInputDto[];
+  @IsArray() @ValidateNested({ each: true }) @Type(() => UnitInputDto)
+  units: UnitInputDto[];
+  /** Kho có vật tư này */
+  @IsArray() @IsUUID('all', { each: true })
+  warehouseIds: string[];
+}
+
+export class SpecDto {
+  id: string;
+  widthCm: number;
+  lengthCm: number;
+  /** "18 x 50,5" / "khổ 160" / "" */
+  label: string;
+  isActive: boolean;
+}
+
+export class UnitDto {
+  id: string;
+  name: string;
+  factor: number;
+  specId: string | null;
+  specLabel: string | null;
+}
+
+export class MaterialStockDto {
+  warehouseId: string;
+  warehouseCode: string;
+  qty: number;
+}
+
+export class WhMaterialDto {
+  id: string;
+  code: string | null;
+  group: string;
+  name: string;
+  unit: string;
+  hasSizes: boolean;
+  isActive: boolean;
+  specs: SpecDto[];
+  units: UnitDto[];
+  warehouseIds: string[];
+  /** Tổng tồn theo kho (đơn vị cơ sở) */
+  stocks: MaterialStockDto[];
+}
+
+export class MonthLockDto {
+  warehouseId: string;
+  warehouseCode: string;
+  month: string;
+  lockedBy: string;
+  lockedAt: Date;
+}
+
+export class MonthDto {
+  @IsUUID()
+  warehouseId: string;
+  @Matches(/^\d{4}-(0[1-9]|1[0-2])$/)
+  month: string;
+}
+
+// ───────────── Tồn kho ─────────────
+
+export class StockUnitDto {
+  /** null = đơn vị cơ sở */
+  id: string | null;
+  name: string;
+  factor: number;
 }
 
 export class StockItemDto {
+  /** Dòng tồn: một quy cách tại một kho */
   id: string;
+  warehouseId: string;
+  warehouseCode: string;
+  specId: string;
   materialId: string;
+  materialCode: string | null;
   group: string;
   materialName: string;
+  /** Đơn vị cơ sở */
   unit: string;
   hasSizes: boolean;
   widthCm: number;
@@ -139,36 +282,36 @@ export class StockItemDto {
   minQty: number | null;
   low: boolean;
   isActive: boolean;
+  /** Đang chờ xuất (phiếu xuất / chuyển đi chưa xác nhận) */
+  pendingOut: number;
   /** Giá trị tồn tham khảo (bình quân các lần nhập có giá) */
   valueVnd: number | null;
+  /** Đơn vị chọn được khi lập phiếu (đơn vị cơ sở đầu tiên) */
+  units: StockUnitDto[];
 }
 
-export class WhMaterialDto {
-  id: string;
-  group: string;
-  name: string;
-  unit: string;
-  hasSizes: boolean;
-  isActive: boolean;
-  items: StockItemDto[];
+export class StockQueryDto {
+  @IsOptional() @IsUUID()
+  warehouseId?: string;
+  @IsOptional() @IsIn(['true', 'false'])
+  all?: 'true' | 'false';
 }
 
-export class MonthLockDto {
-  month: string;
-  lockedBy: string;
-  lockedAt: Date;
-}
-
-export class MonthDto {
-  @Matches(/^\d{4}-(0[1-9]|1[0-2])$/)
-  month: string;
+export class StockUpdateDto {
+  @IsOptional() @ValidateIf((_, v) => v !== null) @IsNumber() @Min(0)
+  minQty?: number | null;
+  @IsOptional() @IsBoolean()
+  isActive?: boolean;
 }
 
 // ───────────── Phiếu kho ─────────────
 
 export class SlipLineInputDto {
   @IsUUID()
-  stockItemId: string;
+  specId: string;
+  /** Đơn vị đã ghi; bỏ trống = đơn vị cơ sở */
+  @IsOptional() @ValidateIf((_, v) => v !== null) @IsUUID()
+  unitId?: string | null;
   @IsNumber() @Min(0.001) @Max(100_000_000)
   qty: number;
   @IsOptional() @ValidateIf((_, v) => v !== null) @IsInt() @Min(0)
@@ -176,6 +319,8 @@ export class SlipLineInputDto {
 }
 
 export class SlipInputDto {
+  @IsUUID()
+  warehouseId: string;
   @IsIn(['RECEIPT', 'ISSUE', 'RETURN'])
   kind: 'RECEIPT' | 'ISSUE' | 'RETURN';
   @DateOnly()
@@ -193,6 +338,29 @@ export class SlipInputDto {
   note?: string | null;
   @ArrayMinSize(1) @ValidateNested({ each: true }) @Type(() => SlipLineInputDto)
   lines: SlipLineInputDto[];
+  /** Người lập là thủ kho của kho: xác nhận luôn */
+  @IsOptional() @IsBoolean()
+  confirm?: boolean;
+}
+
+export class TransferInputDto {
+  @IsUUID()
+  fromWarehouseId: string;
+  @IsUUID()
+  toWarehouseId: string;
+  @DateOnly()
+  date: string;
+  @IsOptional() @IsString() @MaxLength(120)
+  receiver?: string | null;
+  @IsOptional() @IsString() @MaxLength(60)
+  reference?: string | null;
+  @IsOptional() @IsString() @MaxLength(500)
+  note?: string | null;
+  @ArrayMinSize(1) @ValidateNested({ each: true }) @Type(() => SlipLineInputDto)
+  lines: SlipLineInputDto[];
+  /** Người lập là thủ kho kho đi: xác nhận xuất luôn */
+  @IsOptional() @IsBoolean()
+  confirm?: boolean;
 }
 
 export class VoidDto {
@@ -201,28 +369,56 @@ export class VoidDto {
 }
 
 export class SlipQueryDto {
+  @IsOptional() @IsUUID()
+  warehouseId?: string;
   @IsOptional() @IsEnum(WhSlipKind)
   kind?: WhSlipKind;
+  @IsOptional() @IsEnum(WhSlipStatus)
+  status?: WhSlipStatus;
   @IsOptional() @Matches(/^\d{4}-(0[1-9]|1[0-2])$/)
   month?: string;
+  @IsOptional() @DateOnly()
+  from?: string;
+  @IsOptional() @DateOnly()
+  to?: string;
   @IsOptional() @IsString() @MaxLength(60)
   q?: string;
 }
 
 export class SlipLineDto {
   id: string;
-  stockItemId: string;
+  specId: string;
   label: string;
+  /** Đơn vị cơ sở */
   unit: string;
+  /** Theo đơn vị cơ sở */
   qty: number;
+  /** Đơn vị đã ghi (null = đơn vị cơ sở) */
+  unitName: string | null;
+  unitQty: number | null;
   unitPriceVnd: number | null;
+}
+
+export class SlipRefDto {
+  id: string;
+  code: string;
+  warehouseId: string;
+  warehouseCode: string;
+  warehouseName: string;
+  @ApiProperty({ enum: WhSlipStatus, enumName: 'WhSlipStatus' })
+  status: WhSlipStatus;
 }
 
 export class SlipDto {
   id: string;
   code: string;
+  warehouseId: string;
+  warehouseCode: string;
+  warehouseName: string;
   @ApiProperty({ enum: WhSlipKind, enumName: 'WhSlipKind' })
   kind: WhSlipKind;
+  @ApiProperty({ enum: WhSlipStatus, enumName: 'WhSlipStatus' })
+  status: WhSlipStatus;
   date: string;
   partnerId: string | null;
   partnerName: string | null;
@@ -230,10 +426,20 @@ export class SlipDto {
   purpose: string | null;
   reference: string | null;
   note: string | null;
+  createdById: string;
   createdBy: string;
   createdAt: Date;
+  confirmedAt: Date | null;
+  confirmedBy: string | null;
+  rejectReason: string | null;
   voidedAt: Date | null;
   voidReason: string | null;
+  /** Phiếu chuyển kho: phiếu ở kho bên kia */
+  counterpart: SlipRefDto | null;
+  /** Người đang xem xác nhận / từ chối được */
+  canConfirm: boolean;
+  /** Người đang xem huỷ được (phiếu chưa xác nhận) */
+  canCancel: boolean;
   lines: SlipLineDto[];
 }
 
@@ -255,9 +461,75 @@ export class StockCardDto {
   rows: CardRowDto[];
 }
 
+// ───────────── Báo cáo: nhập – xuất – tồn, tồn theo ngày ─────────────
+
+export class StockReportQueryDto {
+  @IsUUID()
+  warehouseId: string;
+  @DateOnly()
+  from: string;
+  @DateOnly()
+  to: string;
+}
+
+export class StockReportRowDto {
+  stockId: string;
+  specId: string;
+  group: string;
+  label: string;
+  unit: string;
+  opening: number;
+  inQty: number;
+  outQty: number;
+  closing: number;
+}
+
+export class StockReportDto {
+  warehouseId: string;
+  from: string;
+  to: string;
+  rows: StockReportRowDto[];
+}
+
+export class SnapshotRunDto {
+  days: number;
+  rows: number;
+}
+
+export class StockAsOfQueryDto {
+  @IsUUID()
+  warehouseId: string;
+  @DateOnly()
+  date: string;
+}
+
+export class StockAsOfRowDto {
+  stockId: string;
+  specId: string;
+  group: string;
+  label: string;
+  unit: string;
+  /** Theo bản chụp cuối ngày nếu có, nếu không thì tính từ phiếu */
+  qty: number;
+  /** Tính lại từ phiếu hiện có (khác bản chụp khi có phiếu bổ sung về sau) */
+  liveQty: number;
+}
+
+export class StockAsOfDto {
+  warehouseId: string;
+  date: string;
+  @ApiProperty({ enum: ['SNAPSHOT', 'LIVE'] })
+  source: 'SNAPSHOT' | 'LIVE';
+  /** Lúc chụp (bản chụp cuối ngày) */
+  takenAt: Date | null;
+  rows: StockAsOfRowDto[];
+}
+
 // ───────────── Kiểm kê vật tư ─────────────
 
 export class CountCreateDto {
+  @IsUUID()
+  warehouseId: string;
   @DateOnly()
   date: string;
   /** Chỉ kiểm các nhóm này; bỏ trống = tất cả */
@@ -269,7 +541,7 @@ export class CountCreateDto {
 
 export class CountEntryDto {
   @IsUUID()
-  stockItemId: string;
+  specId: string;
   @ValidateIf((_, v) => v !== null) @IsNumber() @Min(0)
   countedQty: number | null;
 }
@@ -280,7 +552,7 @@ export class CountUpdateDto {
 }
 
 export class CountLineDto {
-  stockItemId: string;
+  specId: string;
   label: string;
   group: string;
   unit: string;
@@ -292,6 +564,9 @@ export class CountLineDto {
 export class CountDto {
   id: string;
   code: string;
+  warehouseId: string;
+  warehouseCode: string;
+  warehouseName: string;
   date: string;
   @ApiProperty({ enum: WhCountStatus, enumName: 'WhCountStatus' })
   status: WhCountStatus;
@@ -302,6 +577,8 @@ export class CountDto {
   adjustSlipCode: string | null;
   counted: number;
   total: number;
+  /** Người đang xem duyệt được (quản lý kho hoặc thủ kho của kho) */
+  canApprove: boolean;
   lines: CountLineDto[];
 }
 
@@ -550,7 +827,12 @@ export class PlaceCountDto {
 }
 
 export class WarehouseOverviewDto {
+  warehouses: WarehouseDto[];
   lowStock: StockItemDto[];
+  /** Phiếu chờ người đang xem xác nhận */
+  toConfirm: SlipDto[];
+  /** Hàng đang chuyển giữa các kho (đã xuất, kho nhận chưa xác nhận) */
+  inTransit: SlipDto[];
   diesTotal: number;
   @ApiProperty({ type: 'object', additionalProperties: { type: 'number' } })
   diesByStatus: Record<string, number>;

@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { Inject, Injectable } from '@nestjs/common';
 import type { AuthUser } from '../auth/auth.types';
 import { DomainError } from '../common/errors/domain-error';
@@ -5,6 +6,7 @@ import { formatDateOnly, todayInZone } from '../common/utils/dates';
 import { cleanText, dateField } from '../common/utils/input';
 import { ENV, type Env } from '../config/env';
 import { Prisma } from '../generated/prisma/client';
+import type { WhSlipKind } from '../generated/prisma/enums';
 import { NumberingService } from '../numbering/numbering.service';
 import { PrismaService, type Tx } from '../prisma/prisma.service';
 import type {
@@ -13,88 +15,156 @@ import type {
   CountUpdateDto,
   SlipDto,
   SlipInputDto,
+  SlipLineInputDto,
   SlipQueryDto,
+  StockAsOfDto,
+  StockAsOfQueryDto,
   StockCardDto,
   StockItemDto,
+  StockReportDto,
+  StockReportQueryDto,
+  StockUpdateDto,
+  TransferInputDto,
 } from './warehouse.dto';
-import { assertMonthOpen, itemLabel, n, nn } from './wh-common';
+import { WarehousesService, type WarehouseWithKeepers } from './warehouses.service';
+import { assertMonthOpen, canConfirmIn, itemLabel, n, nn } from './wh-common';
 
 const slipInclude = {
+  warehouse: { include: { members: true } },
   partner: { select: { name: true } },
   createdBy: { select: { fullName: true } },
-  lines: { include: { stockItem: { include: { material: true } } } },
+  confirmedBy: { select: { fullName: true } },
+  lines: { include: { spec: { include: { material: true } } } },
 } satisfies Prisma.WhSlipInclude;
 type SlipRow = Prisma.WhSlipGetPayload<{ include: typeof slipInclude }>;
 
-const PREFIX = { RECEIPT: 'NK', ISSUE: 'XK', RETURN: 'NL', ADJUST: 'DC' } as const;
+const PREFIX = { RECEIPT: 'NK', ISSUE: 'XK', RETURN: 'NL', ADJUST: 'DC', TRANSFER_OUT: 'CK', TRANSFER_IN: 'CK' } as const;
 /** +1 adds to stock, -1 takes away (ADJUST lines carry their own sign) */
-const SIGN = { RECEIPT: 1, ISSUE: -1, RETURN: 1, ADJUST: 1 } as const;
+const SIGN: Record<WhSlipKind, 1 | -1> = { RECEIPT: 1, ISSUE: -1, RETURN: 1, ADJUST: 1, TRANSFER_OUT: -1, TRANSFER_IN: 1 };
+/** Signed quantity of a slip line in SQL (confirmed, not void) */
+const SIGNED = Prisma.sql`CASE WHEN s."kind" IN ('ISSUE', 'TRANSFER_OUT') THEN -l."qty" ELSE l."qty" END`;
+const r3 = (v: number) => Math.round(v * 1000) / 1000;
+
+type ResolvedLine = { specId: string; qty: number; unitName: string | null; unitQty: number | null; factor: number | null; unitPriceVnd: bigint | null };
 
 /**
- * Giấy và vật tư: phiếu nhập / xuất / nhập lại / điều chỉnh, tồn tức thời, thẻ kho, kiểm kê.
- * Tồn = đầu kỳ + nhập − xuất + nhập lại ± điều chỉnh; số tồn cache trên mã tồn được đổi cùng giao dịch với phiếu
- * và không bao giờ âm. Không tạo bút toán, không phụ thuộc kỳ kế toán.
+ * Tồn theo kho và quy cách, phiếu nhập / xuất / nhập lại / chuyển kho / điều chỉnh, thẻ kho, kiểm kê, báo cáo.
+ * Phiếu lập xong ở trạng thái chờ xác nhận; tồn chỉ đổi khi thủ kho của kho xác nhận. Tồn không bao giờ âm.
+ * Không tạo bút toán, không phụ thuộc kỳ kế toán.
  */
 @Injectable()
 export class StockService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly numbering: NumberingService,
+    private readonly warehouses: WarehousesService,
     @Inject(ENV) private readonly env: Env,
   ) {}
 
-  /** Average receipt price per stock item (receipts that carry a price) */
+  today(): string {
+    return todayInZone(this.env.APP_TIMEZONE);
+  }
+
+  // ───────────── Tồn ─────────────
+
+  /** Average receipt price per base unit, per spec (confirmed receipts that carry a price) */
   private async avgPrices(): Promise<Map<string, number>> {
     const rows = await this.prisma.$queryRaw<Array<{ id: string; avg: number }>>`
-      SELECT l."stockItemId" AS id, (SUM(l."qty" * l."unitPriceVnd") / NULLIF(SUM(l."qty"), 0))::float8 AS avg
+      SELECT l."specId" AS id,
+             (SUM(l."qty" * l."unitPriceVnd" / COALESCE(l."factor", 1)) / NULLIF(SUM(l."qty"), 0))::float8 AS avg
       FROM "WhSlipLine" l JOIN "WhSlip" s ON s."id" = l."slipId"
-      WHERE s."kind" = 'RECEIPT' AND s."voidedAt" IS NULL AND l."unitPriceVnd" IS NOT NULL
-      GROUP BY l."stockItemId"`;
+      WHERE s."kind" = 'RECEIPT' AND s."status" = 'CONFIRMED' AND s."voidedAt" IS NULL AND l."unitPriceVnd" IS NOT NULL
+      GROUP BY l."specId"`;
     return new Map(rows.map((r) => [r.id, r.avg]));
   }
 
-  async items(includeInactive = false): Promise<StockItemDto[]> {
-    const [rows, prices] = await Promise.all([
-      this.prisma.whStockItem.findMany({
-        where: includeInactive ? {} : { isActive: true, material: { isActive: true } },
-        include: { material: true },
-        orderBy: [{ material: { group: 'asc' } }, { material: { name: 'asc' } }, { widthCm: 'asc' }, { lengthCm: 'asc' }],
+  async items(warehouseId?: string, includeInactive = false): Promise<StockItemDto[]> {
+    const [rows, prices, pending] = await Promise.all([
+      this.prisma.whStock.findMany({
+        where: {
+          ...(warehouseId ? { warehouseId } : {}),
+          warehouse: { kind: 'STOCK' },
+          ...(includeInactive ? {} : { isActive: true, spec: { isActive: true, material: { isActive: true } } }),
+        },
+        include: { warehouse: true, spec: { include: { material: { include: { units: true } } } } },
+        orderBy: [
+          { warehouse: { sortOrder: 'asc' } },
+          { spec: { material: { group: 'asc' } } },
+          { spec: { material: { name: 'asc' } } },
+          { spec: { widthCm: 'asc' } },
+          { spec: { lengthCm: 'asc' } },
+        ],
       }),
       this.avgPrices(),
+      this.prisma.$queryRaw<Array<{ warehouseId: string; specId: string; qty: number }>>`
+        SELECT s."warehouseId", l."specId", SUM(l."qty")::float8 AS qty
+        FROM "WhSlipLine" l JOIN "WhSlip" s ON s."id" = l."slipId"
+        WHERE s."status" = 'PENDING' AND s."kind" IN ('ISSUE', 'TRANSFER_OUT')
+        GROUP BY s."warehouseId", l."specId"`,
     ]);
-    return rows.map((i) => {
-      const qty = n(i.qty);
-      const minQty = nn(i.minQty);
-      const avg = prices.get(i.id);
-      return {
-        id: i.id,
-        materialId: i.materialId,
-        group: i.material.group,
-        materialName: i.material.name,
-        unit: i.material.unit,
-        hasSizes: i.material.hasSizes,
-        widthCm: n(i.widthCm),
-        lengthCm: n(i.lengthCm),
-        label: itemLabel(i.material, i),
-        qty,
-        minQty,
-        low: minQty !== null && qty < minQty,
-        isActive: i.isActive && i.material.isActive,
-        valueVnd: avg === undefined ? null : Math.round(qty * avg),
-      };
+    return rows.map((st) => this.itemDto(st, prices, pending));
+  }
+
+  private itemDto(
+    st: Prisma.WhStockGetPayload<{ include: { warehouse: true; spec: { include: { material: { include: { units: true } } } } } }>,
+    prices: Map<string, number>,
+    pending: Array<{ warehouseId: string; specId: string; qty: number }>,
+  ): StockItemDto {
+    const m = st.spec.material;
+    const qty = n(st.qty);
+    const minQty = nn(st.minQty);
+    const avg = prices.get(st.specId);
+    // Spec-specific units first win over material-wide units of the same name
+    const units = new Map<string, { id: string | null; name: string; factor: number }>();
+    for (const u of m.units.filter((u) => u.specId === null)) units.set(u.name, { id: u.id, name: u.name, factor: n(u.factor) });
+    for (const u of m.units.filter((u) => u.specId === st.specId)) units.set(u.name, { id: u.id, name: u.name, factor: n(u.factor) });
+    return {
+      id: st.id,
+      warehouseId: st.warehouseId,
+      warehouseCode: st.warehouse.code,
+      specId: st.specId,
+      materialId: m.id,
+      materialCode: m.code,
+      group: m.group,
+      materialName: m.name,
+      unit: m.unit,
+      hasSizes: m.hasSizes,
+      widthCm: n(st.spec.widthCm),
+      lengthCm: n(st.spec.lengthCm),
+      label: itemLabel(m, st.spec),
+      qty,
+      minQty,
+      low: minQty !== null && qty < minQty,
+      isActive: st.isActive && st.spec.isActive && m.isActive,
+      pendingOut: pending.find((p) => p.warehouseId === st.warehouseId && p.specId === st.specId)?.qty ?? 0,
+      valueVnd: avg === undefined ? null : Math.round(qty * avg),
+      units: [{ id: null, name: m.unit, factor: 1 }, ...units.values()],
+    };
+  }
+
+  async updateStock(id: string, dto: StockUpdateDto): Promise<void> {
+    const res = await this.prisma.whStock.updateMany({
+      where: { id },
+      data: { ...(dto.minQty !== undefined ? { minQty: dto.minQty } : {}), ...(dto.isActive !== undefined ? { isActive: dto.isActive } : {}) },
     });
+    if (!res.count) throw DomainError.notFound('WhStock', id);
   }
 
   // ───────────── Phiếu ─────────────
 
-  async slips(q: SlipQueryDto): Promise<SlipDto[]> {
+  async slips(q: SlipQueryDto, actor: AuthUser): Promise<SlipDto[]> {
     const where: Prisma.WhSlipWhereInput = {};
+    if (q.warehouseId) where.warehouseId = q.warehouseId;
     if (q.kind) where.kind = q.kind;
+    if (q.status) where.status = q.status;
     if (q.month) {
       const start = dateField(`${q.month}-01`, 'month');
       const end = new Date(start);
       end.setUTCMonth(end.getUTCMonth() + 1);
       where.date = { gte: start, lt: end };
+    }
+    if (q.from || q.to) {
+      where.date = { ...(q.from ? { gte: dateField(q.from, 'from') } : {}), ...(q.to ? { lte: dateField(q.to, 'to') } : {}) };
     }
     if (q.q?.trim()) {
       const t = q.q.trim();
@@ -102,117 +172,263 @@ export class StockService {
         { code: { contains: t, mode: 'insensitive' } },
         { reference: { contains: t, mode: 'insensitive' } },
         { receiver: { contains: t, mode: 'insensitive' } },
+        { purpose: { contains: t, mode: 'insensitive' } },
         { partner: { name: { contains: t, mode: 'insensitive' } } },
       ];
     }
-    const rows = await this.prisma.whSlip.findMany({ where, include: slipInclude, orderBy: [{ date: 'desc' }, { createdAt: 'desc' }], take: 300 });
-    return rows.map((s) => this.slipDto(s));
+    const rows = await this.prisma.whSlip.findMany({ where, include: slipInclude, orderBy: [{ date: 'desc' }, { createdAt: 'desc' }], take: 500 });
+    const pairs = await this.counterparts(rows);
+    return rows.map((s) => this.slipDto(s, actor, pairs.get(s.id) ?? null));
   }
 
-  async slip(id: string): Promise<SlipDto> {
+  async slip(id: string, actor: AuthUser): Promise<SlipDto> {
     const s = await this.prisma.whSlip.findUnique({ where: { id }, include: slipInclude });
     if (!s) throw DomainError.notFound('WhSlip', id);
-    return this.slipDto(s);
+    const pairs = await this.counterparts([s]);
+    return this.slipDto(s, actor, pairs.get(s.id) ?? null);
+  }
+
+  private async counterparts(rows: SlipRow[]): Promise<Map<string, SlipRow>> {
+    const ids = [...new Set(rows.map((r) => r.transferId).filter((x): x is string => !!x))];
+    if (!ids.length) return new Map();
+    const all = await this.prisma.whSlip.findMany({ where: { transferId: { in: ids } }, include: slipInclude });
+    const map = new Map<string, SlipRow>();
+    for (const r of rows) {
+      const other = all.find((a) => a.transferId === r.transferId && a.id !== r.id);
+      if (other) map.set(r.id, other);
+    }
+    return map;
+  }
+
+  /** Validates lines against the warehouse and converts each to base units */
+  private async resolveLines(tx: Tx, warehouseId: string, lines: SlipLineInputDto[], withPrice: boolean): Promise<ResolvedLine[]> {
+    const ids = [...new Set(lines.map((l) => l.specId))];
+    if (ids.length !== lines.length) throw DomainError.badRequest('WH_LINE_DUPLICATE', 'Each size may appear once per slip');
+    const stocks = await tx.whStock.findMany({ where: { warehouseId, specId: { in: ids } }, include: { spec: { include: { material: { include: { units: true } } } } } });
+    return lines.map((l) => {
+      const st = stocks.find((s) => s.specId === l.specId);
+      if (!st || !st.isActive) throw DomainError.badRequest('WH_ITEM_NOT_IN_WAREHOUSE', 'This material is not kept in this warehouse');
+      let factor: number | null = null;
+      let unitName: string | null = null;
+      if (l.unitId) {
+        const u = st.spec.material.units.find((x) => x.id === l.unitId && (x.specId === null || x.specId === l.specId));
+        if (!u) throw DomainError.badRequest('WH_UNIT_UNKNOWN', 'Unknown unit for this material');
+        factor = n(u.factor);
+        unitName = u.name;
+      }
+      const qty = r3(l.qty * (factor ?? 1));
+      if (qty <= 0) throw DomainError.badRequest('WH_QTY_INVALID', 'Quantity must be above zero');
+      return {
+        specId: l.specId,
+        qty,
+        unitName,
+        unitQty: factor === null ? null : l.qty,
+        factor,
+        unitPriceVnd: withPrice && l.unitPriceVnd != null ? BigInt(l.unitPriceVnd) : null,
+      };
+    });
   }
 
   async createSlip(dto: SlipInputDto, actor: AuthUser): Promise<SlipDto> {
     if (dto.kind === 'ISSUE' && !cleanText(dto.receiver)) throw DomainError.badRequest('WH_RECEIVER_REQUIRED', 'Issue slips need the receiver');
-    const id = await this.prisma.$transaction((tx) => this.writeSlip(tx, dto.kind, dto, actor));
-    return this.slip(id);
+    const id = await this.prisma.$transaction(async (tx) => {
+      const w = await this.warehouses.stockWarehouse(tx, dto.warehouseId);
+      await assertMonthOpen(tx, w.id, dto.date);
+      const lines = await this.resolveLines(tx, w.id, dto.lines, dto.kind === 'RECEIPT');
+      const slip = await tx.whSlip.create({
+        data: {
+          code: await this.numbering.nextWarehouse(tx, PREFIX[dto.kind], w.code, dateField(dto.date, 'date')),
+          warehouseId: w.id,
+          kind: dto.kind,
+          date: dateField(dto.date, 'date'),
+          partnerId: dto.kind === 'RECEIPT' ? (dto.partnerId ?? null) : null,
+          receiver: cleanText(dto.receiver),
+          purpose: cleanText(dto.purpose),
+          reference: cleanText(dto.reference),
+          note: cleanText(dto.note),
+          createdById: actor.id,
+          lines: { create: lines },
+        },
+      });
+      if (dto.confirm && this.warehouses.canConfirm(actor, w)) await this.confirmIn(tx, slip.id, actor);
+      return slip.id;
+    });
+    return this.slip(id, actor);
   }
 
-  /** Shared by slips and stock counts (ADJUST, signed quantities) */
-  async writeSlip(
-    tx: Tx,
-    kind: 'RECEIPT' | 'ISSUE' | 'RETURN' | 'ADJUST',
-    dto: Pick<SlipInputDto, 'date' | 'partnerId' | 'receiver' | 'purpose' | 'reference' | 'note'> & { lines: Array<{ stockItemId: string; qty: number; unitPriceVnd?: number | null }> },
-    actor: AuthUser,
-    countId?: string,
-  ): Promise<string> {
-    await assertMonthOpen(tx, dto.date);
-    const ids = [...new Set(dto.lines.map((l) => l.stockItemId))];
-    if (ids.length !== dto.lines.length) throw DomainError.badRequest('WH_LINE_DUPLICATE', 'Each stock item may appear once per slip');
-    const items = await tx.whStockItem.findMany({ where: { id: { in: ids } }, include: { material: true } });
-    if (items.length !== ids.length) throw DomainError.badRequest('WH_ITEM_NOT_FOUND', 'Unknown stock item');
-    const code = await this.numbering.next(tx, PREFIX[kind], dateField(dto.date, 'date'));
-    const slip = await tx.whSlip.create({
-      data: {
-        code,
-        kind,
-        date: dateField(dto.date, 'date'),
-        partnerId: kind === 'RECEIPT' ? (dto.partnerId ?? null) : null,
-        receiver: cleanText(dto.receiver),
-        purpose: cleanText(dto.purpose),
-        reference: cleanText(dto.reference),
-        note: cleanText(dto.note),
-        countId: countId ?? null,
-        createdById: actor.id,
-        lines: {
-          create: dto.lines.map((l) => ({
-            stockItemId: l.stockItemId,
-            qty: l.qty,
-            unitPriceVnd: kind === 'RECEIPT' && l.unitPriceVnd != null ? BigInt(l.unitPriceVnd) : null,
-          })),
+  /** Phiếu chuyển kho: một phiếu đi (kho A) và một phiếu đến (kho B), chung transferId */
+  async createTransfer(dto: TransferInputDto, actor: AuthUser): Promise<SlipDto> {
+    if (dto.fromWarehouseId === dto.toWarehouseId) throw DomainError.badRequest('WH_TRANSFER_SAME', 'Choose two different warehouses');
+    const id = await this.prisma.$transaction(async (tx) => {
+      const from = await this.warehouses.stockWarehouse(tx, dto.fromWarehouseId);
+      const to = await this.warehouses.stockWarehouse(tx, dto.toWarehouseId);
+      await assertMonthOpen(tx, from.id, dto.date);
+      await assertMonthOpen(tx, to.id, dto.date);
+      const lines = await this.resolveLines(tx, from.id, dto.lines, false);
+      // Kho nhận chưa có vật tư thì thêm vào (kho – vật tư và dòng tồn)
+      const specs = await tx.whSpec.findMany({ where: { id: { in: lines.map((l) => l.specId) } } });
+      for (const p of specs) {
+        await tx.whWarehouseMaterial.upsert({
+          where: { warehouseId_materialId: { warehouseId: to.id, materialId: p.materialId } },
+          create: { warehouseId: to.id, materialId: p.materialId },
+          update: {},
+        });
+        await tx.whStock.upsert({ where: { warehouseId_specId: { warehouseId: to.id, specId: p.id } }, create: { warehouseId: to.id, specId: p.id }, update: { isActive: true } });
+      }
+      const transferId = randomUUID();
+      const date = dateField(dto.date, 'date');
+      const common = { date, transferId, receiver: cleanText(dto.receiver), reference: cleanText(dto.reference), note: cleanText(dto.note), createdById: actor.id };
+      const out = await tx.whSlip.create({
+        data: {
+          ...common,
+          code: await this.numbering.nextWarehouse(tx, 'CK', from.code, date),
+          warehouseId: from.id,
+          kind: 'TRANSFER_OUT',
+          purpose: `Chuyển sang ${to.name}`,
+          lines: { create: lines },
         },
-      },
+      });
+      await tx.whSlip.create({
+        data: {
+          ...common,
+          code: await this.numbering.nextWarehouse(tx, 'CK', to.code, date),
+          warehouseId: to.id,
+          kind: 'TRANSFER_IN',
+          purpose: `Nhận từ ${from.name}`,
+          lines: { create: lines },
+        },
+      });
+      if (dto.confirm && this.warehouses.canConfirm(actor, from)) await this.confirmIn(tx, out.id, actor);
+      return out.id;
     });
-    for (const l of dto.lines) await this.applyQty(tx, l.stockItemId, SIGN[kind] * l.qty, items.find((i) => i.id === l.stockItemId)!);
-    return slip.id;
+    return this.slip(id, actor);
+  }
+
+  async confirmSlip(id: string, actor: AuthUser): Promise<SlipDto> {
+    await this.prisma.$transaction((tx) => this.confirmIn(tx, id, actor));
+    return this.slip(id, actor);
+  }
+
+  /** Thủ kho xác nhận: tồn thay đổi tại đây */
+  private async confirmIn(tx: Tx, id: string, actor: AuthUser): Promise<void> {
+    const s = await tx.whSlip.findUnique({ where: { id }, include: { warehouse: { include: { members: true } }, lines: { include: { spec: { include: { material: true } } } } } });
+    if (!s) throw DomainError.notFound('WhSlip', id);
+    if (s.status !== 'PENDING') throw DomainError.conflict('WH_SLIP_NOT_PENDING', 'This slip is no longer waiting for confirmation');
+    if (!this.warehouses.canConfirm(actor, s.warehouse)) throw DomainError.forbidden('WH_NOT_KEEPER', 'Only the storekeeper of this warehouse can confirm');
+    await assertMonthOpen(tx, s.warehouseId, formatDateOnly(s.date)!);
+    if (s.kind === 'TRANSFER_IN') {
+      const out = await tx.whSlip.findFirst({ where: { transferId: s.transferId, kind: 'TRANSFER_OUT' } });
+      if (out?.status !== 'CONFIRMED') throw DomainError.conflict('WH_TRANSFER_NOT_SENT', 'The sending warehouse has not confirmed this transfer yet');
+    }
+    // Chiếm quyền xác nhận trước khi đổi tồn: hai người bấm cùng lúc chỉ một người được
+    const claimed = await tx.whSlip.updateMany({ where: { id, status: 'PENDING' }, data: { status: 'CONFIRMED', confirmedAt: new Date(), confirmedById: actor.id } });
+    if (!claimed.count) throw DomainError.conflict('WH_SLIP_NOT_PENDING', 'This slip is no longer waiting for confirmation');
+    for (const l of s.lines) await this.applyQty(tx, s.warehouseId, l.specId, SIGN[s.kind] * n(l.qty), l.spec);
+  }
+
+  async rejectSlip(id: string, reason: string, actor: AuthUser): Promise<SlipDto> {
+    await this.prisma.$transaction(async (tx) => {
+      const s = await tx.whSlip.findUnique({ where: { id }, include: { warehouse: { include: { members: true } } } });
+      if (!s) throw DomainError.notFound('WhSlip', id);
+      if (s.status !== 'PENDING') throw DomainError.conflict('WH_SLIP_NOT_PENDING', 'This slip is no longer waiting for confirmation');
+      if (!this.warehouses.canConfirm(actor, s.warehouse)) throw DomainError.forbidden('WH_NOT_KEEPER', 'Only the storekeeper of this warehouse can reject');
+      const ids = await this.transferIdsForClose(tx, s);
+      await tx.whSlip.updateMany({ where: { id: { in: ids }, status: 'PENDING' }, data: { status: 'REJECTED', rejectReason: reason.trim(), confirmedAt: new Date(), confirmedById: actor.id } });
+    });
+    return this.slip(id, actor);
+  }
+
+  async cancelSlip(id: string, actor: AuthUser): Promise<SlipDto> {
+    await this.prisma.$transaction(async (tx) => {
+      const s = await tx.whSlip.findUnique({ where: { id }, include: { warehouse: { include: { members: true } } } });
+      if (!s) throw DomainError.notFound('WhSlip', id);
+      if (s.status !== 'PENDING') throw DomainError.conflict('WH_SLIP_NOT_PENDING', 'Only slips waiting for confirmation can be cancelled');
+      if (s.createdById !== actor.id && !this.warehouses.canConfirm(actor, s.warehouse)) {
+        throw DomainError.forbidden('WH_NOT_OWNER', 'Only the person who made the slip, or the storekeeper, can cancel it');
+      }
+      const ids = await this.transferIdsForClose(tx, s);
+      await tx.whSlip.updateMany({ where: { id: { in: ids }, status: 'PENDING' }, data: { status: 'CANCELLED' } });
+    });
+    return this.slip(id, actor);
+  }
+
+  /** Closing one side of a transfer closes both, as long as nothing has left the sending warehouse */
+  private async transferIdsForClose(tx: Tx, s: { id: string; transferId: string | null }): Promise<string[]> {
+    if (!s.transferId) return [s.id];
+    const pair = await tx.whSlip.findMany({ where: { transferId: s.transferId } });
+    if (pair.some((p) => p.kind === 'TRANSFER_OUT' && p.status === 'CONFIRMED')) {
+      throw DomainError.conflict('WH_TRANSFER_SENT', 'The goods have left the sending warehouse; the sending storekeeper can void the transfer instead');
+    }
+    return pair.map((p) => p.id);
   }
 
   /** Changes on-hand quantity atomically; refuses to go below zero */
-  private async applyQty(tx: Tx, stockItemId: string, delta: number, item: { material: { name: string; hasSizes: boolean }; widthCm: Prisma.Decimal; lengthCm: Prisma.Decimal }): Promise<void> {
+  private async applyQty(tx: Tx, warehouseId: string, specId: string, delta: number, spec: { material: { name: string; hasSizes: boolean }; widthCm: Prisma.Decimal; lengthCm: Prisma.Decimal }): Promise<void> {
+    const where = { warehouseId_specId: { warehouseId, specId } };
     if (delta >= 0) {
-      await tx.whStockItem.update({ where: { id: stockItemId }, data: { qty: { increment: delta } } });
+      await tx.whStock.upsert({ where, create: { warehouseId, specId, qty: delta }, update: { qty: { increment: delta } } });
       return;
     }
-    const res = await tx.whStockItem.updateMany({ where: { id: stockItemId, qty: { gte: -delta } }, data: { qty: { decrement: -delta } } });
+    const res = await tx.whStock.updateMany({ where: { warehouseId, specId, qty: { gte: -delta } }, data: { qty: { decrement: -delta } } });
     if (res.count === 0) {
-      const cur = await tx.whStockItem.findUniqueOrThrow({ where: { id: stockItemId } });
-      throw DomainError.badRequest('WH_STOCK_SHORT', `Not enough stock for ${itemLabel(item.material, item)}`, {
-        item: itemLabel(item.material, item),
-        onHand: n(cur.qty),
+      const cur = await tx.whStock.findUnique({ where });
+      throw DomainError.badRequest('WH_STOCK_SHORT', `Not enough stock for ${itemLabel(spec.material, spec)}`, {
+        item: itemLabel(spec.material, spec),
+        onHand: n(cur?.qty),
         requested: -delta,
       });
     }
   }
 
+  /** Huỷ phiếu đã xác nhận: trả lại tồn. Phiếu chuyển kho huỷ cả hai phía. */
   async voidSlip(id: string, reason: string, actor: AuthUser): Promise<SlipDto> {
     await this.prisma.$transaction(async (tx) => {
-      const s = await tx.whSlip.findUnique({ where: { id }, include: { lines: { include: { stockItem: { include: { material: true } } } } } });
+      const s = await tx.whSlip.findUnique({ where: { id }, include: { warehouse: { include: { members: true } } } });
       if (!s) throw DomainError.notFound('WhSlip', id);
       if (s.voidedAt) throw DomainError.conflict('WH_SLIP_VOIDED', 'This slip is already void');
+      if (s.status !== 'CONFIRMED') throw DomainError.conflict('WH_SLIP_NOT_CONFIRMED', 'Only confirmed slips can be voided; cancel or reject the others');
       if (s.kind === 'ADJUST') throw DomainError.badRequest('WH_ADJUST_FIXED', 'Count adjustments cannot be voided; run a new count');
-      await assertMonthOpen(tx, formatDateOnly(s.date));
-      for (const l of s.lines) {
-        try {
-          await this.applyQty(tx, l.stockItemId, -SIGN[s.kind] * n(l.qty), l.stockItem);
-        } catch (e) {
-          if (e instanceof DomainError && e.code === 'WH_STOCK_SHORT') {
-            throw DomainError.badRequest('WH_VOID_NEGATIVE', 'Voiding this slip would make stock negative', e.details);
-          }
-          throw e;
+      if (!this.warehouses.canConfirm(actor, s.warehouse)) throw DomainError.forbidden('WH_NOT_KEEPER', 'Only the storekeeper of this warehouse can void');
+      const all = s.transferId ? await tx.whSlip.findMany({ where: { transferId: s.transferId } }) : [s];
+      // Phía nhận trước (lấy hàng ra khỏi kho nhận), rồi trả về kho đi
+      all.sort((a) => (a.kind === 'TRANSFER_IN' ? -1 : 1));
+      for (const x of all) {
+        if (x.status === 'PENDING') {
+          await tx.whSlip.update({ where: { id: x.id }, data: { status: 'CANCELLED' } });
+          continue;
         }
+        if (x.status !== 'CONFIRMED' || x.voidedAt) continue;
+        await assertMonthOpen(tx, x.warehouseId, formatDateOnly(x.date)!);
+        const lines = await tx.whSlipLine.findMany({ where: { slipId: x.id }, include: { spec: { include: { material: true } } } });
+        for (const l of lines) {
+          try {
+            await this.applyQty(tx, x.warehouseId, l.specId, -SIGN[x.kind] * n(l.qty), l.spec);
+          } catch (e) {
+            if (e instanceof DomainError && e.code === 'WH_STOCK_SHORT') throw DomainError.badRequest('WH_VOID_NEGATIVE', 'Voiding this slip would make stock negative', e.details);
+            throw e;
+          }
+        }
+        await tx.whSlip.update({ where: { id: x.id }, data: { voidedAt: new Date(), voidReason: reason.trim(), voidedById: actor.id } });
       }
-      await tx.whSlip.update({ where: { id }, data: { voidedAt: new Date(), voidReason: reason.trim(), voidedById: actor.id } });
     });
-    return this.slip(id);
+    return this.slip(id, actor);
   }
 
-  async card(stockItemId: string): Promise<StockCardDto> {
-    const item = (await this.items(true)).find((i) => i.id === stockItemId);
-    if (!item) throw DomainError.notFound('WhStockItem', stockItemId);
+  async card(stockId: string): Promise<StockCardDto> {
+    const st = await this.prisma.whStock.findUnique({ where: { id: stockId } });
+    if (!st) throw DomainError.notFound('WhStock', stockId);
+    const item = (await this.items(st.warehouseId, true)).find((i) => i.id === stockId)!;
     const lines = await this.prisma.whSlipLine.findMany({
-      where: { stockItemId, slip: { voidedAt: null } },
+      where: { specId: st.specId, slip: { warehouseId: st.warehouseId, status: 'CONFIRMED', voidedAt: null } },
       include: { slip: { include: { partner: { select: { name: true } } } } },
-      orderBy: [{ slip: { date: 'asc' } }, { slip: { createdAt: 'asc' } }],
+      orderBy: [{ slip: { date: 'asc' } }, { slip: { confirmedAt: 'asc' } }],
     });
     let balance = 0;
     const rows = lines.map((l) => {
       const signed = SIGN[l.slip.kind] * n(l.qty);
       balance += signed;
       return {
-        date: formatDateOnly(l.slip.date),
+        date: formatDateOnly(l.slip.date)!,
         slipId: l.slipId,
         code: l.slip.code,
         kind: l.slip.kind,
@@ -220,53 +436,134 @@ export class StockService {
         reference: l.slip.reference,
         inQty: signed > 0 ? signed : 0,
         outQty: signed < 0 ? -signed : 0,
-        balance: Math.round(balance * 1000) / 1000,
+        balance: r3(balance),
       };
     });
     return { item, rows: rows.reverse() };
   }
 
-  private slipDto(s: SlipRow): SlipDto {
+  private slipDto(s: SlipRow, actor: AuthUser, other: SlipRow | null): SlipDto {
+    const canConfirm = s.status === 'PENDING' && canConfirmIn(actor, s.warehouse.members.map((m) => m.userId))
+      && !(s.kind === 'TRANSFER_IN' && other?.status !== 'CONFIRMED');
     return {
       id: s.id,
       code: s.code,
+      warehouseId: s.warehouseId,
+      warehouseCode: s.warehouse.code,
+      warehouseName: s.warehouse.name,
       kind: s.kind,
-      date: formatDateOnly(s.date),
+      status: s.status,
+      date: formatDateOnly(s.date)!,
       partnerId: s.partnerId,
       partnerName: s.partner?.name ?? null,
       receiver: s.receiver,
       purpose: s.purpose,
       reference: s.reference,
       note: s.note,
+      createdById: s.createdById,
       createdBy: s.createdBy.fullName,
       createdAt: s.createdAt,
+      confirmedAt: s.confirmedAt,
+      confirmedBy: s.confirmedBy?.fullName ?? null,
+      rejectReason: s.rejectReason,
       voidedAt: s.voidedAt,
       voidReason: s.voidReason,
+      counterpart: other
+        ? { id: other.id, code: other.code, warehouseId: other.warehouseId, warehouseCode: other.warehouse.code, warehouseName: other.warehouse.name, status: other.status }
+        : null,
+      canConfirm,
+      canCancel: s.status === 'PENDING' && (s.createdById === actor.id || canConfirmIn(actor, s.warehouse.members.map((m) => m.userId)))
+        && !(s.transferId && (s.kind === 'TRANSFER_IN' ? other?.status === 'CONFIRMED' : false)),
       lines: s.lines.map((l) => ({
         id: l.id,
-        stockItemId: l.stockItemId,
-        label: itemLabel(l.stockItem.material, l.stockItem),
-        unit: l.stockItem.material.unit,
+        specId: l.specId,
+        label: itemLabel(l.spec.material, l.spec),
+        unit: l.spec.material.unit,
         qty: n(l.qty),
+        unitName: l.unitName,
+        unitQty: nn(l.unitQty),
         unitPriceVnd: l.unitPriceVnd === null ? null : Number(l.unitPriceVnd),
       })),
     };
   }
 
-  // ───────────── Kiểm kê vật tư ─────────────
+  // ───────────── Báo cáo ─────────────
 
-  async counts(): Promise<CountDto[]> {
-    const rows = await this.prisma.whCount.findMany({ orderBy: { createdAt: 'desc' }, take: 50, select: { id: true } });
-    return Promise.all(rows.map((r) => this.count(r.id, false)));
+  /** Nhập – xuất – tồn: tồn đầu (trước from), nhập, xuất trong khoảng, tồn cuối */
+  async report(q: StockReportQueryDto): Promise<StockReportDto> {
+    if (q.from > q.to) throw DomainError.badRequest('WH_RANGE_INVALID', '"From" is after "to"');
+    const from = dateField(q.from, 'from');
+    const to = dateField(q.to, 'to');
+    const [items, sums] = await Promise.all([
+      this.items(q.warehouseId, true),
+      this.prisma.$queryRaw<Array<{ specId: string; opening: number; inQty: number; outQty: number }>>`
+        SELECT l."specId",
+          COALESCE(SUM(CASE WHEN s."date" < ${from} THEN ${SIGNED} END), 0)::float8 AS opening,
+          COALESCE(SUM(CASE WHEN s."date" BETWEEN ${from} AND ${to} AND ${SIGNED} > 0 THEN ${SIGNED} END), 0)::float8 AS "inQty",
+          COALESCE(SUM(CASE WHEN s."date" BETWEEN ${from} AND ${to} AND ${SIGNED} < 0 THEN -(${SIGNED}) END), 0)::float8 AS "outQty"
+        FROM "WhSlipLine" l JOIN "WhSlip" s ON s."id" = l."slipId"
+        WHERE s."warehouseId" = ${q.warehouseId}::uuid AND s."status" = 'CONFIRMED' AND s."voidedAt" IS NULL AND s."date" <= ${to}
+        GROUP BY l."specId"`,
+    ]);
+    const rows = items
+      .map((i) => {
+        const x = sums.find((r) => r.specId === i.specId);
+        const opening = r3(x?.opening ?? 0);
+        const inQty = r3(x?.inQty ?? 0);
+        const outQty = r3(x?.outQty ?? 0);
+        return { stockId: i.id, specId: i.specId, group: i.group, label: i.label, unit: i.unit, opening, inQty, outQty, closing: r3(opening + inQty - outQty), active: i.isActive };
+      })
+      .filter((r) => r.active || r.opening || r.inQty || r.outQty)
+      .map(({ active: _a, ...r }) => r);
+    return { warehouseId: q.warehouseId, from: q.from, to: q.to, rows };
   }
 
-  async count(id: string, withLines = true): Promise<CountDto> {
+  /** Tồn cuối ngày theo phiếu đã xác nhận (đơn vị cơ sở), theo quy cách */
+  async ledgerAsOf(tx: Tx | PrismaService, warehouseId: string, date: string): Promise<Map<string, number>> {
+    const d = dateField(date, 'date');
+    const rows = await tx.$queryRaw<Array<{ specId: string; qty: number }>>`
+      SELECT l."specId", COALESCE(SUM(${SIGNED}), 0)::float8 AS qty
+      FROM "WhSlipLine" l JOIN "WhSlip" s ON s."id" = l."slipId"
+      WHERE s."warehouseId" = ${warehouseId}::uuid AND s."status" = 'CONFIRMED' AND s."voidedAt" IS NULL AND s."date" <= ${d}
+      GROUP BY l."specId"`;
+    return new Map(rows.map((r) => [r.specId, r3(r.qty)]));
+  }
+
+  async asOf(q: StockAsOfQueryDto): Promise<StockAsOfDto> {
+    const d = dateField(q.date, 'date');
+    const [items, live, snap] = await Promise.all([
+      this.items(q.warehouseId, true),
+      this.ledgerAsOf(this.prisma, q.warehouseId, q.date),
+      this.prisma.whDailyStock.findMany({ where: { warehouseId: q.warehouseId, date: d } }),
+    ]);
+    const source = snap.length ? 'SNAPSHOT' : 'LIVE';
+    const rows = items
+      .map((i) => {
+        const liveQty = live.get(i.specId) ?? 0;
+        const s = snap.find((x) => x.specId === i.specId);
+        return { stockId: i.id, specId: i.specId, group: i.group, label: i.label, unit: i.unit, qty: source === 'SNAPSHOT' ? (s ? n(s.qty) : 0) : liveQty, liveQty, active: i.isActive };
+      })
+      .filter((r) => r.active || r.qty || r.liveQty)
+      .map(({ active: _a, ...r }) => r);
+    const takenAt = snap.length ? snap.reduce((t, x) => (x.takenAt > t ? x.takenAt : t), snap[0].takenAt) : null;
+    return { warehouseId: q.warehouseId, date: q.date, source, takenAt, rows };
+  }
+
+  // ───────────── Kiểm kê vật tư ─────────────
+
+  async counts(actor: AuthUser, warehouseId?: string): Promise<CountDto[]> {
+    const rows = await this.prisma.whCount.findMany({ where: warehouseId ? { warehouseId } : {}, orderBy: { createdAt: 'desc' }, take: 50, select: { id: true } });
+    return Promise.all(rows.map((r) => this.count(r.id, actor, false)));
+  }
+
+  async count(id: string, actor: AuthUser, withLines = true): Promise<CountDto> {
     const c = await this.prisma.whCount.findUnique({
       where: { id },
       include: {
+        warehouse: { include: { members: true } },
         createdBy: { select: { fullName: true } },
         slip: { select: { code: true } },
-        lines: { include: { stockItem: { include: { material: true } } } },
+        lines: { include: { spec: { include: { material: true } } } },
       },
     });
     if (!c) throw DomainError.notFound('WhCount', id);
@@ -274,20 +571,23 @@ export class StockService {
       .map((l) => {
         const counted = nn(l.countedQty);
         return {
-          stockItemId: l.stockItemId,
-          label: itemLabel(l.stockItem.material, l.stockItem),
-          group: l.stockItem.material.group,
-          unit: l.stockItem.material.unit,
+          specId: l.specId,
+          label: itemLabel(l.spec.material, l.spec),
+          group: l.spec.material.group,
+          unit: l.spec.material.unit,
           systemQty: n(l.systemQty),
           countedQty: counted,
-          diff: counted === null ? null : Math.round((counted - n(l.systemQty)) * 1000) / 1000,
+          diff: counted === null ? null : r3(counted - n(l.systemQty)),
         };
       })
       .sort((a, b) => a.group.localeCompare(b.group, 'vi') || a.label.localeCompare(b.label, 'vi'));
     return {
       id: c.id,
       code: c.code,
-      date: formatDateOnly(c.date),
+      warehouseId: c.warehouseId,
+      warehouseCode: c.warehouse.code,
+      warehouseName: c.warehouse.name,
+      date: formatDateOnly(c.date)!,
       status: c.status,
       note: c.note,
       createdBy: c.createdBy.fullName,
@@ -296,66 +596,90 @@ export class StockService {
       adjustSlipCode: c.slip?.code ?? null,
       counted: lines.filter((l) => l.countedQty !== null).length,
       total: lines.length,
+      canApprove: c.status === 'DRAFT' && this.canApproveCount(actor, c.warehouse),
       lines: withLines ? lines : [],
     };
   }
 
+  private canApproveCount(actor: AuthUser, w: WarehouseWithKeepers): boolean {
+    return actor.isAdmin || actor.permissions.has('warehouse.manage') || (w.members.length > 0 && w.members.some((m) => m.userId === actor.id));
+  }
+
   async createCount(dto: CountCreateDto, actor: AuthUser): Promise<CountDto> {
     const id = await this.prisma.$transaction(async (tx) => {
-      const open = await tx.whCount.findFirst({ where: { status: 'DRAFT' } });
+      const w = await this.warehouses.stockWarehouse(tx, dto.warehouseId);
+      const open = await tx.whCount.findFirst({ where: { warehouseId: w.id, status: 'DRAFT' } });
       if (open) throw DomainError.conflict('WH_COUNT_OPEN', `Finish or cancel count ${open.code} first`);
-      const items = await tx.whStockItem.findMany({
-        where: { isActive: true, material: { isActive: true, ...(dto.groups?.length ? { group: { in: dto.groups } } : {}) } },
+      const stocks = await tx.whStock.findMany({
+        where: { warehouseId: w.id, isActive: true, spec: { isActive: true, material: { isActive: true, ...(dto.groups?.length ? { group: { in: dto.groups } } : {}) } } },
       });
-      if (!items.length) throw DomainError.badRequest('WH_COUNT_EMPTY', 'No stock items to count');
+      if (!stocks.length) throw DomainError.badRequest('WH_COUNT_EMPTY', 'No stock items to count');
       const c = await tx.whCount.create({
         data: {
-          code: await this.numbering.next(tx, 'KKV', dateField(dto.date, 'date')),
+          code: await this.numbering.nextWarehouse(tx, 'KKV', w.code, dateField(dto.date, 'date')),
+          warehouseId: w.id,
           date: dateField(dto.date, 'date'),
           note: cleanText(dto.note),
           createdById: actor.id,
-          lines: { create: items.map((i) => ({ stockItemId: i.id, systemQty: i.qty })) },
+          lines: { create: stocks.map((s) => ({ specId: s.specId, systemQty: s.qty })) },
         },
       });
       return c.id;
     });
-    return this.count(id);
+    return this.count(id, actor);
   }
 
-  async updateCount(id: string, dto: CountUpdateDto): Promise<CountDto> {
+  async updateCount(id: string, dto: CountUpdateDto, actor: AuthUser): Promise<CountDto> {
     const c = await this.prisma.whCount.findUnique({ where: { id } });
     if (!c) throw DomainError.notFound('WhCount', id);
     if (c.status !== 'DRAFT') throw DomainError.conflict('WH_COUNT_CLOSED', 'This count is already closed');
     await this.prisma.$transaction(
-      dto.entries.map((e) => this.prisma.whCountLine.updateMany({ where: { countId: id, stockItemId: e.stockItemId }, data: { countedQty: e.countedQty } })),
+      dto.entries.map((e) => this.prisma.whCountLine.updateMany({ where: { countId: id, specId: e.specId }, data: { countedQty: e.countedQty } })),
     );
-    return this.count(id);
+    return this.count(id, actor);
   }
 
-  /** Duyệt: tạo phiếu điều chỉnh theo chênh lệch giữa số đếm và tồn hiện tại (kể cả phiếu lập trong lúc đếm) */
+  /** Duyệt: phiếu điều chỉnh (đã xác nhận) theo chênh lệch giữa số đếm và tồn hiện tại */
   async approveCount(id: string, actor: AuthUser): Promise<CountDto> {
     await this.prisma.$transaction(async (tx) => {
-      const c = await tx.whCount.findUnique({ where: { id }, include: { lines: { include: { stockItem: true } } } });
+      const c = await tx.whCount.findUnique({ where: { id }, include: { warehouse: { include: { members: true } }, lines: true } });
       if (!c) throw DomainError.notFound('WhCount', id);
       if (c.status !== 'DRAFT') throw DomainError.conflict('WH_COUNT_CLOSED', 'This count is already closed');
+      if (!this.canApproveCount(actor, c.warehouse)) throw DomainError.forbidden('WH_NOT_KEEPER', 'Only the warehouse manager or this warehouse\'s storekeeper can approve');
+      await assertMonthOpen(tx, c.warehouseId, formatDateOnly(c.date)!);
+      const stocks = await tx.whStock.findMany({ where: { warehouseId: c.warehouseId, specId: { in: c.lines.map((l) => l.specId) } }, include: { spec: { include: { material: true } } } });
       const lines = c.lines
         .filter((l) => l.countedQty !== null)
-        .map((l) => ({ stockItemId: l.stockItemId, qty: Math.round((n(l.countedQty) - n(l.stockItem.qty)) * 1000) / 1000 }))
+        .map((l) => {
+          const st = stocks.find((s) => s.specId === l.specId)!;
+          return { specId: l.specId, qty: r3(n(l.countedQty) - n(st?.qty)), spec: st.spec };
+        })
         .filter((l) => l.qty !== 0);
       if (lines.length) {
-        await this.writeSlip(tx, 'ADJUST', { date: formatDateOnly(c.date), purpose: `Điều chỉnh theo kiểm kê ${c.code}`, lines }, actor, c.id);
+        await tx.whSlip.create({
+          data: {
+            code: await this.numbering.nextWarehouse(tx, 'DC', c.warehouse.code, c.date),
+            warehouseId: c.warehouseId,
+            kind: 'ADJUST',
+            status: 'CONFIRMED',
+            confirmedAt: new Date(),
+            confirmedById: actor.id,
+            date: c.date,
+            purpose: `Điều chỉnh theo kiểm kê ${c.code}`,
+            countId: c.id,
+            createdById: actor.id,
+            lines: { create: lines.map((l) => ({ specId: l.specId, qty: l.qty })) },
+          },
+        });
+        for (const l of lines) await this.applyQty(tx, c.warehouseId, l.specId, l.qty, l.spec);
       }
       await tx.whCount.update({ where: { id }, data: { status: 'APPROVED', approvedAt: new Date() } });
     });
-    return this.count(id);
+    return this.count(id, actor);
   }
 
   async cancelCount(id: string): Promise<void> {
     const res = await this.prisma.whCount.updateMany({ where: { id, status: 'DRAFT' }, data: { status: 'CANCELLED' } });
     if (!res.count) throw DomainError.conflict('WH_COUNT_CLOSED', 'This count is already closed');
-  }
-
-  today(): string {
-    return todayInZone(this.env.APP_TIMEZONE);
   }
 }

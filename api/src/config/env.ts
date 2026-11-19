@@ -35,6 +35,8 @@ const envSchema = z.object({
   CHAT_FILES_DIR: z.string().default('./data/chat-files'),
   /** Process webhook events in the background. Off in tests, which drain the queue themselves. */
   CHANNEL_WORKER: bool,
+  /** Chụp tồn kho cuối ngày bằng bộ hẹn giờ trong ứng dụng. Tắt trong test (test tự gọi). */
+  WH_SNAPSHOT_TIMER: bool,
 });
 
 export type Env = z.infer<typeof envSchema> & { cookieSecure: boolean };

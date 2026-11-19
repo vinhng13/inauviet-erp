@@ -99,11 +99,13 @@ model User {
   conversations     Conversation[]     @relation("ConversationAssignee")
   messagesSent      Message[]
   whSlips           WhSlip[]           @relation("WhSlipCreatedBy")
+  whSlipsConfirmed WhSlip[] @relation("WhSlipConfirmedBy")
   whSlipsVoided     WhSlip[]           @relation("WhSlipVoidedBy")
   whCounts          WhCount[]
   whDieMoves        WhDieMove[]
   whDieBatches      WhDieBatch[]
   whDieCounts       WhDieCount[]
+  whWarehouses WhWarehouseMember[]
   whMonthLocks      WhMonthLock[]
 
   @@index([roleId])
@@ -912,35 +914,141 @@ model WhLocation {
 /// Vật tư (giấy, đề can, bạt, mực…). Giấy và đề can có nhiều khổ; mỗi khổ là một mã tồn riêng.
 model WhMaterial {
   id        String   @id @default(uuid()) @db.Uuid
+  code      String?  @unique // mã vật tư (không bắt buộc)
   group     String // nhóm: Giấy ngoại, Đề can, Op, Bạt, Mực…
   name      String
-  unit      String // tờ, m², lít, tấm, cuộn…
-  hasSizes  Boolean  @default(true)
+  unit      String // đơn vị cơ sở: tồn luôn lưu theo đơn vị này (tờ, m, lít, cái…)
+  hasSizes  Boolean  @default(true) // có quy cách (khổ) hay không
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  items WhStockItem[]
+  specs      WhSpec[]
+  units      WhUnit[]
+  warehouses WhWarehouseMaterial[]
 
   @@unique([group, name])
 }
 
 /// Mã tồn = vật tư + khổ (rộng x dài, cm). Vật tư không theo khổ dùng 0 x 0.
-model WhStockItem {
+/// Quy cách (khổ) của một vật tư. Vật tư không theo khổ có một quy cách 0 x 0.
+model WhSpec {
   id         String   @id @default(uuid()) @db.Uuid
   materialId String   @db.Uuid
   widthCm    Decimal  @default(0) @db.Decimal(8, 2)
-  lengthCm   Decimal  @default(0) @db.Decimal(8, 2)
-  qty        Decimal  @default(0) @db.Decimal(14, 3) // tồn hiện tại, cập nhật cùng giao dịch với phiếu
-  minQty     Decimal? @db.Decimal(14, 3) // mức tối thiểu; dưới mức thì cảnh báo
+  lengthCm   Decimal  @default(0) @db.Decimal(8, 2) // 0 = chỉ có khổ rộng (cuộn)
   isActive   Boolean  @default(true)
   createdAt  DateTime @default(now())
 
   material   WhMaterial    @relation(fields: [materialId], references: [id])
+  stocks     WhStock[]
+  daily      WhDailyStock[]
+  units      WhUnit[]
   lines      WhSlipLine[]
   countLines WhCountLine[]
 
   @@unique([materialId, widthCm, lengthCm])
+}
+
+/// Đơn vị tính khác của vật tư: 1 đơn vị = factor đơn vị cơ sở. specId có giá trị = hệ số riêng cho quy cách đó.
+model WhUnit {
+  id         String   @id @default(uuid()) @db.Uuid
+  materialId String   @db.Uuid
+  specId     String?  @db.Uuid
+  name       String // ram, cuộn, thùng, m²…
+  factor     Decimal  @db.Decimal(14, 4)
+  createdAt  DateTime @default(now())
+
+  material WhMaterial @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  spec     WhSpec?    @relation(fields: [specId], references: [id], onDelete: Cascade)
+
+  @@index([materialId])
+}
+
+enum WhWarehouseKind {
+  STOCK // quản lý theo số lượng (giấy, vật tư bạt, hàng tồn…)
+  DIE // quản lý từng khuôn
+}
+
+model WhWarehouse {
+  id        String          @id @default(uuid()) @db.Uuid
+  code      String          @unique // GIAY, BAT, OFFSET… dùng trong số phiếu
+  name      String
+  address   String?
+  kind      WhWarehouseKind @default(STOCK)
+  note      String?
+  isActive  Boolean         @default(true)
+  sortOrder Int             @default(0)
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  members   WhWarehouseMember[]
+  materials WhWarehouseMaterial[]
+  stocks    WhStock[]
+  slips     WhSlip[]
+  counts    WhCount[]
+  locks     WhMonthLock[]
+  daily     WhDailyStock[]
+}
+
+/// Thủ kho của kho: xác nhận phiếu nhập / xuất / chuyển của kho này. Kho chưa có thủ kho thì ai có quyền lập phiếu cũng xác nhận được.
+model WhWarehouseMember {
+  warehouseId String @db.Uuid
+  userId      String @db.Uuid
+
+  warehouse WhWarehouse @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([warehouseId, userId])
+}
+
+/// Vật tư nào có ở kho nào (kho – vật tư)
+model WhWarehouseMaterial {
+  warehouseId String @db.Uuid
+  materialId  String @db.Uuid
+
+  warehouse WhWarehouse @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+  material  WhMaterial  @relation(fields: [materialId], references: [id], onDelete: Cascade)
+
+  @@id([warehouseId, materialId])
+}
+
+/// Tồn của một quy cách tại một kho, theo đơn vị cơ sở; cập nhật cùng giao dịch với phiếu
+model WhStock {
+  id          String   @id @default(uuid()) @db.Uuid
+  warehouseId String   @db.Uuid
+  specId      String   @db.Uuid
+  qty         Decimal  @default(0) @db.Decimal(14, 3)
+  minQty      Decimal? @db.Decimal(14, 3) // mức tối thiểu tại kho này
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  warehouse WhWarehouse @relation(fields: [warehouseId], references: [id])
+  spec      WhSpec      @relation(fields: [specId], references: [id])
+
+  @@unique([warehouseId, specId])
+}
+
+/// Bản chụp tồn cuối ngày: ghi một lần sau khi hết ngày, không đổi khi có phiếu bổ sung về sau
+model WhDailyStock {
+  date        DateTime @db.Date
+  warehouseId String   @db.Uuid
+  specId      String   @db.Uuid
+  qty         Decimal  @db.Decimal(14, 3)
+  takenAt     DateTime @default(now())
+
+  warehouse WhWarehouse @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+  spec      WhSpec      @relation(fields: [specId], references: [id], onDelete: Cascade)
+
+  @@id([date, warehouseId, specId])
+  @@index([warehouseId, date])
+}
+
+enum WhSlipStatus {
+  PENDING // chờ thủ kho xác nhận; chưa thay đổi tồn
+  CONFIRMED // thủ kho đã xác nhận; tồn đã thay đổi
+  REJECTED // thủ kho từ chối
+  CANCELLED // người lập huỷ trước khi xác nhận
 }
 
 enum WhSlipKind {
@@ -948,14 +1056,22 @@ enum WhSlipKind {
   ISSUE // phiếu xuất
   RETURN // nhập lại vật tư thừa
   ADJUST // điều chỉnh sau kiểm kê (số lượng có dấu)
+  TRANSFER_OUT // chuyển đi kho khác
+  TRANSFER_IN // nhận từ kho khác
 }
 
 /// Phiếu kho. Phiếu sai thì huỷ có lý do, không xoá.
 model WhSlip {
   id          String     @id @default(uuid()) @db.Uuid
-  code        String     @unique // NK / XK / NL / DC-YYMM-NNNN
+  code        String     @unique // NK / XK / NL / DC / CK - mã kho - YYMM-NNNN
+  warehouseId String     @db.Uuid
   kind        WhSlipKind
   date        DateTime   @db.Date
+  transferId  String?    @db.Uuid // phiếu chuyển kho: hai phiếu (đi / đến) chung một transferId
+  status        WhSlipStatus @default(PENDING)
+  confirmedAt   DateTime?
+  confirmedById String?      @db.Uuid
+  rejectReason  String?
   partnerId   String?    @db.Uuid // nhà cung cấp (phiếu nhập)
   receiver    String? // người nhận (phiếu xuất)
   purpose     String?
@@ -968,26 +1084,33 @@ model WhSlip {
   voidReason  String?
   voidedById  String?    @db.Uuid
 
+  warehouse WhWarehouse  @relation(fields: [warehouseId], references: [id])
   partner   WhPartner?   @relation(fields: [partnerId], references: [id])
   count     WhCount?     @relation(fields: [countId], references: [id])
   createdBy User         @relation("WhSlipCreatedBy", fields: [createdById], references: [id])
   voidedBy  User?        @relation("WhSlipVoidedBy", fields: [voidedById], references: [id])
+  confirmedBy User?      @relation("WhSlipConfirmedBy", fields: [confirmedById], references: [id])
   lines     WhSlipLine[]
 
-  @@index([date])
+  @@index([warehouseId, date])
+  @@index([transferId])
+  @@index([status])
 }
 
 model WhSlipLine {
   id           String  @id @default(uuid()) @db.Uuid
-  slipId       String  @db.Uuid
-  stockItemId  String  @db.Uuid
-  qty          Decimal @db.Decimal(14, 3) // dương; phiếu điều chỉnh có thể âm
-  unitPriceVnd BigInt? // không bắt buộc, chỉ tham khảo
+  slipId       String   @db.Uuid
+  specId       String   @db.Uuid
+  qty          Decimal  @db.Decimal(14, 3) // theo đơn vị cơ sở; dương, phiếu điều chỉnh có thể âm
+  unitName     String? // đơn vị đã ghi trên phiếu (null = đơn vị cơ sở)
+  unitQty      Decimal? @db.Decimal(14, 3) // số lượng theo đơn vị đó
+  factor       Decimal? @db.Decimal(14, 4) // hệ số lúc lập phiếu
+  unitPriceVnd BigInt? // đơn giá theo đơn vị đã ghi, không bắt buộc
 
-  slip      WhSlip      @relation(fields: [slipId], references: [id], onDelete: Cascade)
-  stockItem WhStockItem @relation(fields: [stockItemId], references: [id])
+  slip WhSlip @relation(fields: [slipId], references: [id], onDelete: Cascade)
+  spec WhSpec @relation(fields: [specId], references: [id])
 
-  @@index([stockItemId])
+  @@index([specId])
 }
 
 enum WhCountStatus {
@@ -999,7 +1122,8 @@ enum WhCountStatus {
 /// Đợt kiểm kê vật tư: nhập số đếm, duyệt thì tạo phiếu điều chỉnh.
 model WhCount {
   id          String        @id @default(uuid()) @db.Uuid
-  code        String        @unique // KKV-YYMM-NNNN
+  code        String        @unique // KKV - mã kho - YYMM-NNNN
+  warehouseId String        @db.Uuid
   date        DateTime      @db.Date
   status      WhCountStatus @default(DRAFT)
   note        String?
@@ -1007,6 +1131,7 @@ model WhCount {
   createdAt   DateTime      @default(now())
   approvedAt  DateTime?
 
+  warehouse WhWarehouse   @relation(fields: [warehouseId], references: [id])
   createdBy User          @relation(fields: [createdById], references: [id])
   lines     WhCountLine[]
   slip      WhSlip?
@@ -1014,24 +1139,28 @@ model WhCount {
 
 model WhCountLine {
   id          String   @id @default(uuid()) @db.Uuid
-  countId     String   @db.Uuid
-  stockItemId String   @db.Uuid
-  systemQty   Decimal  @db.Decimal(14, 3) // tồn trên phần mềm lúc đếm
-  countedQty  Decimal? @db.Decimal(14, 3)
+  countId    String   @db.Uuid
+  specId     String   @db.Uuid
+  systemQty  Decimal  @db.Decimal(14, 3) // tồn trên phần mềm lúc đếm
+  countedQty Decimal? @db.Decimal(14, 3)
 
-  count     WhCount     @relation(fields: [countId], references: [id], onDelete: Cascade)
-  stockItem WhStockItem @relation(fields: [stockItemId], references: [id])
+  count WhCount @relation(fields: [countId], references: [id], onDelete: Cascade)
+  spec  WhSpec  @relation(fields: [specId], references: [id])
 
-  @@unique([countId, stockItemId])
+  @@unique([countId, specId])
 }
 
 /// Tháng đã chốt tồn: phiếu trong tháng đó không lập / huỷ được nữa (không phụ thuộc kỳ kế toán).
 model WhMonthLock {
-  month      String   @id // YYYY-MM
-  lockedById String   @db.Uuid
-  lockedAt   DateTime @default(now())
+  warehouseId String   @db.Uuid
+  month       String // YYYY-MM
+  lockedById  String   @db.Uuid
+  lockedAt    DateTime @default(now())
 
-  lockedBy User @relation(fields: [lockedById], references: [id])
+  warehouse WhWarehouse @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+  lockedBy  User        @relation(fields: [lockedById], references: [id])
+
+  @@id([warehouseId, month])
 }
 
 /// Ký hiệu nhóm khuôn: TUI = túi giấy, KEF = kẹp file…

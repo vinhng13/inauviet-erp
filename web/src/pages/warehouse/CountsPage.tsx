@@ -7,7 +7,7 @@ import { useCount, useCounts, useDieCount, useDieCounts, useLocations, usePartne
 import { useCan } from '../../lib/access';
 import { errorMessage } from '../../lib/errors';
 import { formatDate, formatDateTime } from '../../lib/format';
-import { PageHead, qty } from './common';
+import { PageHead, qty, useWarehousePick, WarehousePicker } from './common';
 
 const COUNT_STATUS: Record<Schemas['WhCountStatus'], { label: string; color: string }> = {
   DRAFT: { label: 'Đang kiểm', color: 'gold' },
@@ -33,8 +33,9 @@ export function WarehouseCountsPage() {
 function StockCounts() {
   const can = useCan();
   const { message } = App.useApp();
-  const { data, isFetching } = useCounts();
-  const items = useStockItems();
+  const { warehouse, list, pick } = useWarehousePick();
+  const { data, isFetching } = useCounts(warehouse?.id);
+  const items = useStockItems(warehouse?.id);
   const { createCount } = useWarehouseMutations();
   const [open, setOpen] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
@@ -42,11 +43,12 @@ function StockCounts() {
   const [form] = Form.useForm<{ date: Dayjs; groups?: string[]; note?: string }>();
   return (
     <Flex vertical gap={12}>
+      <WarehousePicker value={warehouse} list={list} onChange={pick} />
       <Flex justify="space-between" wrap gap={8}>
         <Typography.Text type="secondary">
-          Phần mềm ghi sẵn tồn theo sổ; nhập số đếm thực tế, người quản lý kho duyệt thì chênh lệch thành phiếu điều chỉnh (DC-). Lần đầu dùng kho, kiểm kê để nhập tồn đầu.
+          Phần mềm ghi sẵn tồn theo sổ của kho đang chọn; nhập số đếm thực tế. Thủ kho của kho (hoặc người quản lý kho) duyệt thì chênh lệch thành phiếu điều chỉnh (DC-). Lần đầu dùng kho, kiểm kê để nhập tồn đầu.
         </Typography.Text>
-        {can('warehouse.count') && <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreating(true)}>Phiếu kiểm kê mới</Button>}
+        {can('warehouse.count') && warehouse && <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreating(true)}>Phiếu kiểm kê mới</Button>}
       </Flex>
       <Table<Schemas['CountDto']>
         rowKey="id"
@@ -68,7 +70,7 @@ function StockCounts() {
       />
       <Modal
         open={creating}
-        title="Phiếu kiểm kê vật tư"
+        title={`Phiếu kiểm kê vật tư · ${warehouse?.name ?? ''}`}
         okText="Lập phiếu"
         cancelText="Đóng"
         onCancel={() => setCreating(false)}
@@ -82,7 +84,7 @@ function StockCounts() {
           initialValues={{ date: dayjs() }}
           onFinish={(v) =>
             createCount.mutate(
-              { date: v.date.format('YYYY-MM-DD'), groups: v.groups?.length ? v.groups : undefined, note: v.note || null },
+              { warehouseId: warehouse!.id, date: v.date.format('YYYY-MM-DD'), groups: v.groups?.length ? v.groups : undefined, note: v.note || null },
               {
                 onSuccess: (c) => {
                   setCreating(false);
@@ -119,10 +121,10 @@ function CountDrawer({ id, onClose }: { id: string; onClose: () => void }) {
   useEffect(() => setEntries({}), [id]);
   const draft = c?.status === 'DRAFT';
   const editable = draft && can('warehouse.count');
-  const value = (l: Schemas['CountLineDto']) => (l.stockItemId in entries ? entries[l.stockItemId] : l.countedQty);
+  const value = (l: Schemas['CountLineDto']) => (l.specId in entries ? entries[l.specId] : l.countedQty);
   const dirty = Object.keys(entries).length > 0;
   const save = () =>
-    updateCount.mutateAsync({ id, entries: Object.entries(entries).map(([stockItemId, countedQty]) => ({ stockItemId, countedQty })) }).then(
+    updateCount.mutateAsync({ id, entries: Object.entries(entries).map(([specId, countedQty]) => ({ specId, countedQty })) }).then(
       () => (setEntries({}), message.success('Đã lưu số đếm')),
       (e) => message.error(errorMessage(e)),
     );
@@ -138,7 +140,7 @@ function CountDrawer({ id, onClose }: { id: string; onClose: () => void }) {
         c && (
           <Space>
             {editable && <Button onClick={save} disabled={!dirty} loading={updateCount.isPending}>Lưu số đếm</Button>}
-            {draft && can('warehouse.manage') && (
+            {c.canApprove && (
               <Popconfirm
                 title="Duyệt kiểm kê?"
                 description="Chênh lệch sẽ thành phiếu điều chỉnh; dòng chưa đếm giữ nguyên tồn."
@@ -169,7 +171,7 @@ function CountDrawer({ id, onClose }: { id: string; onClose: () => void }) {
             <Switch size="small" checked={onlyDiff} onChange={setOnlyDiff} /> <span>Chỉ dòng lệch</span>
           </Flex>
           <Table<Schemas['CountLineDto']>
-            rowKey="stockItemId"
+            rowKey="specId"
             size="small"
             dataSource={lines}
             pagination={false}
@@ -184,11 +186,11 @@ function CountDrawer({ id, onClose }: { id: string; onClose: () => void }) {
                 render: (_, l) =>
                   editable ? (
                     <InputNumber
-                      id={`count-${l.stockItemId}`}
+                      id={`count-${l.specId}`}
                       aria-label={`Số đếm ${l.label}`}
                       min={0}
                       value={value(l)}
-                      onChange={(v) => setEntries({ ...entries, [l.stockItemId]: v })}
+                      onChange={(v) => setEntries({ ...entries, [l.specId]: v })}
                       style={{ width: '100%' }}
                       suffix={l.unit}
                     />

@@ -1,4 +1,6 @@
-import { Flex, Tag, Typography } from 'antd';
+import { Badge, Flex, Segmented, Tag, Typography } from 'antd';
+import { useSearchParams } from 'react-router';
+import { useWarehouses } from '../../api/warehouse';
 import type { ReactNode } from 'react';
 import type { Schemas } from '../../api/client';
 
@@ -49,7 +51,81 @@ export const SLIP: Record<SlipKind, { label: string; color: string }> = {
   ISSUE: { label: 'Xuất kho', color: 'blue' },
   RETURN: { label: 'Nhập lại', color: 'cyan' },
   ADJUST: { label: 'Điều chỉnh', color: 'purple' },
+  TRANSFER_OUT: { label: 'Chuyển đi', color: 'geekblue' },
+  TRANSFER_IN: { label: 'Nhận chuyển', color: 'lime' },
 };
+
+export type SlipStatus = Schemas['WhSlipStatus'];
+export const SLIP_STATUS: Record<SlipStatus, { label: string; color: string }> = {
+  PENDING: { label: 'Chờ xác nhận', color: 'gold' },
+  CONFIRMED: { label: 'Đã xác nhận', color: 'green' },
+  REJECTED: { label: 'Bị từ chối', color: 'red' },
+  CANCELLED: { label: 'Đã huỷ', color: 'default' },
+};
+
+export function SlipStatusTag({ slip }: { slip: Pick<Schemas['SlipDto'], 'status' | 'voidedAt' | 'kind' | 'counterpart'> }) {
+  if (slip.voidedAt) return <Tag>Đã huỷ</Tag>;
+  if (slip.status === 'PENDING' && slip.kind === 'TRANSFER_IN' && slip.counterpart?.status === 'CONFIRMED') return <Tag color="processing">Đang chuyển đến</Tag>;
+  if (slip.status === 'PENDING' && slip.kind === 'TRANSFER_IN') return <Tag color="default">Chờ kho đi xuất</Tag>;
+  return <Tag color={SLIP_STATUS[slip.status].color}>{SLIP_STATUS[slip.status].label}</Tag>;
+}
+
+/** Số lượng theo đơn vị đã ghi trên phiếu, kèm số quy đổi: "2 ram (1.000 tờ)" */
+export function lineQty(l: Pick<Schemas['SlipLineDto'], 'qty' | 'unit' | 'unitName' | 'unitQty'>): string {
+  if (l.unitName && l.unitQty !== null) return `${qty(l.unitQty)} ${l.unitName} (${qty(l.qty)} ${l.unit})`;
+  return `${qty(l.qty)} ${l.unit}`;
+}
+
+const PICK_KEY = 'wh.kho';
+
+/**
+ * Kho đang làm việc (kho theo số lượng), nhớ trên địa chỉ trang (?kho=GIAY) và trong trình duyệt.
+ * Trả về kho đang chọn và hàm đổi kho.
+ */
+export function useWarehousePick(): { warehouse: Schemas['WarehouseDto'] | undefined; list: Schemas['WarehouseDto'][]; pick: (code: string) => void; loading: boolean } {
+  const { data, isLoading } = useWarehouses();
+  const [params, setParams] = useSearchParams();
+  const list = (data ?? []).filter((w) => w.kind === 'STOCK' && w.isActive);
+  let saved: string | null = null;
+  try {
+    saved = localStorage.getItem(PICK_KEY);
+  } catch {
+    saved = null;
+  }
+  const code = params.get('kho') ?? saved;
+  const warehouse = list.find((w) => w.code === code) ?? list[0];
+  const pick = (c: string) => {
+    try {
+      localStorage.setItem(PICK_KEY, c);
+    } catch {
+      /* private window: remember in the address only */
+    }
+    setParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set('kho', c);
+      return next;
+    });
+  };
+  return { warehouse, list, pick, loading: isLoading };
+}
+
+export function WarehousePicker({ value, list, onChange }: { value?: Schemas['WarehouseDto']; list: Schemas['WarehouseDto'][]; onChange: (code: string) => void }) {
+  if (!list.length) return <Typography.Text type="secondary">Chưa có kho nào. Thêm kho ở Danh mục kho.</Typography.Text>;
+  return (
+    <Segmented
+      value={value?.code}
+      onChange={(v) => onChange(String(v))}
+      options={list.map((w) => ({
+        value: w.code,
+        label: (
+          <Badge count={w.canConfirm ? w.pending : 0} size="small" offset={[8, -2]}>
+            <span style={{ padding: '0 4px' }}>{w.name}</span>
+          </Badge>
+        ),
+      }))}
+    />
+  );
+}
 
 export function DieStatusTag({ status }: { status: DieStatus }) {
   return <Tag color={STATUS[status].color}>{STATUS[status].label}</Tag>;

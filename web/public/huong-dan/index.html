@@ -1019,32 +1019,41 @@ a.card:hover { border-color: #b9c2cb; box-shadow: 0 2px 10px rgba(0,0,0,.05); }
 <section class="doc kho" id="kho-hieu" data-group="kho" data-title="Phân hệ Kho dùng để làm gì">
   <div class="crumb"><span class="dot" style="background:var(--kho)"></span>Kho</div>
   <h1>Phân hệ Kho dùng để làm gì</h1>
-  <p class="lead">Kho là phân hệ của thủ kho: theo dõi giấy, màng, keo… theo từng khổ, và quản lý khuôn bế: khuôn đang nằm ở kệ nào, đang ở xưởng nào, bao giờ về.</p>
-  <figure><img src="img/kho-overview.jpg" alt="Tổng quan kho"><figcaption>Tổng quan kho: số khuôn, khuôn ở xưởng ngoài, quá hẹn, cần xác nhận; khuôn theo xưởng; vật tư dưới mức tối thiểu; phiếu gần đây.</figcaption></figure>
+  <p class="lead">Kho quản lý nhiều kho riêng: kho giấy, kho vật tư xưởng bạt, kho tồn offset, kho khuôn… Mỗi kho có thủ kho riêng. Phiếu nhập, xuất, chuyển kho chỉ làm thay đổi tồn khi thủ kho của kho đó xác nhận.</p>
+  <figure><img src="img/kho-overview.jpg" alt="Tổng quan kho"><figcaption>Tổng quan kho: mỗi kho một ô (thủ kho, số phiếu chờ xác nhận, số vật tư dưới mức tối thiểu); bên dưới là khuôn và vật tư cần chú ý.</figcaption></figure>
+
+  <h2>Các khái niệm</h2>
+  <table>
+    <tr><th>Khái niệm</th><th>Nghĩa</th></tr>
+    <tr><td><b>Kho</b></td><td>Tạo trên phần mềm, thêm bớt được (Danh mục kho → Kho). Có mã (GIAY, BAT…) dùng trong số phiếu, và danh sách thủ kho.</td></tr>
+    <tr><td><b>Vật tư</b></td><td>Một danh mục chung cho mọi kho. Mỗi vật tư chọn các kho có nó: decal có thể ở cả kho bạt lẫn kho giấy.</td></tr>
+    <tr><td><b>Quy cách</b></td><td>Khổ của vật tư: giấy 79 × 109, cuộn bạt khổ 320. Mỗi quy cách có tồn riêng ở từng kho.</td></tr>
+    <tr><td><b>Đơn vị tính</b></td><td>Đơn vị cơ sở (tờ, m, kg…) là đơn vị tồn được lưu. Thêm đơn vị khác có hệ số: 1 ram = 500 tờ; riêng khổ bìa dày 1 ram = 250 tờ; 1 cuộn = 50 m.</td></tr>
+    <tr><td><b>Thủ kho</b></td><td>Người xác nhận phiếu của kho mình. Kho chưa có thủ kho thì ai có quyền lập phiếu cũng xác nhận được.</td></tr>
+  </table>
 
   <h2>Các menu</h2>
   <table>
     <tr><th>Menu</th><th>Dùng để</th></tr>
-    <tr><td><span class="menu kho">Tổng quan kho</span></td><td>Xem nhanh việc cần làm: khuôn quá hẹn chưa về, khuôn chờ kiểm, vật tư sắp hết. Bấm vào ô số để mở đúng danh sách.</td></tr>
-    <tr><td><span class="menu kho">Tồn kho & phiếu</span></td><td>Tồn từng vật tư / khổ, thẻ kho, lập phiếu nhập, xuất, nhập lại.</td></tr>
-    <tr><td><span class="menu kho">Khuôn</span></td><td>Danh sách khuôn, tìm khuôn theo kích thước, hồ sơ và lịch sử từng khuôn, xuất / nhận khuôn.</td></tr>
-    <tr><td><span class="menu kho">Giao nhận khuôn</span></td><td>Biên bản giao / nhận nhiều khuôn một lần với xưởng bế, in ra để ký.</td></tr>
-    <tr><td><span class="menu kho">Kiểm kê</span></td><td>Kiểm kê vật tư (lệch thì duyệt điều chỉnh) và kiểm kê khuôn theo kệ hoặc theo xưởng.</td></tr>
-    <tr><td><span class="menu kho">Danh mục kho</span></td><td>Vật tư và khổ, đối tác, vị trí kệ, ký hiệu khuôn, chốt tồn tháng, nhập bảng khuôn Excel.</td></tr>
+    <tr><td><span class="menu kho">Tổng quan kho</span></td><td>Phiếu đang chờ bạn xác nhận, hàng đang chuyển giữa các kho, khuôn quá hẹn, vật tư sắp hết.</td></tr>
+    <tr><td><span class="menu kho">Tồn kho & phiếu</span></td><td>Chọn kho ở trên cùng. Tồn từng quy cách, thẻ kho, lập phiếu nhập / xuất / nhập lại / chuyển kho, xác nhận phiếu.</td></tr>
+    <tr><td><span class="menu kho">Khuôn</span>, <span class="menu kho">Giao nhận khuôn</span></td><td>Kho khuôn: hồ sơ từng khuôn, xuất / nhận khuôn với xưởng.</td></tr>
+    <tr><td><span class="menu kho">Kiểm kê</span></td><td>Kiểm kê vật tư theo từng kho và kiểm kê khuôn.</td></tr>
+    <tr><td><span class="menu kho">Báo cáo kho</span></td><td>Nhập – xuất – tồn theo khoảng ngày, tồn cuối một ngày bất kỳ, sổ phiếu theo ngày.</td></tr>
+    <tr><td><span class="menu kho">Danh mục kho</span></td><td>Kho và thủ kho, vật tư (quy cách, đơn vị, kho có vật tư), đối tác, vị trí kệ, ký hiệu khuôn, chốt tồn tháng, nhập bảng khuôn Excel.</td></tr>
   </table>
 
-  <div class="note tip"><b class="h">Kho tách riêng với CRM và Kế toán</b>Phiếu ở phân hệ Kho không tạo bút toán và không làm thay đổi <a href="#kt-kho">Kho NVL của kế toán</a>. Tên khách, số lệnh sản xuất ghi tay vào phiếu để tra cứu. Kế toán vẫn lập phiếu nhập / xuất của mình theo chứng từ.</div>
+  <div class="note tip"><b class="h">Kho tách riêng với CRM và Kế toán</b>Phiếu ở phân hệ Kho không tạo bút toán và không làm thay đổi <a href="#kt-kho">Kho NVL của kế toán</a>. Tên khách, số lệnh sản xuất ghi tay vào phiếu để tra cứu.</div>
 
   <h2>Ai làm được gì</h2>
   <table>
-    <tr><th>Quyền</th><th>Làm được</th></tr>
-    <tr><td>Xem kho</td><td>Xem tồn, phiếu, khuôn, lịch sử, biên bản</td></tr>
-    <tr><td>Lập phiếu kho</td><td>Lập phiếu nhập / xuất / nhập lại, huỷ phiếu</td></tr>
-    <tr><td>Quản lý khuôn</td><td>Tạo, sửa khuôn, xuất / nhận / kiểm khuôn, giao nhận nhiều khuôn, ảnh khuôn</td></tr>
-    <tr><td>Kiểm kê</td><td>Lập phiếu kiểm kê, nhập số đếm, kiểm kê khuôn</td></tr>
-    <tr><td>Quản lý kho</td><td>Danh mục, duyệt kiểm kê, chốt tồn tháng, nhập bảng khuôn Excel</td></tr>
+    <tr><th>Quyền / vai trò</th><th>Làm được</th></tr>
+    <tr><td>Xem kho</td><td>Xem tồn, phiếu, khuôn, báo cáo</td></tr>
+    <tr><td>Lập phiếu kho</td><td>Lập phiếu ở mọi kho (phiếu chờ thủ kho xác nhận); huỷ phiếu mình lập khi chưa xác nhận</td></tr>
+    <tr><td>Thủ kho của một kho</td><td>Xác nhận / từ chối phiếu của kho đó; huỷ phiếu đã xác nhận; duyệt kiểm kê của kho đó</td></tr>
+    <tr><td>Quản lý khuôn, Kiểm kê</td><td>Luân chuyển khuôn; lập phiếu kiểm kê, nhập số đếm</td></tr>
+    <tr><td>Quản lý kho</td><td>Thêm / sửa kho và thủ kho, danh mục vật tư, duyệt mọi kiểm kê, chốt tồn tháng, nhập bảng khuôn Excel</td></tr>
   </table>
-  <p>Nhóm <b>Thủ kho</b> có sẵn ba quyền: lập phiếu, quản lý khuôn, kiểm kê. Quản trị viên cấp thêm “Quản lý kho” cho người phụ trách duyệt.</p>
 </section>
 
 <section class="doc kho" id="kho-bat-dau" data-group="kho" data-title="Bắt đầu dùng kho (làm một lần)">
@@ -1053,72 +1062,127 @@ a.card:hover { border-color: #b9c2cb; box-shadow: 0 2px 10px rgba(0,0,0,.05); }
   <p class="lead">Làm một lần khi mới đưa phần mềm vào dùng, theo thứ tự dưới đây. Cần quyền Quản lý kho.</p>
   <div class="who"><span>Menu: <b>Kho → Danh mục kho</b></span></div>
 
-  <h2>1. Khai báo vật tư và khổ</h2>
+  <h2>1. Kho và thủ kho</h2>
+  <p>Phần mềm có sẵn 4 kho: Kho giấy (GIAY), Kho vật tư xưởng bạt (BAT), Kho tồn offset (OFFSET), Kho khuôn (KHUON). Thẻ <b>Kho</b>: bấm <span class="ui">✎</span> để sửa tên, địa chỉ và chọn <b>thủ kho</b>; bấm <span class="ui primary">Thêm kho</span> để tạo kho mới.</p>
+  <figure><img src="img/kho-list.jpg" alt="Danh mục kho"><figcaption>Danh sách kho: mã, cách quản lý, thủ kho, địa chỉ, số vật tư.</figcaption></figure>
+  <div class="note warn">Mã kho nằm trong số phiếu (XK-GIAY-2611-0001). Kho đã có phiếu thì không đổi được mã.</div>
+
+  <h2>2. Vật tư, quy cách, đơn vị tính</h2>
   <ol class="steps">
-    <li>Thẻ <b>Vật tư & khổ</b> → <span class="ui primary">Thêm vật tư</span>.</li>
-    <li>Chọn <b>nhóm</b> (Giấy, Màng, Keo…), gõ <b>tên vật tư</b> (ví dụ <i>Giấy Ivory 300</i>) và <b>đơn vị</b> (tờ, kg, cuộn…).</li>
-    <li>Vật tư mua theo khổ thì để bật <b>Theo khổ</b>, mỗi khổ một dòng: rộng × dài (cm) và <b>tồn tối thiểu</b> nếu muốn được nhắc khi sắp hết. Bấm <span class="ui">Thêm khổ</span> để thêm dòng.</li>
-    <li>Vật tư không theo khổ (keo, mực) thì tắt <b>Theo khổ</b>. Bấm <span class="ui primary">Lưu</span>.</li>
+    <li>Thẻ <b>Vật tư</b> → <span class="ui primary">Thêm vật tư</span>. Ghi mã (không bắt buộc), nhóm (DC, GN, Op, Bạt, Mực…), tên và <b>đơn vị cơ sở</b> (tờ, m, kg…). Tồn luôn lưu theo đơn vị cơ sở.</li>
+    <li><b>Có ở kho</b>: chọn các kho giữ vật tư này.</li>
+    <li><b>Quy cách</b>: giấy ghi rộng × dài; cuộn (bạt, decal cuộn) chỉ ghi khổ rộng. Vật tư không theo khổ (keo, mực) thì tắt <b>Có quy cách / khổ</b>.</li>
+    <li><b>Đơn vị tính khác</b>: ghi 1 ram = 500 tờ. Nếu một khổ đóng gói khác, thêm một dòng cùng tên và chọn khổ đó ở ô cuối (ví dụ 1 ram = 250 tờ chỉ cho 79 × 109). Bấm <span class="ui primary">Lưu</span>.</li>
   </ol>
-  <figure><img src="img/kho-material.jpg" alt="Sửa vật tư"><figcaption>Một vật tư có hai khổ. “27x23” và “27 x 23” là một khổ, phần mềm không cho ghi trùng.</figcaption></figure>
-  <div class="note warn">Khổ đã có phiếu thì không sửa số được nữa (để thẻ kho không bị sai). Muốn đổi, thêm khổ mới và gạt khổ cũ sang <b>Tắt</b>.</div>
+  <figure><img src="img/kho-material.jpg" alt="Sửa vật tư"><figcaption>Giấy Ivory 300: có ở Kho giấy, hai quy cách, ram = 500 tờ, riêng khổ 79 × 109 ram = 250 tờ.</figcaption></figure>
+  <div class="note warn">Quy cách đã có phiếu thì không sửa số được (để thẻ kho không sai): thêm quy cách mới và tắt quy cách cũ. Bỏ một kho khỏi vật tư chỉ được khi tồn ở kho đó bằng 0.</div>
 
-  <h2>2. Đối tác, vị trí kệ, ký hiệu khuôn</h2>
-  <ul>
-    <li><b>Đối tác:</b> xưởng bế, nơi làm khuôn, nhà cung cấp giấy. Xưởng bế cần có ở đây để xuất khuôn đi.</li>
-    <li><b>Vị trí kệ:</b> nên đặt mã theo Tầng-Kệ-Ô, ví dụ <code>T4-K02-O03</code>.</li>
-    <li><b>Ký hiệu khuôn:</b> đã có sẵn TUI (túi), HOP (hộp), KEF (kẹp file), TEM, LIX, PBI… Mã khuôn = ký hiệu + số thứ tự, ví dụ <code>TUI-001</code>.</li>
-  </ul>
-  <figure><img src="img/kho-symbols.jpg" alt="Ký hiệu khuôn"><figcaption>Thẻ Ký hiệu khuôn: số khuôn và mã sẽ cấp tiếp cho mỗi ký hiệu.</figcaption></figure>
+  <h2>3. Mức tối thiểu</h2>
+  <p>Ở <span class="menu kho">Tồn kho & phiếu</span>, cột <b>Tối thiểu</b>, bấm <span class="ui">✎</span> để đặt mức nhắc cho từng quy cách tại kho đó.</p>
 
-  <h2>3. Nhập bảng khuôn Excel đang dùng</h2>
-  <p>Xem mục <a href="#kho-nhap-excel">Nhập bảng khuôn Excel</a>. Sau khi nhập, rà bộ lọc <b>Cần xác nhận</b> trong menu Khuôn.</p>
+  <h2>4. Đối tác, vị trí kệ, ký hiệu khuôn, bảng khuôn Excel</h2>
+  <p>Như trước: xưởng bế, nơi làm khuôn, nhà cung cấp ở thẻ <b>Đối tác</b>; kệ ở <b>Vị trí kệ</b>; ký hiệu khuôn (TUI, HOP, KEF…) ở <b>Ký hiệu khuôn</b>; nhập bảng khuôn ở <a href="#kho-nhap-excel">Nhập bảng khuôn Excel</a>.</p>
 
-  <h2>4. Nhập tồn đầu của vật tư</h2>
-  <p>Lập một <a href="#kho-kiem-ke">phiếu kiểm kê vật tư</a>, đếm thực tế từng khổ và nhập số. Người quản lý kho duyệt là tồn kho có số đầu.</p>
+  <h2>5. Tồn đầu</h2>
+  <p>Mỗi kho lập một <a href="#kho-kiem-ke">phiếu kiểm kê vật tư</a>, đếm thực tế và nhập số; thủ kho duyệt là kho có số đầu.</p>
 </section>
 
-<section class="doc kho" id="kho-ton" data-group="kho" data-title="Tồn kho & phiếu nhập / xuất">
+<section class="doc kho" id="kho-ton" data-group="kho" data-title="Tồn kho & phiếu, thủ kho xác nhận">
   <div class="crumb"><span class="dot" style="background:var(--kho)"></span>Kho</div>
-  <h1>Tồn kho và phiếu nhập / xuất</h1>
-  <p class="lead">Mỗi lần giấy, màng, keo vào hoặc ra khỏi kho đều lập phiếu. Phần mềm cộng trừ tồn ngay khi lưu.</p>
+  <h1>Tồn kho, phiếu và thủ kho xác nhận</h1>
+  <p class="lead">Chọn kho ở đầu trang rồi làm việc với kho đó. Phiếu lập xong ở trạng thái <b>chờ xác nhận</b>; tồn chỉ thay đổi khi thủ kho của kho xác nhận.</p>
   <div class="who"><span>Menu: <b>Kho → Tồn kho & phiếu</b></span><span>Quyền: <b>Lập phiếu kho</b></span></div>
-  <figure><img src="img/kho-stock.jpg" alt="Tồn kho"><figcaption>Thẻ Tồn kho. Số đỏ và nhãn “Dưới tối thiểu” là vật tư cần mua thêm.</figcaption></figure>
+  <figure><img src="img/kho-stock.jpg" alt="Tồn kho"><figcaption>Kho giấy: tồn từng quy cách (kèm số ram), chờ xuất, mức tối thiểu. Dòng thủ kho ghi ngay dưới tên các kho.</figcaption></figure>
 
   <h2>Xem tồn</h2>
   <ul>
-    <li>Gõ tên hoặc khổ vào ô tìm (ví dụ <code>27 x 23</code>), lọc theo nhóm, hoặc chọn <b>Dưới tối thiểu</b>.</li>
-    <li><span class="ui">Xuất CSV</span> để mở danh sách tồn bằng Excel.</li>
-    <li><b>Bấm vào một dòng</b> để xem <b>thẻ kho</b>: từng phiếu nhập, xuất và số tồn sau mỗi phiếu.</li>
+    <li>Chọn kho bằng các nút ở trên cùng (số đỏ trên nút = phiếu đang chờ bạn xác nhận).</li>
+    <li>Gõ mã, tên hoặc khổ vào ô tìm; lọc theo nhóm; chọn <b>Dưới tối thiểu</b>; <span class="ui">Xuất CSV</span>.</li>
+    <li>Cột <b>Chờ xuất</b>: số đang nằm trong phiếu xuất / chuyển đi chưa xác nhận.</li>
+    <li>Bấm vào một dòng để xem <b>thẻ kho</b> của quy cách đó tại kho đang chọn.</li>
   </ul>
-  <figure><img src="img/kho-card.jpg" alt="Thẻ kho"><figcaption>Thẻ kho của một khổ giấy, phiếu mới nhất ở trên.</figcaption></figure>
 
-  <h2>Ba loại phiếu</h2>
+  <h2>Các loại phiếu</h2>
   <table>
     <tr><th>Nút</th><th>Khi nào</th><th>Số phiếu</th></tr>
-    <tr><td><span class="ui">Nhập kho</span></td><td>Hàng mua về. Ghi nhà cung cấp, số hoá đơn, đơn giá nếu có.</td><td>NK-</td></tr>
-    <tr><td><span class="ui primary">Xuất kho</span></td><td>Đưa vật tư ra xưởng. Bắt buộc ghi <b>người nhận</b>; nên ghi mục đích và số lệnh sản xuất.</td><td>XK-</td></tr>
-    <tr><td><span class="ui">Nhập lại</span></td><td>Xưởng dùng thừa, trả lại kho.</td><td>NL-</td></tr>
+    <tr><td><span class="ui">Nhập kho</span></td><td>Hàng mua về. Ghi nhà cung cấp, hoá đơn, đơn giá (theo đơn vị đã chọn).</td><td>NK-mã kho-</td></tr>
+    <tr><td><span class="ui primary">Xuất kho</span></td><td>Đưa ra xưởng. Bắt buộc ghi <b>người nhận</b>; nên ghi mục đích, lệnh.</td><td>XK-mã kho-</td></tr>
+    <tr><td><span class="ui">Nhập lại</span></td><td>Dùng thừa, trả lại kho.</td><td>NL-mã kho-</td></tr>
+    <tr><td><span class="ui">Chuyển kho</span></td><td>Chuyển sang kho khác, xem <a href="#kho-chuyen">Chuyển kho</a>.</td><td>CK-mã kho-</td></tr>
   </table>
 
-  <h2>Lập phiếu xuất kho</h2>
+  <h2>Lập phiếu</h2>
   <ol class="steps">
-    <li>Bấm <span class="ui primary">Xuất kho</span>.</li>
-    <li>Chọn ngày, ghi <b>người nhận</b>, mục đích, lệnh sản xuất.</li>
-    <li>Chọn vật tư · khổ (danh sách hiện số tồn), gõ số lượng. Nhiều vật tư thì bấm <span class="ui">Thêm dòng</span>.</li>
+    <li>Bấm nút loại phiếu. Chọn ngày, người nhận / nhà cung cấp, lệnh.</li>
+    <li>Mỗi dòng: chọn vật tư · quy cách, gõ số lượng, chọn <b>đơn vị</b> (tờ, ram…). Phần mềm hiện số quy đổi, ví dụ “= 250 tờ”.</li>
+    <li>Nếu bạn là thủ kho của kho này, ô <b>Tôi là thủ kho, xác nhận luôn</b> đã được tích: lưu là tồn đổi ngay. Người khác lập thì phiếu chờ thủ kho.</li>
     <li>Bấm <span class="ui primary">Lưu phiếu</span>.</li>
   </ol>
-  <figure><img src="img/kho-slip.jpg" alt="Phiếu xuất kho"><figcaption>Phiếu xuất kho.</figcaption></figure>
-  <div class="note warn">Không xuất được quá số tồn. Thông báo ghi rõ ví dụ “Giấy Ivory 300 · 65 x 86: còn 390, cần 600”. Kiểm tra lại số, hoặc lập phiếu nhập trước nếu hàng đã về mà chưa nhập.</div>
+  <figure><img src="img/kho-slip.jpg" alt="Phiếu xuất kho theo ram"><figcaption>Xuất 1 ram giấy khổ 79 × 109 (= 250 tờ).</figcaption></figure>
 
-  <h2>Xem và huỷ phiếu</h2>
-  <p>Thẻ <b>Phiếu kho</b> liệt kê phiếu theo tháng, lọc theo loại, tìm theo số phiếu, người nhận, lệnh. Phiếu lập sai thì bấm <span class="ui">Huỷ</span> và ghi lý do: tồn được trả lại như trước, phiếu vẫn còn trong danh sách (chữ mờ, nhãn “Đã huỷ”) để tra.</p>
-  <figure><img src="img/kho-slips.jpg" alt="Danh sách phiếu kho"><figcaption>Danh sách phiếu kho trong tháng.</figcaption></figure>
+  <h2>Thủ kho xác nhận</h2>
+  <ol class="steps">
+    <li>Thẻ <b>Chờ xác nhận</b> (hoặc ô “Phiếu chờ bạn xác nhận” ở Tổng quan kho) liệt kê phiếu đang chờ.</li>
+    <li>Bấm vào phiếu, kiểm hàng thực tế với phiếu.</li>
+    <li>Đúng thì bấm <span class="ui primary">Xác nhận</span>: tồn thay đổi, phiếu ghi tên thủ kho và giờ xác nhận. Sai thì bấm <span class="ui">Từ chối</span> và ghi lý do.</li>
+  </ol>
+  <figure><img src="img/kho-confirm.jpg" alt="Thủ kho xác nhận phiếu"><figcaption>Phiếu nhập do Lan lập ở Kho giấy, chờ thủ kho Kho giấy xác nhận.</figcaption></figure>
+  <div class="note warn">Không xác nhận được phiếu xuất khi tồn không đủ; thông báo ghi rõ “còn X, cần Y”. Phiếu vẫn chờ, thủ kho từ chối hoặc chờ hàng về.</div>
+
+  <h2>Huỷ phiếu</h2>
   <ul>
-    <li>Không huỷ được phiếu nhập nếu hàng đã xuất bớt (huỷ sẽ làm tồn âm).</li>
-    <li>Phiếu điều chỉnh (DC-) sinh ra từ kiểm kê không huỷ được.</li>
-    <li>Tháng đã <a href="#kho-chot-thang">chốt tồn</a> thì không lập hay huỷ phiếu trong tháng đó.</li>
+    <li>Phiếu <b>chưa xác nhận</b>: người lập (hoặc thủ kho) bấm <span class="ui">Huỷ phiếu</span>. Tồn không đổi.</li>
+    <li>Phiếu <b>đã xác nhận</b>: chỉ thủ kho huỷ được, ghi lý do; tồn được trả lại như trước. Không huỷ được nếu làm tồn âm, hoặc phiếu điều chỉnh từ kiểm kê.</li>
+    <li>Tháng đã <a href="#kho-chot-thang">chốt tồn</a> ở kho đó thì không lập, xác nhận hay huỷ phiếu trong tháng.</li>
   </ul>
+</section>
+
+<section class="doc kho" id="kho-chuyen" data-group="kho" data-title="Chuyển kho A → B">
+  <div class="crumb"><span class="dot" style="background:var(--kho)"></span>Kho</div>
+  <h1>Chuyển kho A → B</h1>
+  <p class="lead">Chuyển vật tư giữa hai kho, ví dụ decal từ kho giấy sang xưởng bạt. Một phiếu chuyển gồm hai phiếu liên kết: phiếu đi ở kho A và phiếu đến ở kho B.</p>
+  <div class="who"><span>Menu: <b>Kho → Tồn kho & phiếu → Chuyển kho</b></span></div>
+  <div class="cycle">
+    <b>Lập phiếu</b> → thủ kho A <b>xác nhận xuất</b> (hàng rời kho A, <span class="stt blue">Đang chuyển đến</span>) → thủ kho B <b>xác nhận đã nhận</b> (hàng vào kho B)
+  </div>
+  <ol class="steps">
+    <li>Chọn kho đi ở đầu trang, bấm <span class="ui">Chuyển kho</span>.</li>
+    <li>Chọn <b>kho nhận</b>, ghi người mang, lý do; chọn vật tư, số lượng, đơn vị. Kho nhận chưa có vật tư thì phần mềm tự thêm vào.</li>
+    <li>Thủ kho kho đi tích <b>xác nhận xuất luôn</b> (hoặc xác nhận sau ở thẻ Chờ xác nhận).</li>
+    <li>Thủ kho kho nhận thấy phiếu ở thẻ <b>Chờ xác nhận</b> của kho mình, kiểm hàng rồi bấm <span class="ui primary">Xác nhận đã nhận</span>.</li>
+  </ol>
+  <figure><img src="img/kho-transfer.jpg" alt="Lập phiếu chuyển kho"><figcaption>Chuyển 100 tờ Ivory 300 khổ 79 × 109 từ Kho giấy sang Kho vật tư xưởng bạt.</figcaption></figure>
+  <figure><img src="img/kho-receive.jpg" alt="Kho nhận xác nhận"><figcaption>Thủ kho xưởng bạt mở phiếu “Nhận chuyển” đang chuyển đến và xác nhận đã nhận.</figcaption></figure>
+  <ul>
+    <li>Kho nhận không xác nhận được khi kho đi chưa xác nhận xuất.</li>
+    <li>Trước khi kho đi xác nhận: một trong hai thủ kho từ chối, hoặc người lập huỷ, thì cả hai phiếu cùng đóng.</li>
+    <li>Sau khi hàng đã rời kho đi: chỉ thủ kho kho đi huỷ được phiếu chuyển; phần mềm trả hàng về kho đi (và lấy ra khỏi kho nhận nếu đã nhận).</li>
+    <li>Hàng đang chuyển hiện ở ô <b>Hàng đang chuyển giữa các kho</b> trên Tổng quan kho.</li>
+  </ul>
+</section>
+
+<section class="doc kho" id="kho-bao-cao" data-group="kho" data-title="Báo cáo kho, tồn theo ngày">
+  <div class="crumb"><span class="dot" style="background:var(--kho)"></span>Kho</div>
+  <h1>Báo cáo kho và tồn theo ngày</h1>
+  <p class="lead">Mọi phiếu đều được lưu lại. Báo cáo tính từ các phiếu đã được thủ kho xác nhận, theo ngày ghi trên phiếu. Cuối mỗi ngày phần mềm tự lưu một bản chụp tồn của từng kho.</p>
+  <div class="who"><span>Menu: <b>Kho → Báo cáo kho</b></span></div>
+
+  <h2>Nhập – xuất – tồn</h2>
+  <p>Chọn kho và khoảng ngày: mỗi quy cách có tồn đầu, tổng nhập, tổng xuất, tồn cuối. Nhập gồm nhập kho, nhập lại, nhận chuyển, điều chỉnh tăng; xuất gồm xuất kho, chuyển đi, điều chỉnh giảm. Chọn <b>Có phát sinh</b> để chỉ xem dòng có nhập / xuất. <span class="ui">Xuất CSV</span> để mở bằng Excel.</p>
+  <figure><img src="img/kho-nxt.jpg" alt="Nhập xuất tồn"><figcaption>Nhập – xuất – tồn Kho giấy từ 01/11 đến 19/11.</figcaption></figure>
+
+  <h2>Tồn theo ngày</h2>
+  <p>Chọn một ngày: phần mềm hiện tồn cuối ngày đó của từng quy cách.</p>
+  <ul>
+    <li><b>Bản chụp:</b> sau khi hết ngày, phần mềm tự lưu tồn cuối ngày (chạy mỗi giờ, ngày nào chưa có thì chụp bù). Bản chụp không đổi về sau.</li>
+    <li><b>Tính lại từ phiếu:</b> cột bên cạnh tính lại từ phiếu hiện có. Nếu có người lập bổ sung phiếu về ngày cũ, cột này khác bản chụp và được tô màu cam.</li>
+    <li>Ngày chưa có bản chụp (ví dụ hôm nay) thì hiện số tính từ phiếu.</li>
+    <li>Quản lý kho có nút <span class="ui">Chụp các ngày còn thiếu</span> để chụp ngay mà không chờ.</li>
+  </ul>
+  <figure><img src="img/kho-asof.jpg" alt="Tồn theo ngày"><figcaption>Bản chụp tồn cuối ngày 18/11 của Kho giấy.</figcaption></figure>
+
+  <h2>Sổ phiếu theo ngày</h2>
+  <p>Mọi phiếu của kho trong khoảng ngày: loại, trạng thái, vật tư, người lập, thủ kho xác nhận và giờ xác nhận. Xuất CSV được, mỗi dòng vật tư một dòng.</p>
 </section>
 
 <section class="doc kho" id="kho-khuon" data-group="kho" data-title="Danh sách khuôn & tìm khuôn">
@@ -1229,16 +1293,16 @@ a.card:hover { border-color: #b9c2cb; box-shadow: 0 2px 10px rgba(0,0,0,.05); }
   <div class="crumb"><span class="dot" style="background:var(--kho)"></span>Kho</div>
   <h1>Kiểm kê vật tư và khuôn</h1>
   <p class="lead">Đếm thực tế để sổ khớp với kho. Nên kiểm kê vật tư cuối mỗi tháng trước khi chốt tồn, và kiểm kê khuôn theo từng kệ khi rảnh.</p>
-  <div class="who"><span>Menu: <b>Kho → Kiểm kê</b></span><span>Quyền: <b>Kiểm kê</b>; duyệt cần <b>Quản lý kho</b></span></div>
+  <div class="who"><span>Menu: <b>Kho → Kiểm kê</b></span><span>Quyền: <b>Kiểm kê</b>; duyệt: <b>thủ kho của kho</b> hoặc <b>Quản lý kho</b></span></div>
 
   <h2>Kiểm kê vật tư</h2>
   <ol class="steps">
-    <li>Thẻ <b>Vật tư</b> → <span class="ui primary">Phiếu kiểm kê mới</span>. Chọn ngày và nhóm vật tư (bỏ trống để kiểm tất cả).</li>
+    <li>Thẻ <b>Vật tư</b>, chọn kho ở trên cùng → <span class="ui primary">Phiếu kiểm kê mới</span>. Chọn ngày và nhóm vật tư (bỏ trống để kiểm tất cả).</li>
     <li>Phần mềm ghi sẵn số <b>theo sổ</b>. Đếm thực tế và gõ vào cột <b>Đếm thực tế</b>; cột <b>Chênh lệch</b> tự tính. Bấm <span class="ui">Lưu số đếm</span> (làm nhiều lần được).</li>
-    <li>Người quản lý kho mở phiếu, bật <b>Chỉ dòng lệch</b> để soát, rồi bấm <span class="ui primary">Duyệt</span>.</li>
+    <li>Thủ kho của kho (hoặc người quản lý kho) mở phiếu, bật <b>Chỉ dòng lệch</b> để soát, rồi bấm <span class="ui primary">Duyệt</span>.</li>
   </ol>
   <figure><img src="img/kho-count.jpg" alt="Phiếu kiểm kê vật tư"><figcaption>Phiếu kiểm kê: 2/4 dòng đã đếm, một dòng thiếu 12 tờ.</figcaption></figure>
-  <p>Khi duyệt, chênh lệch thành <b>phiếu điều chỉnh DC-</b> và tồn kho bằng đúng số đếm. Dòng chưa đếm giữ nguyên. Mỗi lúc chỉ có một phiếu kiểm kê vật tư đang mở.</p>
+  <p>Khi duyệt, chênh lệch thành <b>phiếu điều chỉnh DC-</b> và tồn kho bằng đúng số đếm. Dòng chưa đếm giữ nguyên. Mỗi kho, mỗi lúc chỉ có một phiếu kiểm kê vật tư đang mở.</p>
 
   <h2>Kiểm kê khuôn</h2>
   <ol class="steps">
@@ -1283,14 +1347,14 @@ a.card:hover { border-color: #b9c2cb; box-shadow: 0 2px 10px rgba(0,0,0,.05); }
 <section class="doc kho" id="kho-chot-thang" data-group="kho" data-title="Chốt tồn tháng">
   <div class="crumb"><span class="dot" style="background:var(--kho)"></span>Kho</div>
   <h1>Chốt tồn tháng</h1>
-  <p class="lead">Sau khi kiểm kê và báo cáo tồn cuối tháng, chốt tháng đó để không ai lập thêm hay huỷ phiếu có ngày trong tháng, làm lệch số đã báo cáo.</p>
+  <p class="lead">Sau khi kiểm kê và báo cáo tồn cuối tháng của một kho, chốt tháng đó để không ai lập, xác nhận hay huỷ phiếu có ngày trong tháng ở kho này.</p>
   <div class="who"><span>Menu: <b>Kho → Danh mục kho → Chốt tồn tháng</b></span><span>Quyền: <b>Quản lý kho</b></span></div>
   <ol class="steps">
-    <li>Kiểm kê vật tư và duyệt phiếu kiểm kê của tháng.</li>
-    <li>Chọn tháng, bấm <span class="ui primary">Chốt tồn tháng</span>.</li>
+    <li>Kiểm kê vật tư của kho và duyệt phiếu kiểm kê.</li>
+    <li>Chọn kho ở trên cùng, chọn tháng, bấm <span class="ui primary">Chốt tồn tháng</span>.</li>
     <li>Cần sửa phiếu trong tháng đã chốt: bấm <span class="ui">Mở lại</span>, sửa, rồi chốt lại.</li>
   </ol>
-  <p>Chốt tồn của Kho độc lập với khoá sổ kế toán. Luân chuyển khuôn không bị ảnh hưởng bởi chốt tháng.</p>
+  <p>Mỗi kho chốt riêng. Chốt tồn của Kho độc lập với khoá sổ kế toán. Luân chuyển khuôn không bị ảnh hưởng.</p>
 </section>
 
 <!-- ======================= QUẢN TRỊ ======================= -->
@@ -1409,7 +1473,7 @@ a.card:hover { border-color: #b9c2cb; box-shadow: 0 2px 10px rgba(0,0,0,.05); }
   </ul>
   <h2>Thủ kho</h2>
   <ul class="check">
-    <li>Đầu ngày mở <span class="menu kho">Tổng quan kho</span>: gọi xưởng về các khuôn <b>quá hẹn</b>; kiểm các khuôn <b>chờ kiểm</b>; báo mua vật tư <b>dưới tối thiểu</b>.</li>
+    <li>Đầu ngày mở <span class="menu kho">Tổng quan kho</span>: xác nhận các <b>phiếu chờ bạn xác nhận</b> và hàng <b>đang chuyển đến</b>; gọi xưởng về các khuôn <b>quá hẹn</b>; kiểm các khuôn <b>chờ kiểm</b>; báo mua vật tư <b>dưới tối thiểu</b>.</li>
     <li>Vật tư vào / ra kho: lập phiếu nhập, xuất (ghi người nhận và lệnh), nhập lại ngay lúc giao nhận.</li>
     <li>Khuôn đi xưởng / về kho: ghi nhận trong hồ sơ khuôn, hoặc lập biên bản giao nhận khi nhiều khuôn.</li>
     <li>Rảnh: kiểm kê khuôn một kệ; rà bộ lọc <b>Cần xác nhận</b>.</li>
@@ -1442,7 +1506,9 @@ a.card:hover { border-color: #b9c2cb; box-shadow: 0 2px 10px rgba(0,0,0,.05); }
     <tr><td>Số dư đầu kỳ chưa cân</td><td>Tổng Dư Nợ khác tổng Dư Có</td><td>Sửa ở Kỳ kế toán → Số dư đầu kỳ</td></tr>
     <tr><td>Bút toán chưa cân</td><td>Tổng Nợ khác tổng Có</td><td>Sửa số tiền các dòng cho bằng nhau</td></tr>
     <tr><td>Không đủ tồn kho</td><td>Xuất nhiều hơn số đang có</td><td>Lập phiếu nhập trước hoặc giảm số xuất</td></tr>
-    <tr><td>Kho: Không đủ tồn kho … còn X, cần Y</td><td>Phiếu xuất nhiều hơn tồn của khổ đó</td><td>Kiểm tra số; nếu hàng đã về thì lập phiếu nhập trước</td></tr>
+    <tr><td>Chỉ thủ kho của kho này mới làm được việc này</td><td>Bạn không phải thủ kho của kho đó</td><td>Chờ thủ kho xác nhận, hoặc nhờ quản lý kho thêm bạn làm thủ kho</td></tr>
+    <tr><td>Kho đi chưa xác nhận xuất</td><td>Kho nhận bấm nhận khi hàng chưa rời kho đi</td><td>Chờ thủ kho kho đi xác nhận xuất</td></tr>
+    <tr><td>Kho: Không đủ tồn kho … còn X, cần Y</td><td>Phiếu xuất nhiều hơn tồn của quy cách đó tại kho</td><td>Kiểm tra số; nếu hàng đã về thì lập phiếu nhập trước</td></tr>
     <tr><td>Tháng này đã chốt tồn kho</td><td>Ngày phiếu thuộc tháng đã chốt</td><td>Chọn ngày khác, hoặc nhờ quản lý kho mở lại tháng</td></tr>
     <tr><td>Khuôn đang ở trạng thái không làm được thao tác này</td><td>Ví dụ xuất khuôn đang ở xưởng, kiểm khuôn chưa về</td><td>Xem trạng thái trong hồ sơ khuôn, làm bước đúng trước</td></tr>
     <tr><td>Đã có khuôn cùng ký hiệu, kích thước gần giống</td><td>Có khuôn lệch dưới 0,5 cm</td><td>Xem khuôn đó có dùng lại được không; cần thì bấm “Vẫn tạo khuôn mới”</td></tr>
@@ -1480,7 +1546,7 @@ a.card:hover { border-color: #b9c2cb; box-shadow: 0 2px 10px rgba(0,0,0,.05); }
     <tr><td>Khuôn bế</td><td>Khuôn dao để bế (cắt) hộp, túi, tem. Mã dạng <code>TUI-001</code>, cấp một lần, không đổi.</td></tr>
     <tr><td>Xưởng giữ</td><td>Khuôn bế xong để lại ở xưởng ngoài cho lần sau, vẫn sẵn sàng.</td></tr>
     <tr><td>Chốt tồn tháng</td><td>Khoá phiếu kho của một tháng sau khi đã kiểm kê, báo cáo.</td></tr>
-    <tr><td>Mã chứng từ</td><td>KH (khách), NCC (nhà cung cấp), BG (báo giá), DH (đơn), LSX, GH, PT (phiếu thu), PN (nhập kho), PX (xuất kho), PC (phiếu chi), PKT (bút toán khác). Phân hệ Kho: NK (nhập kho), XK (xuất kho), NL (nhập lại), DC (điều chỉnh), KKV (kiểm kê vật tư), GN (giao nhận khuôn). Dạng <code>DH-2611-0001</code> = đơn số 1 tháng 11/2026.</td></tr>
+    <tr><td>Mã chứng từ</td><td>KH (khách), NCC (nhà cung cấp), BG (báo giá), DH (đơn), LSX, GH, PT (phiếu thu), PN (nhập kho), PX (xuất kho), PC (phiếu chi), PKT (bút toán khác). Phân hệ Kho: NK (nhập kho), XK (xuất kho), NL (nhập lại), CK (chuyển kho), DC (điều chỉnh), KKV (kiểm kê vật tư) kèm mã kho, ví dụ XK-GIAY-2611-0001; GN (giao nhận khuôn). Dạng <code>DH-2611-0001</code> = đơn số 1 tháng 11/2026.</td></tr>
   </table></div>
   <div class="note tip">Cần hỗ trợ thêm? Liên hệ quản trị viên phần mềm của công ty.</div>
 </section>

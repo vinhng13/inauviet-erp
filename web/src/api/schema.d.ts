@@ -1773,6 +1773,55 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/warehouse/warehouses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["Warehouse_warehouseList"];
+        put?: never;
+        post: operations["Warehouse_createWarehouse"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/warehouse/people": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Người dùng để chọn làm thủ kho */
+        get: operations["Warehouse_people"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/warehouse/warehouses/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["Warehouse_updateWarehouse"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/warehouse/partners": {
         parameters: {
             query?: never;
@@ -1902,7 +1951,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/warehouse/month-locks/{month}": {
+    "/api/v1/warehouse/month-locks/{warehouseId}/{month}": {
         parameters: {
             query?: never;
             header?: never;
@@ -1934,6 +1983,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/warehouse/stock/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Mức tối thiểu / ngừng dùng của một dòng tồn (một quy cách tại một kho) */
+        put: operations["Warehouse_updateStock"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/warehouse/stock/{id}/card": {
         parameters: {
             query?: never;
@@ -1950,6 +2016,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/warehouse/reports/stock": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Nhập – xuất – tồn theo khoảng ngày */
+        get: operations["Warehouse_report"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/warehouse/reports/as-of": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Tồn cuối một ngày: bản chụp nếu có, kèm số tính lại từ phiếu */
+        get: operations["Warehouse_asOf"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/warehouse/snapshots/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Chụp tồn cuối ngày cho các ngày đã qua còn thiếu (bình thường chạy tự động mỗi giờ) */
+        post: operations["Warehouse_runSnapshots"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/warehouse/slips": {
         parameters: {
             query?: never;
@@ -1959,6 +2076,7 @@ export interface paths {
         };
         get: operations["Warehouse_slips"];
         put?: never;
+        /** Lập phiếu (chờ thủ kho xác nhận; thủ kho lập thì confirm=true để xác nhận luôn) */
         post: operations["Warehouse_createSlip"];
         delete?: never;
         options?: never;
@@ -1976,6 +2094,71 @@ export interface paths {
         get: operations["Warehouse_slip"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/warehouse/transfers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Phiếu chuyển kho A → B: thủ kho A xác nhận xuất, rồi thủ kho B xác nhận nhận */
+        post: operations["Warehouse_createTransfer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/warehouse/slips/{id}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["Warehouse_confirmSlip"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/warehouse/slips/{id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["Warehouse_rejectSlip"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/warehouse/slips/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["Warehouse_cancelSlip"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2039,7 +2222,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Duyệt: tạo phiếu điều chỉnh chênh lệch (cần quyền quản lý kho) */
+        /** Duyệt: tạo phiếu điều chỉnh chênh lệch (quản lý kho, hoặc thủ kho của kho đó) */
         post: operations["Warehouse_approveCount"];
         delete?: never;
         options?: never;
@@ -3975,11 +4158,48 @@ export interface components {
              */
             customerId: string | null;
         };
-        StockItemDto: {
+        /** @enum {string} */
+        WhWarehouseKind: "STOCK" | "DIE";
+        KeeperDto: {
             id: string;
+            fullName: string;
+        };
+        WarehouseDto: {
+            kind: components["schemas"]["WhWarehouseKind"];
+            id: string;
+            code: string;
+            name: string;
+            address: string | null;
+            note: string | null;
+            isActive: boolean;
+            sortOrder: number;
+            keepers: components["schemas"]["KeeperDto"][];
+            /** @description Số vật tư có ở kho */
+            materials: number;
+            /** @description Người đang xem xác nhận được phiếu của kho này */
+            canConfirm: boolean;
+            /** @description Phiếu đang chờ xác nhận */
+            pending: number;
+            /** @description Quy cách dưới mức tối thiểu */
+            low: number;
+        };
+        StockUnitDto: {
+            /** @description null = đơn vị cơ sở */
+            id: string | null;
+            name: string;
+            factor: number;
+        };
+        StockItemDto: {
+            /** @description Dòng tồn: một quy cách tại một kho */
+            id: string;
+            warehouseId: string;
+            warehouseCode: string;
+            specId: string;
             materialId: string;
+            materialCode: string | null;
             group: string;
             materialName: string;
+            /** @description Đơn vị cơ sở */
             unit: string;
             hasSizes: boolean;
             widthCm: number;
@@ -3990,8 +4210,71 @@ export interface components {
             minQty: number | null;
             low: boolean;
             isActive: boolean;
+            /** @description Đang chờ xuất (phiếu xuất / chuyển đi chưa xác nhận) */
+            pendingOut: number;
             /** @description Giá trị tồn tham khảo (bình quân các lần nhập có giá) */
             valueVnd: number | null;
+            /** @description Đơn vị chọn được khi lập phiếu (đơn vị cơ sở đầu tiên) */
+            units: components["schemas"]["StockUnitDto"][];
+        };
+        /** @enum {string} */
+        WhSlipKind: "RECEIPT" | "ISSUE" | "RETURN" | "ADJUST" | "TRANSFER_OUT" | "TRANSFER_IN";
+        /** @enum {string} */
+        WhSlipStatus: "PENDING" | "CONFIRMED" | "REJECTED" | "CANCELLED";
+        SlipRefDto: {
+            status: components["schemas"]["WhSlipStatus"];
+            id: string;
+            code: string;
+            warehouseId: string;
+            warehouseCode: string;
+            warehouseName: string;
+        };
+        SlipLineDto: {
+            id: string;
+            specId: string;
+            label: string;
+            /** @description Đơn vị cơ sở */
+            unit: string;
+            /** @description Theo đơn vị cơ sở */
+            qty: number;
+            /** @description Đơn vị đã ghi (null = đơn vị cơ sở) */
+            unitName: string | null;
+            unitQty: number | null;
+            unitPriceVnd: number | null;
+        };
+        SlipDto: {
+            kind: components["schemas"]["WhSlipKind"];
+            status: components["schemas"]["WhSlipStatus"];
+            id: string;
+            code: string;
+            warehouseId: string;
+            warehouseCode: string;
+            warehouseName: string;
+            date: string;
+            partnerId: string | null;
+            partnerName: string | null;
+            receiver: string | null;
+            purpose: string | null;
+            reference: string | null;
+            note: string | null;
+            createdById: string;
+            createdBy: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            confirmedAt: string | null;
+            confirmedBy: string | null;
+            rejectReason: string | null;
+            /** Format: date-time */
+            voidedAt: string | null;
+            voidReason: string | null;
+            /** @description Phiếu chuyển kho: phiếu ở kho bên kia */
+            counterpart: components["schemas"]["SlipRefDto"] | null;
+            /** @description Người đang xem xác nhận / từ chối được */
+            canConfirm: boolean;
+            /** @description Người đang xem huỷ được (phiếu chưa xác nhận) */
+            canCancel: boolean;
+            lines: components["schemas"]["SlipLineDto"][];
         };
         PlaceCountDto: {
             holderId: string;
@@ -4030,46 +4313,38 @@ export interface components {
             needsReview: boolean;
             reviewNote: string | null;
         };
-        /** @enum {string} */
-        WhSlipKind: "RECEIPT" | "ISSUE" | "RETURN" | "ADJUST";
-        SlipLineDto: {
-            id: string;
-            stockItemId: string;
-            label: string;
-            unit: string;
-            qty: number;
-            unitPriceVnd: number | null;
-        };
-        SlipDto: {
-            kind: components["schemas"]["WhSlipKind"];
-            id: string;
-            code: string;
-            date: string;
-            partnerId: string | null;
-            partnerName: string | null;
-            receiver: string | null;
-            purpose: string | null;
-            reference: string | null;
-            note: string | null;
-            createdBy: string;
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            voidedAt: string | null;
-            voidReason: string | null;
-            lines: components["schemas"]["SlipLineDto"][];
-        };
         WarehouseOverviewDto: {
             diesByStatus: {
                 [key: string]: number;
             };
+            warehouses: components["schemas"]["WarehouseDto"][];
             lowStock: components["schemas"]["StockItemDto"][];
+            /** @description Phiếu chờ người đang xem xác nhận */
+            toConfirm: components["schemas"]["SlipDto"][];
+            /** @description Hàng đang chuyển giữa các kho (đã xuất, kho nhận chưa xác nhận) */
+            inTransit: components["schemas"]["SlipDto"][];
             diesTotal: number;
             atPartners: components["schemas"]["PlaceCountDto"][];
             overdue: components["schemas"]["DieRowDto"][];
             checking: components["schemas"]["DieRowDto"][];
             needsReview: number;
             recentSlips: components["schemas"]["SlipDto"][];
+        };
+        WarehouseInputDto: {
+            /** @description Mã kho dùng trong số phiếu: GIAY, BAT, OFFSET… */
+            code: string;
+            name: string;
+            address?: string | null;
+            /**
+             * @description Chỉ đặt khi tạo kho
+             * @enum {string}
+             */
+            kind?: "STOCK" | "DIE";
+            note?: string | null;
+            isActive?: boolean;
+            sortOrder?: number;
+            /** @description Thủ kho: người xác nhận phiếu của kho này */
+            keeperIds: string[];
         };
         /** @enum {string} */
         WhPartnerKind: "DIE_MAKER" | "DIE_SHOP" | "SUPPLIER" | "OTHER";
@@ -4116,41 +4391,88 @@ export interface components {
             name: string;
             isActive?: boolean;
         };
+        SpecDto: {
+            id: string;
+            widthCm: number;
+            lengthCm: number;
+            /** @description "18 x 50,5" / "khổ 160" / "" */
+            label: string;
+            isActive: boolean;
+        };
+        UnitDto: {
+            id: string;
+            name: string;
+            factor: number;
+            specId: string | null;
+            specLabel: string | null;
+        };
+        MaterialStockDto: {
+            warehouseId: string;
+            warehouseCode: string;
+            qty: number;
+        };
         WhMaterialDto: {
             id: string;
+            code: string | null;
             group: string;
             name: string;
             unit: string;
             hasSizes: boolean;
             isActive: boolean;
-            items: components["schemas"]["StockItemDto"][];
+            specs: components["schemas"]["SpecDto"][];
+            units: components["schemas"]["UnitDto"][];
+            warehouseIds: string[];
+            /** @description Tổng tồn theo kho (đơn vị cơ sở) */
+            stocks: components["schemas"]["MaterialStockDto"][];
         };
-        SizeInputDto: {
+        SpecInputDto: {
             /** Format: uuid */
             id?: string;
-            /** @description cm; 0 x 0 khi vật tư không theo khổ */
+            /** @description cm; 0 x 0 khi vật tư không theo khổ; dài 0 = chỉ có khổ rộng (cuộn) */
             widthCm: number;
             lengthCm: number;
-            minQty?: number | null;
             isActive?: boolean;
         };
+        UnitInputDto: {
+            /** Format: uuid */
+            id?: string;
+            name: string;
+            /** @description 1 đơn vị này = factor đơn vị cơ sở */
+            factor: number;
+            /** @description Hệ số riêng cho một quy cách (khổ); bỏ trống = áp dụng mọi quy cách */
+            widthCm?: number | null;
+            lengthCm?: number | null;
+        };
         WhMaterialInputDto: {
+            code?: string | null;
             group: string;
             name: string;
+            /** @description Đơn vị cơ sở: tồn lưu theo đơn vị này */
             unit: string;
             hasSizes: boolean;
             isActive?: boolean;
-            /** @description Danh sách khổ (vật tư theo khổ) hoặc một dòng 0 x 0 */
-            sizes: components["schemas"]["SizeInputDto"][];
+            /** @description Quy cách (khổ); vật tư không theo khổ để trống */
+            specs: components["schemas"]["SpecInputDto"][];
+            units: components["schemas"]["UnitInputDto"][];
+            /** @description Kho có vật tư này */
+            warehouseIds: string[];
         };
         MonthLockDto: {
+            warehouseId: string;
+            warehouseCode: string;
             month: string;
             lockedBy: string;
             /** Format: date-time */
             lockedAt: string;
         };
         MonthDto: {
+            /** Format: uuid */
+            warehouseId: string;
             month: string;
+        };
+        StockUpdateDto: {
+            minQty?: number | null;
+            isActive?: boolean;
         };
         CardRowDto: {
             kind: components["schemas"]["WhSlipKind"];
@@ -4167,9 +4489,58 @@ export interface components {
             item: components["schemas"]["StockItemDto"];
             rows: components["schemas"]["CardRowDto"][];
         };
+        StockReportRowDto: {
+            stockId: string;
+            specId: string;
+            group: string;
+            label: string;
+            unit: string;
+            opening: number;
+            inQty: number;
+            outQty: number;
+            closing: number;
+        };
+        StockReportDto: {
+            warehouseId: string;
+            from: string;
+            to: string;
+            rows: components["schemas"]["StockReportRowDto"][];
+        };
+        StockAsOfRowDto: {
+            stockId: string;
+            specId: string;
+            group: string;
+            label: string;
+            unit: string;
+            /** @description Theo bản chụp cuối ngày nếu có, nếu không thì tính từ phiếu */
+            qty: number;
+            /** @description Tính lại từ phiếu hiện có (khác bản chụp khi có phiếu bổ sung về sau) */
+            liveQty: number;
+        };
+        StockAsOfDto: {
+            /** @enum {string} */
+            source: "SNAPSHOT" | "LIVE";
+            warehouseId: string;
+            date: string;
+            /**
+             * Format: date-time
+             * @description Lúc chụp (bản chụp cuối ngày)
+             */
+            takenAt: string | null;
+            rows: components["schemas"]["StockAsOfRowDto"][];
+        };
+        SnapshotRunDto: {
+            days: number;
+            rows: number;
+        };
         SlipLineInputDto: {
             /** Format: uuid */
-            stockItemId: string;
+            specId: string;
+            /**
+             * Format: uuid
+             * @description Đơn vị đã ghi; bỏ trống = đơn vị cơ sở
+             */
+            unitId?: string | null;
             qty: number;
             unitPriceVnd?: number | null;
         };
@@ -4179,6 +4550,8 @@ export interface components {
              * @example 2026-11-02
              */
             date: string;
+            /** Format: uuid */
+            warehouseId: string;
             /** @enum {string} */
             kind: "RECEIPT" | "ISSUE" | "RETURN";
             /** Format: uuid */
@@ -4189,6 +4562,25 @@ export interface components {
             reference?: string | null;
             note?: string | null;
             lines: components["schemas"]["SlipLineInputDto"][];
+            /** @description Người lập là thủ kho của kho: xác nhận luôn */
+            confirm?: boolean;
+        };
+        TransferInputDto: {
+            /**
+             * Format: date
+             * @example 2026-11-02
+             */
+            date: string;
+            /** Format: uuid */
+            fromWarehouseId: string;
+            /** Format: uuid */
+            toWarehouseId: string;
+            receiver?: string | null;
+            reference?: string | null;
+            note?: string | null;
+            lines: components["schemas"]["SlipLineInputDto"][];
+            /** @description Người lập là thủ kho kho đi: xác nhận xuất luôn */
+            confirm?: boolean;
         };
         VoidDto: {
             reason: string;
@@ -4196,7 +4588,7 @@ export interface components {
         /** @enum {string} */
         WhCountStatus: "DRAFT" | "APPROVED" | "CANCELLED";
         CountLineDto: {
-            stockItemId: string;
+            specId: string;
             label: string;
             group: string;
             unit: string;
@@ -4208,6 +4600,9 @@ export interface components {
             status: components["schemas"]["WhCountStatus"];
             id: string;
             code: string;
+            warehouseId: string;
+            warehouseCode: string;
+            warehouseName: string;
             date: string;
             note: string | null;
             createdBy: string;
@@ -4218,6 +4613,8 @@ export interface components {
             adjustSlipCode: string | null;
             counted: number;
             total: number;
+            /** @description Người đang xem duyệt được (quản lý kho hoặc thủ kho của kho) */
+            canApprove: boolean;
             lines: components["schemas"]["CountLineDto"][];
         };
         CountCreateDto: {
@@ -4226,13 +4623,15 @@ export interface components {
              * @example 2026-11-02
              */
             date: string;
+            /** Format: uuid */
+            warehouseId: string;
             /** @description Chỉ kiểm các nhóm này; bỏ trống = tất cả */
             groups?: string[];
             note?: string | null;
         };
         CountEntryDto: {
             /** Format: uuid */
-            stockItemId: string;
+            specId: string;
             countedQty: number | null;
         };
         CountUpdateDto: {
@@ -4314,7 +4713,7 @@ export interface components {
             /** Format: uuid */
             makerId?: string | null;
             /** @enum {string} */
-            owner?: "CUSTOMER" | "AU_VIET" | "PARTNER";
+            owner?: "CUSTOMER" | "PARTNER" | "AU_VIET";
             costVnd?: number | null;
             note?: string | null;
             /**
@@ -7269,6 +7668,88 @@ export interface operations {
             };
         };
     };
+    Warehouse_warehouseList: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WarehouseDto"][];
+                };
+            };
+        };
+    };
+    Warehouse_createWarehouse: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WarehouseInputDto"];
+            };
+        };
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    Warehouse_people: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KeeperDto"][];
+                };
+            };
+        };
+    };
+    Warehouse_updateWarehouse: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WarehouseInputDto"];
+            };
+        };
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     Warehouse_partners: {
         parameters: {
             query?: never;
@@ -7500,7 +7981,9 @@ export interface operations {
     };
     Warehouse_monthLocks: {
         parameters: {
-            query?: never;
+            query?: {
+                warehouseId?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -7543,6 +8026,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                warehouseId: string;
                 month: string;
             };
             cookie?: never;
@@ -7560,7 +8044,8 @@ export interface operations {
     Warehouse_items: {
         parameters: {
             query?: {
-                all?: boolean;
+                warehouseId?: string;
+                all?: "true" | "false";
             };
             header?: never;
             path?: never;
@@ -7575,6 +8060,29 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["StockItemDto"][];
                 };
+            };
+        };
+    };
+    Warehouse_updateStock: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StockUpdateDto"];
+            };
+        };
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -7599,10 +8107,78 @@ export interface operations {
             };
         };
     };
+    Warehouse_report: {
+        parameters: {
+            query: {
+                from: string;
+                to: string;
+                warehouseId: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StockReportDto"];
+                };
+            };
+        };
+    };
+    Warehouse_asOf: {
+        parameters: {
+            query: {
+                date: string;
+                warehouseId: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StockAsOfDto"];
+                };
+            };
+        };
+    };
+    Warehouse_runSnapshots: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SnapshotRunDto"];
+                };
+            };
+        };
+    };
     Warehouse_slips: {
         parameters: {
             query?: {
-                kind?: "ISSUE" | "RECEIPT" | "RETURN" | "ADJUST";
+                from?: string;
+                to?: string;
+                warehouseId?: string;
+                kind?: "ISSUE" | "RETURN" | "RECEIPT" | "ADJUST" | "TRANSFER_OUT" | "TRANSFER_IN";
+                status?: "CONFIRMED" | "CANCELLED" | "PENDING" | "REJECTED";
                 month?: string;
                 q?: string;
             };
@@ -7666,6 +8242,96 @@ export interface operations {
             };
         };
     };
+    Warehouse_createTransfer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransferInputDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SlipDto"];
+                };
+            };
+        };
+    };
+    Warehouse_confirmSlip: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SlipDto"];
+                };
+            };
+        };
+    };
+    Warehouse_rejectSlip: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VoidDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SlipDto"];
+                };
+            };
+        };
+    };
+    Warehouse_cancelSlip: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SlipDto"];
+                };
+            };
+        };
+    };
     Warehouse_voidSlip: {
         parameters: {
             query?: never;
@@ -7693,7 +8359,9 @@ export interface operations {
     };
     Warehouse_counts: {
         parameters: {
-            query?: never;
+            query?: {
+                warehouseId?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;

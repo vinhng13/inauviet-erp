@@ -21,6 +21,57 @@ export function WarehouseOverviewPage() {
   return (
     <Flex vertical gap={16}>
       <PageHead title="Tổng quan kho" />
+      <Row gutter={[12, 12]}>
+        {data.warehouses.map((w) => (
+          <Col key={w.id} xs={12} md={6}>
+            <Card size="small" hoverable onClick={() => navigate(w.kind === 'DIE' ? '/warehouse/dies' : `/warehouse/stock?kho=${w.code}`)}>
+              <Typography.Text strong>{w.name}</Typography.Text>
+              <div style={{ fontSize: 12, opacity: 0.75 }}>Thủ kho: {w.keepers.map((k) => k.fullName).join(', ') || 'chưa chỉ định'}</div>
+              {w.kind === 'STOCK' && (
+                <Flex gap={6} wrap style={{ marginTop: 6 }}>
+                  <Tag>{w.materials} vật tư</Tag>
+                  {w.pending > 0 && <Tag color="gold">{w.pending} phiếu chờ xác nhận</Tag>}
+                  {w.low > 0 && <Tag color="red">{w.low} dưới tối thiểu</Tag>}
+                </Flex>
+              )}
+            </Card>
+          </Col>
+        ))}
+      </Row>
+      {(data.toConfirm.length > 0 || data.inTransit.length > 0) && (
+        <Row gutter={[16, 16]}>
+          {data.toConfirm.length > 0 && (
+            <Col xs={24} lg={12}>
+              <Card size="small" title={`Phiếu chờ bạn xác nhận (${data.toConfirm.length})`}>
+                <List
+                  size="small"
+                  dataSource={data.toConfirm}
+                  renderItem={(s) => (
+                    <List.Item extra={<Link to={`/warehouse/stock?kho=${s.warehouseCode}&tab=pending`}>Mở</Link>}>
+                      <Tag color={SLIP[s.kind].color}>{SLIP[s.kind].label}</Tag> {s.code} · {s.warehouseName} · {s.createdBy}
+                    </List.Item>
+                  )}
+                />
+              </Card>
+            </Col>
+          )}
+          {data.inTransit.length > 0 && (
+            <Col xs={24} lg={12}>
+              <Card size="small" title={`Hàng đang chuyển giữa các kho (${data.inTransit.length})`}>
+                <List
+                  size="small"
+                  dataSource={data.inTransit}
+                  renderItem={(s) => (
+                    <List.Item>
+                      {s.counterpart?.warehouseName} → {s.warehouseName} · {s.code} · {s.lines.map((l) => `${l.label} ${qty(l.qty)}`).join(', ')}
+                    </List.Item>
+                  )}
+                />
+              </Card>
+            </Col>
+          )}
+        </Row>
+      )}
       <Row gutter={[16, 16]}>
         <Col xs={12} md={6}>
           <Card size="small"><Statistic title="Khuôn đang quản lý" value={data.diesTotal} /></Card>
@@ -90,7 +141,7 @@ export function WarehouseOverviewPage() {
                 size="small"
                 dataSource={data.lowStock}
                 renderItem={(i) => (
-                  <List.Item extra={<Typography.Text type="danger">{qty(i.qty)} / {qty(i.minQty ?? 0)} {i.unit}</Typography.Text>}>{i.label}</List.Item>
+                  <List.Item extra={<Typography.Text type="danger">{qty(i.qty)} / {qty(i.minQty ?? 0)} {i.unit}</Typography.Text>}>{i.warehouseCode} · {i.label}</List.Item>
                 )}
               />
             ) : (
@@ -110,6 +161,7 @@ export function WarehouseOverviewPage() {
                 { title: 'Ngày', dataIndex: 'date', width: 110, render: formatDate },
                 { title: 'Số phiếu', dataIndex: 'code', width: 130 },
                 { title: 'Loại', dataIndex: 'kind', width: 110, render: (k: keyof typeof SLIP) => <Tag color={SLIP[k].color}>{SLIP[k].label}</Tag> },
+                { title: 'Kho', dataIndex: 'warehouseCode', width: 90 },
                 { title: 'Vật tư', key: 'l', ellipsis: true, render: (_, r) => r.lines.map((l) => `${l.label} ${qty(l.qty)}`).join(', ') },
                 { title: 'Người nhận / NCC', key: 'p', width: 180, render: (_, r) => r.receiver ?? r.partnerName ?? '' },
               ]}

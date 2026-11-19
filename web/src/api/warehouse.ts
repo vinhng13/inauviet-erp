@@ -20,14 +20,29 @@ export const usePartners = () => useQuery({ queryKey: wh.key('partners'), queryF
 export const useLocations = () => useQuery({ queryKey: wh.key('locations'), queryFn: () => unwrap(api.GET('/api/v1/warehouse/locations')), staleTime: 60_000 });
 export const useSymbols = () => useQuery({ queryKey: wh.key('symbols'), queryFn: () => unwrap(api.GET('/api/v1/warehouse/symbols')), staleTime: 60_000 });
 export const useWhMaterials = () => useQuery({ queryKey: wh.key('materials'), queryFn: () => unwrap(api.GET('/api/v1/warehouse/materials')) });
-export const useMonthLocks = () => useQuery({ queryKey: wh.key('locks'), queryFn: () => unwrap(api.GET('/api/v1/warehouse/month-locks')) });
-export const useStockItems = (all = false) =>
-  useQuery({ queryKey: wh.key('stock', all), queryFn: () => unwrap(api.GET('/api/v1/warehouse/stock', { params: { query: { all } } })) });
+export const useWarehouses = () => useQuery({ queryKey: wh.key('warehouses'), queryFn: () => unwrap(api.GET('/api/v1/warehouse/warehouses')), staleTime: 30_000 });
+export const useWhPeople = (enabled = true) => useQuery({ queryKey: wh.key('people'), enabled, queryFn: () => unwrap(api.GET('/api/v1/warehouse/people')), staleTime: 300_000 });
+export const useMonthLocks = (warehouseId?: string) =>
+  useQuery({ queryKey: wh.key('locks', warehouseId), queryFn: () => unwrap(api.GET('/api/v1/warehouse/month-locks', { params: { query: { warehouseId } } })) });
+export const useStockItems = (warehouseId?: string, all = false) =>
+  useQuery({
+    queryKey: wh.key('stock', warehouseId, all),
+    enabled: !!warehouseId,
+    queryFn: () => unwrap(api.GET('/api/v1/warehouse/stock', { params: { query: { warehouseId, all: all ? 'true' : 'false' } } })),
+  });
+export const useStockReport = (q?: { warehouseId: string; from: string; to: string }) =>
+  useQuery({ queryKey: wh.key('report', q), enabled: !!q?.warehouseId, queryFn: () => unwrap(api.GET('/api/v1/warehouse/reports/stock', { params: { query: q! } })) });
+export const useStockAsOf = (q?: { warehouseId: string; date: string }) =>
+  useQuery({ queryKey: wh.key('asof', q), enabled: !!q?.warehouseId, queryFn: () => unwrap(api.GET('/api/v1/warehouse/reports/as-of', { params: { query: q! } })) });
 export const useStockCard = (id?: string) =>
   useQuery({ queryKey: wh.key('card', id), enabled: !!id, queryFn: () => unwrap(api.GET('/api/v1/warehouse/stock/{id}/card', { params: p(id!) })) });
-export const useSlips = (q: { kind?: Schemas['WhSlipKind']; month?: string; q?: string }) =>
-  useQuery({ queryKey: wh.key('slips', q), placeholderData: keepPreviousData, queryFn: () => unwrap(api.GET('/api/v1/warehouse/slips', { params: { query: q } })) });
-export const useCounts = () => useQuery({ queryKey: wh.key('counts'), queryFn: () => unwrap(api.GET('/api/v1/warehouse/counts')) });
+export type SlipQuery = NonNullable<operations['Warehouse_slips']['parameters']['query']>;
+export const useSlips = (q: SlipQuery, enabled = true) =>
+  useQuery({ queryKey: wh.key('slips', q), enabled, placeholderData: keepPreviousData, queryFn: () => unwrap(api.GET('/api/v1/warehouse/slips', { params: { query: q } })) });
+export const useSlip = (id?: string) =>
+  useQuery({ queryKey: wh.key('slip', id), enabled: !!id, queryFn: () => unwrap(api.GET('/api/v1/warehouse/slips/{id}', { params: p(id!) })) });
+export const useCounts = (warehouseId?: string) =>
+  useQuery({ queryKey: wh.key('counts', warehouseId), enabled: !!warehouseId, queryFn: () => unwrap(api.GET('/api/v1/warehouse/counts', { params: { query: { warehouseId } } })) });
 export const useCount = (id?: string) =>
   useQuery({ queryKey: wh.key('count', id), enabled: !!id, queryFn: () => unwrap(api.GET('/api/v1/warehouse/counts/{id}', { params: p(id!) })) });
 export const useDies = (q: DieQuery, enabled = true) =>
@@ -71,9 +86,24 @@ export function useWarehouseMutations() {
         unwrap(id ? api.PUT('/api/v1/warehouse/materials/{id}', { params: p(id), body }) : api.POST('/api/v1/warehouse/materials', { body })),
       ...done,
     }),
-    lockMonth: useMutation({ mutationFn: (month: string) => unwrap(api.POST('/api/v1/warehouse/month-locks', { body: { month } })), ...done }),
-    unlockMonth: useMutation({ mutationFn: (month: string) => unwrap(api.DELETE('/api/v1/warehouse/month-locks/{month}', { params: { path: { month } } })), ...done }),
+    saveWarehouse: useMutation({
+      mutationFn: ({ id, ...body }: Schemas['WarehouseInputDto'] & { id?: string }) =>
+        unwrap(id ? api.PUT('/api/v1/warehouse/warehouses/{id}', { params: p(id), body }) : api.POST('/api/v1/warehouse/warehouses', { body })),
+      ...done,
+    }),
+    updateStock: useMutation({ mutationFn: ({ id, ...body }: Schemas['StockUpdateDto'] & { id: string }) => unwrap(api.PUT('/api/v1/warehouse/stock/{id}', { params: p(id), body })), ...done }),
+    lockMonth: useMutation({ mutationFn: (body: Schemas['MonthDto']) => unwrap(api.POST('/api/v1/warehouse/month-locks', { body })), ...done }),
+    unlockMonth: useMutation({
+      mutationFn: ({ warehouseId, month }: { warehouseId: string; month: string }) =>
+        unwrap(api.DELETE('/api/v1/warehouse/month-locks/{warehouseId}/{month}', { params: { path: { warehouseId, month } } })),
+      ...done,
+    }),
     createSlip: useMutation({ mutationFn: (body: Schemas['SlipInputDto']) => unwrap(api.POST('/api/v1/warehouse/slips', { body })), ...done }),
+    createTransfer: useMutation({ mutationFn: (body: Schemas['TransferInputDto']) => unwrap(api.POST('/api/v1/warehouse/transfers', { body })), ...done }),
+    confirmSlip: useMutation({ mutationFn: (id: string) => unwrap(api.POST('/api/v1/warehouse/slips/{id}/confirm', { params: p(id) })), ...done }),
+    rejectSlip: useMutation({ mutationFn: ({ id, reason }: { id: string; reason: string }) => unwrap(api.POST('/api/v1/warehouse/slips/{id}/reject', { params: p(id), body: { reason } })), ...done }),
+    cancelSlip: useMutation({ mutationFn: (id: string) => unwrap(api.POST('/api/v1/warehouse/slips/{id}/cancel', { params: p(id) })), ...done }),
+    runSnapshots: useMutation({ mutationFn: () => unwrap(api.POST('/api/v1/warehouse/snapshots/run')), ...done }),
     voidSlip: useMutation({ mutationFn: ({ id, reason }: { id: string; reason: string }) => unwrap(api.POST('/api/v1/warehouse/slips/{id}/void', { params: p(id), body: { reason } })), ...done }),
     createCount: useMutation({ mutationFn: (body: Schemas['CountCreateDto']) => unwrap(api.POST('/api/v1/warehouse/counts', { body })), ...done }),
     updateCount: useMutation({ mutationFn: ({ id, entries }: { id: string; entries: Schemas['CountEntryDto'][] }) => unwrap(api.PUT('/api/v1/warehouse/counts/{id}', { params: p(id), body: { entries } })), ...done }),

@@ -1,10 +1,15 @@
-# Inauviet ERP — Technical Spec (v0.10)
+# Inauviet ERP — Technical Spec (v0.11)
 
 **Backend:** Node.js 22 LTS · NestJS · Prisma 7 · PostgreSQL
 **Frontend:** React 19 · TypeScript · Vite · Ant Design 6
 **Repository:** `Inauviet/ERP/` with `api/` and `web/` (npm workspaces), next to `Inauviet/CMS/`
 **Scope:** A simple order and delivery tracker. Staff create orders with a delivery plan, follow every order on a board, mark deliveries done, and optionally record payments.
 **Status:** Codebase initialized 29 Oct 2026 (milestones M0–M3 built and tested, M4 deployment files in place). Open questions are in section 12.
+
+**Changes in v0.11 (multi-warehouse Kho, 19 Nov 2026)**
+- Warehouses are data, not code: `WhWarehouse` (code, name, address, kind STOCK / DIE, storekeepers). Seeded: GIAY, BAT, OFFSET (stock), KHUON (dies). Existing materials, slips, counts and month locks moved to GIAY.
+- One material catalog for all warehouses: material → quy cách (`WhSpec`, the former `WhStockItem`) → units (`WhUnit`, factor to the base unit, optionally per spec) and warehouse links (`WhWarehouseMaterial`). Stock is per warehouse × spec (`WhStock`).
+- Slips belong to a warehouse, carry the unit used and its factor, and wait for the storekeeper: PENDING → CONFIRMED / REJECTED / CANCELLED. Stock changes only on confirmation. Transfers A → B are two linked slips. Daily end-of-day snapshots (`WhDailyStock`). See 15.5.
 
 **Changes in v0.10.1 (18 Nov 2026)**
 - Chart of accounts: migration `20261118090000_tt133_chart` loads the full Circular 133 chart (123 level-1 and level-2 accounts). Within each family only the level the books post to is active (111 on, 1111/1112 off; 1331 on, 133 off), so a figure is never split between a main account and its sub-accounts; inactive accounts cannot be posted to.
@@ -656,4 +661,30 @@ Separate module for the storekeeper. Customer names and order numbers are typed 
 `GET overview` · `GET/POST/PUT partners` · `GET/POST/PUT locations` · `GET/PUT symbols` · `GET/POST/PUT materials` · `GET/POST/DELETE month-locks` · `GET stock?all=` · `GET stock/:id/card` · `GET/POST slips` · `GET slips/:id` · `POST slips/:id/void` · `GET/POST counts` · `GET/PUT counts/:id` · `POST counts/:id/approve|cancel` · `GET dies` (q, status, symbol, place = home | partner id, flag = overdue | review | out, l / w / h / tol) · `GET/PUT dies/:id` · `POST dies` · `POST dies/:id/actions` · `POST/GET dies/:id/photo` · `POST dies/import` · `GET/POST batches` · `GET batches/:id` · `GET/POST die-counts` · `GET die-counts/:id` · `POST die-counts/:id/marks|finish`.
 
 Photos are stored next to chat files (`<CHAT_FILES_DIR>/../warehouse`). The user guide is a static page in `web/public/huong-dan/` (served at `/huong-dan/index.html`, opened from the "Hướng dẫn" button in the header, which jumps to the chapter of the current module). Paper stock has no file to import yet: the first stock count enters opening quantities.
+
+### 15.5 Multi-warehouse model (v0.11, migration `20261119090000_warehouses`)
+
+| Table | Holds |
+|---|---|
+| `WhWarehouse` | code (in slip numbers), name, address, kind STOCK / DIE, active, sort order |
+| `WhWarehouseMember` | storekeepers of a warehouse |
+| `WhMaterial` | shared catalog: optional code, group, name, **base unit**, has sizes |
+| `WhSpec` | quy cách of a material (width × length cm; length 0 = roll width only; 0 × 0 = no sizes) |
+| `WhUnit` | other units: 1 unit = `factor` base units; `specId` set = factor for that spec only (spec-specific wins over material-wide of the same name) |
+| `WhWarehouseMaterial` | which warehouses hold a material |
+| `WhStock` | on-hand qty (base unit) and min qty per warehouse × spec; created for every linked warehouse × spec |
+| `WhSlip` / `WhSlipLine` | + `warehouseId`, `status`, `confirmedAt/By`, `rejectReason`, `transferId`; lines keep base `qty` plus `unitName`, `unitQty`, `factor` at the time of the slip |
+| `WhCount` | + `warehouseId`; lines per spec |
+| `WhMonthLock` | per warehouse (PK warehouseId + month) |
+| `WhDailyStock` | end-of-day snapshot: date × warehouse × spec → qty |
+
+Rules:
+- **Confirmation.** A slip is created PENDING (no stock change). The storekeepers of its warehouse confirm or reject it; admins always can; a warehouse without storekeepers lets anyone with `warehouse.slip` confirm. `confirm: true` on create confirms straight away when the creator may. Confirming claims the slip with `UPDATE … WHERE status = 'PENDING'` before moving stock, so a double click cannot apply it twice. Short stock is refused at confirmation (`WH_STOCK_SHORT`). The creator (or a storekeeper) can cancel a pending slip; only a storekeeper can void a confirmed one.
+- **Transfers** (`POST /warehouse/transfers`): TRANSFER_OUT in A and TRANSFER_IN in B with one `transferId`, numbered `CK-<A>-…` and `CK-<B>-…`. The destination is linked to the material automatically. B can confirm only after A confirmed (`WH_TRANSFER_NOT_SENT`). Before A confirms, rejecting / cancelling either side closes both; afterwards only voiding (by A's storekeeper) reverses both sides.
+- **Units.** Each line is converted to the base unit (`qty × factor`, 3 decimals) at creation; the factor is stored so later catalog changes do not alter history. Receipt prices are per the unit used; the average price per base unit is `Σ(qty × price / factor) / Σ qty`.
+- **Counts** are per warehouse (one open count each); approval by `warehouse.manage` or that warehouse's storekeeper creates a CONFIRMED adjustment slip.
+- **Reports.** Ledger = confirmed, non-void slip lines by slip date; signed −qty for ISSUE / TRANSFER_OUT. `GET reports/stock?warehouseId&from&to` → opening, in, out, closing per spec. `GET reports/as-of?warehouseId&date` → snapshot qty when one exists for that day (else the ledger), plus `liveQty` from the ledger.
+- **Snapshots.** `WhSnapshotService` runs hourly (off in tests; `WH_SNAPSHOT_TIMER` overrides) and writes every finished day not yet stored, per warehouse, back to the first slip (max 370 days); `POST snapshots/run` does it on demand. Snapshots are never rewritten.
+
+Endpoints added: `GET/POST/PUT warehouses`, `GET people`, `PUT stock/:id` (min qty), `POST transfers`, `POST slips/:id/confirm|reject|cancel`, `GET reports/stock`, `GET reports/as-of`, `POST snapshots/run`; `stock`, `slips`, `counts`, `month-locks` take `warehouseId`; `DELETE month-locks/:warehouseId/:month`.
 

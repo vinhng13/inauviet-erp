@@ -93,7 +93,7 @@ export const MODULES: AppModule[] = [
   {
     key: 'warehouse',
     name: 'Kho',
-    description: 'Giấy, màng, vật tư theo khổ; khuôn bế và vòng luân chuyển khuôn với các xưởng; kiểm kê',
+    description: 'Nhiều kho (giấy, vật tư xưởng bạt, tồn offset, khuôn), thủ kho xác nhận phiếu, chuyển kho, tồn theo ngày; khuôn bế',
     icon: <InboxOutlined />,
     color: '#b5651d',
     nav: [
@@ -102,6 +102,7 @@ export const MODULES: AppModule[] = [
       { key: '/warehouse/dies', icon: <BlockOutlined />, label: 'Khuôn', permission: 'warehouse.view' },
       { key: '/warehouse/batches', icon: <DeploymentUnitOutlined />, label: 'Giao nhận khuôn', permission: 'warehouse.view' },
       { key: '/warehouse/counts', icon: <AuditOutlined />, label: 'Kiểm kê', permission: 'warehouse.view' },
+      { key: '/warehouse/reports', icon: <BarChartOutlined />, label: 'Báo cáo kho', permission: 'warehouse.view' },
       { key: '/warehouse/catalog', icon: <ProfileOutlined />, label: 'Danh mục kho', permission: 'warehouse.view' },
     ],
   },

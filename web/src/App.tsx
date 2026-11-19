@@ -44,6 +44,7 @@ import { WarehouseCatalogPage } from './pages/warehouse/CatalogPage';
 import { WarehouseCountsPage } from './pages/warehouse/CountsPage';
 import { WarehouseDiesPage } from './pages/warehouse/DiesPage';
 import { WarehouseOverviewPage } from './pages/warehouse/OverviewPage';
+import { WarehouseReportPage } from './pages/warehouse/ReportPage';
 import { WarehouseStockPage } from './pages/warehouse/StockPage';
 
 /** Any 401 means the session ended (expired, logged out elsewhere, account locked): show the sign-in page. */
@@ -111,6 +112,7 @@ export function App() {
                   <Route path="/warehouse/dies" element={<Allow p="warehouse.view"><WarehouseDiesPage /></Allow>} />
                   <Route path="/warehouse/batches" element={<Allow p="warehouse.view"><WarehouseBatchesPage /></Allow>} />
                   <Route path="/warehouse/counts" element={<Allow p="warehouse.view"><WarehouseCountsPage /></Allow>} />
+                  <Route path="/warehouse/reports" element={<Allow p="warehouse.view"><WarehouseReportPage /></Allow>} />
                   <Route path="/warehouse/catalog" element={<Allow p="warehouse.view"><WarehouseCatalogPage /></Allow>} />
                   <Route path="/customers" element={<Allow p="customers.view"><CustomersPage /></Allow>} />
                   <Route path="/customers/:id" element={<Allow p="customers.view"><CustomerDetailPage /></Allow>} />
