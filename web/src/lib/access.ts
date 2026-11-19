@@ -14,7 +14,7 @@ export type Permission =
   | 'accounting.view' | 'accounting.post' | 'accounting.close' | 'accounting.reopen'
   | 'conversations.view' | 'conversations.viewAll' | 'conversations.reply' | 'conversations.assign'
   | 'channels.manage'
-  | 'warehouse.view' | 'warehouse.slip' | 'warehouse.dies' | 'warehouse.count' | 'warehouse.manage'
+  | 'warehouse.view' | 'warehouse.slip' | 'warehouse.dies' | 'warehouse.manage'
   | 'money.view'
   | 'customers.view' | 'customers.create' | 'customers.update'
   | 'products.view' | 'products.manage'

@@ -1,15 +1,33 @@
-import { allowedActions, fmtCm, parseDieNotes, parseSheetSize, parseSize, TRANSITIONS } from './die-rules';
+import { allowedActions, batchStates, fmtCm, parseDieNotes, parseSheetSize, parseSize, sizeMatches, sizeQuery, TRANSITIONS } from './die-rules';
 import { excelDate } from './xlsx-reader';
 
 describe('die rules', () => {
-  it('only allows actions that fit the current status', () => {
-    expect(allowedActions('READY')).toEqual(['ISSUE', 'RETURN', 'DEFECT', 'DISPOSE', 'MOVE']);
-    expect(allowedActions('IN_USE')).toEqual(['KEEP', 'RETURN', 'DEFECT']);
-    expect(allowedActions('CHECKING')).toEqual(['PASS', 'DEFECT', 'SEND_REPAIR', 'DISPOSE']);
-    expect(allowedActions('DISPOSED')).toEqual([]);
-    // every non-final status has a way out
-    for (const s of ['READY', 'IN_USE', 'CHECKING', 'REPAIRING', 'DEFECT', 'BROKEN'] as const) expect(allowedActions(s).length).toBeGreaterThan(0);
-    expect(TRANSITIONS.ISSUE.to).toBe('IN_USE');
+  it('only allows in-place actions that fit the status and where the die is', () => {
+    expect(allowedActions('READY', false, false)).toEqual(['DEFECT', 'DISPOSE', 'MOVE']);
+    expect(allowedActions('READY', true, false)).toEqual(['DEFECT', 'REUSE']);
+    expect(allowedActions('IN_USE', true, false)).toEqual(['KEEP', 'DEFECT', 'REUSE']);
+    expect(allowedActions('CHECKING', false, false)).toEqual(['PASS', 'DEFECT', 'DISPOSE', 'MOVE']);
+    expect(allowedActions('READY', false, true)).toEqual([]);
+    expect(allowedActions('DISPOSED', false, false)).toEqual([]);
+    expect(TRANSITIONS.REUSE.to).toBe('IN_USE');
+  });
+
+  it('decides who confirms a transfer', () => {
+    expect(batchStates(true, false)).toEqual({ out: 'PENDING', in: 'NONE' }); // kho → xưởng
+    expect(batchStates(false, true)).toEqual({ out: 'NONE', in: 'PENDING' }); // xưởng → kho
+    expect(batchStates(true, true)).toEqual({ out: 'PENDING', in: 'PENDING' }); // kho → kho
+    expect(batchStates(false, false)).toEqual({ out: 'PENDING', in: 'NONE' }); // xưởng → xưởng
+  });
+
+  it('finds dies by size in any order within tolerance', () => {
+    expect(sizeQuery('24x24x12.5')).toEqual([24, 24, 12.5]);
+    expect(sizeQuery('24 x 24,5 cm')).toEqual([24, 24.5]);
+    expect(sizeQuery('yên bài')).toBeNull();
+    expect(sizeMatches([24, 24, 12.5], [24, 24, 12])).toBe(true);
+    expect(sizeMatches([12.5, 24, 24], [24, 12.5, 24])).toBe(true);
+    expect(sizeMatches([24, 24, 12.5], [24, 24, 11.9])).toBe(false);
+    expect(sizeMatches([61, 41], [61, 41, null])).toBe(true);
+    expect(sizeMatches([20, 15, 5], [20, 15, null])).toBe(false);
   });
 
   it('reads sizes typed by hand', () => {

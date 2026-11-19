@@ -1,58 +1,94 @@
 import type { WhDieAction, WhDieStatus } from '../generated/prisma/enums';
 
 /**
- * Vòng đời khuôn. Vị trí (kho Âu Việt / xưởng ngoài) tách khỏi trạng thái, nên khuôn gửi giữ ở xưởng
- * vẫn là READY tại xưởng đó; chỉ khuôn đã xuất cho một lần bế mới là IN_USE.
+ * Thao tác tại chỗ: khuôn không đổi nơi nên không cần phiếu. Đổi nơi (kho ↔ xưởng, kho ↔ kho, xưởng ↔ xưởng)
+ * phải lập phiếu giao nhận và được thủ kho xác nhận.
  */
-export type MoveAction = Exclude<WhDieAction, 'CREATE' | 'EDIT' | 'IMPORT'>;
+export type MoveAction = 'KEEP' | 'PASS' | 'DEFECT' | 'DISPOSE' | 'MOVE' | 'REUSE';
+export const MOVE_ACTIONS: MoveAction[] = ['KEEP', 'PASS', 'DEFECT', 'DISPOSE', 'MOVE', 'REUSE'];
 
 interface Transition {
   from: WhDieStatus[];
   to: WhDieStatus | 'SAME';
-  /** where the die is afterwards */
-  place: 'PARTNER' | 'HOME' | 'KEEP' | 'ANY';
+  /** where the die must be: in a kho, at a workshop, or either */
+  at: 'KHO' | 'PARTNER' | 'ANY';
 }
 
 export const TRANSITIONS: Record<MoveAction, Transition> = {
-  ISSUE: { from: ['READY'], to: 'IN_USE', place: 'ANY' }, // ra xưởng bế ngoài, hoặc dùng tại xưởng Âu Việt
-  KEEP: { from: ['IN_USE'], to: 'READY', place: 'KEEP' }, // bế xong, xưởng giữ lại khuôn
-  RETURN: { from: ['IN_USE', 'READY'], to: 'CHECKING', place: 'HOME' }, // khuôn về kho, chờ kiểm
-  PASS: { from: ['CHECKING'], to: 'READY', place: 'HOME' }, // kiểm đạt, lên kệ
-  DEFECT: { from: ['CHECKING', 'READY', 'IN_USE'], to: 'DEFECT', place: 'KEEP' }, // lỗi (hoặc hỏng)
-  SEND_REPAIR: { from: ['DEFECT', 'CHECKING'], to: 'REPAIRING', place: 'PARTNER' },
-  BACK_REPAIR: { from: ['REPAIRING'], to: 'CHECKING', place: 'HOME' },
-  DISPOSE: { from: ['READY', 'DEFECT', 'BROKEN', 'CHECKING'], to: 'DISPOSED', place: 'KEEP' },
-  MOVE: { from: ['READY'], to: 'SAME', place: 'ANY' }, // đổi kệ, hoặc chuyển sang gửi giữ ở xưởng
+  KEEP: { from: ['IN_USE'], to: 'READY', at: 'PARTNER' }, // bế xong, xưởng giữ lại khuôn
+  REUSE: { from: ['READY', 'IN_USE'], to: 'IN_USE', at: 'PARTNER' }, // bế lệnh mới tại xưởng đang giữ khuôn
+  PASS: { from: ['CHECKING', 'DEFECT'], to: 'READY', at: 'KHO' }, // kiểm đạt, lên kệ
+  DEFECT: { from: ['CHECKING', 'READY', 'IN_USE', 'REPAIRING'], to: 'DEFECT', at: 'ANY' }, // lỗi (hoặc hỏng)
+  DISPOSE: { from: ['READY', 'DEFECT', 'BROKEN', 'CHECKING'], to: 'DISPOSED', at: 'KHO' },
+  MOVE: { from: ['READY', 'CHECKING', 'DEFECT'], to: 'SAME', at: 'KHO' }, // đổi kệ trong kho
 };
 
-export function allowedActions(status: WhDieStatus): MoveAction[] {
-  return (Object.keys(TRANSITIONS) as MoveAction[]).filter((a) => TRANSITIONS[a].from.includes(status));
+export function allowedActions(status: WhDieStatus, atPartner: boolean, pending: boolean): MoveAction[] {
+  if (pending) return [];
+  return MOVE_ACTIONS.filter((a) => {
+    const t = TRANSITIONS[a];
+    return t.from.includes(status) && (t.at === 'ANY' || (t.at === 'PARTNER') === atPartner);
+  });
 }
 
 export const STATUS_LABEL: Record<WhDieStatus, string> = {
   READY: 'Sẵn sàng',
-  IN_USE: 'Đang dùng',
+  IN_USE: 'Đang bế',
   CHECKING: 'Chờ kiểm',
   REPAIRING: 'Đang sửa',
   DEFECT: 'Lỗi',
   BROKEN: 'Hỏng',
   DISPOSED: 'Thanh lý',
+  TRANSIT: 'Đang chuyển',
+  INCOMING: 'Khuôn mới, chờ nhận',
 };
 
 export const ACTION_LABEL: Record<WhDieAction, string> = {
   CREATE: 'Tạo khuôn',
   ISSUE: 'Xuất khuôn',
-  KEEP: 'Bế xong, xưởng giữ lại',
+  KEEP: 'Bế xong, xưởng giữ',
   RETURN: 'Trả về, chờ kiểm',
-  PASS: 'Kiểm đạt, nhập kho',
-  DEFECT: 'Phát hiện lỗi',
+  PASS: 'Kiểm đạt, lên kệ',
+  DEFECT: 'Báo lỗi',
   SEND_REPAIR: 'Chuyển sửa',
   BACK_REPAIR: 'Trả từ sửa',
   DISPOSE: 'Thanh lý',
   MOVE: 'Chuyển vị trí',
   EDIT: 'Sửa thông tin',
   IMPORT: 'Nạp từ Excel',
+  REQUEST: 'Lập phiếu giao nhận',
+  SEND: 'Xác nhận xuất',
+  RECEIVE: 'Xác nhận đã nhận',
+  REJECT: 'Phiếu bị từ chối / huỷ',
+  REUSE: 'Bế lệnh mới tại xưởng',
+  COUNT: 'Kiểm kê',
 };
+
+/**
+ * Ai xác nhận phiếu giao nhận: phía nào là kho thì thủ kho kho đó xác nhận (xuất khi đi, nhận khi đến).
+ * Xưởng → xưởng không qua kho nào: thủ kho kho quản lý khuôn xác nhận thay, coi như bước xuất.
+ */
+export function batchStates(fromIsKho: boolean, toIsKho: boolean): { out: 'PENDING' | 'NONE'; in: 'PENDING' | 'NONE' } {
+  return { out: fromIsKho || !toIsKho ? 'PENDING' : 'NONE', in: toIsKho ? 'PENDING' : 'NONE' };
+}
+
+/** "24x24x12.5", "24 x 24" → các chiều (cm); chữ khác → null */
+export function sizeQuery(q: string): number[] | null {
+  const m = q.trim().match(/^(\d+(?:[.,]\d+)?)\s*[x×*]\s*(\d+(?:[.,]\d+)?)(?:\s*[x×*]\s*(\d+(?:[.,]\d+)?))?\s*(?:cm)?$/i);
+  return m ? [m[1], m[2], m[3]].filter(Boolean).map((v) => Number(v.replace(',', '.'))) : null;
+}
+
+/** Mỗi chiều cần tìm khớp một chiều của khuôn, lệch tối đa tol cm, không cần đúng thứ tự dài – rộng – cao */
+export function sizeMatches(want: number[], have: Array<number | null>, tol = 0.5): boolean {
+  const h = have.filter((v): v is number => v !== null).sort((a, b) => a - b);
+  const used = new Set<number>();
+  return [...want].sort((a, b) => a - b).every((v) => {
+    const i = h.findIndex((x, j) => !used.has(j) && Math.abs(x - v) <= tol + 1e-9);
+    if (i < 0) return false;
+    used.add(i);
+    return true;
+  });
+}
 
 // ───────────── Đọc dữ liệu gõ tay (Excel cũ, ô nhập) ─────────────
 

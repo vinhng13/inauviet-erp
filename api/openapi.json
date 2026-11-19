@@ -4403,6 +4403,110 @@
         ]
       }
     },
+    "/api/v1/warehouse/warehouses": {
+      "get": {
+        "operationId": "Warehouse_warehouseList",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WarehouseDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "warehouse"
+        ]
+      },
+      "post": {
+        "operationId": "Warehouse_createWarehouse",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WarehouseInputDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "warehouse"
+        ]
+      }
+    },
+    "/api/v1/warehouse/people": {
+      "get": {
+        "operationId": "Warehouse_people",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/KeeperDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "Người dùng để chọn làm thủ kho",
+        "tags": [
+          "warehouse"
+        ]
+      }
+    },
+    "/api/v1/warehouse/warehouses/{id}": {
+      "put": {
+        "operationId": "Warehouse_updateWarehouse",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WarehouseInputDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "warehouse"
+        ]
+      }
+    },
     "/api/v1/warehouse/partners": {
       "get": {
         "operationId": "Warehouse_partners",
@@ -4686,86 +4790,29 @@
         ]
       }
     },
-    "/api/v1/warehouse/month-locks": {
-      "get": {
-        "operationId": "Warehouse_monthLocks",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/MonthLockDto"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "warehouse"
-        ]
-      },
-      "post": {
-        "operationId": "Warehouse_lockMonth",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/MonthDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "204": {
-            "description": ""
-          }
-        },
-        "summary": "Chốt tồn tháng: phiếu trong tháng không lập / huỷ được nữa",
-        "tags": [
-          "warehouse"
-        ]
-      }
-    },
-    "/api/v1/warehouse/month-locks/{month}": {
-      "delete": {
-        "operationId": "Warehouse_unlockMonth",
-        "parameters": [
-          {
-            "name": "month",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "warehouse"
-        ]
-      }
-    },
     "/api/v1/warehouse/stock": {
       "get": {
         "operationId": "Warehouse_items",
         "parameters": [
           {
+            "name": "warehouseId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
             "name": "all",
             "required": false,
             "in": "query",
             "schema": {
-              "type": "boolean"
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
             }
           }
         ],
@@ -4784,6 +4831,40 @@
             }
           }
         },
+        "tags": [
+          "warehouse"
+        ]
+      }
+    },
+    "/api/v1/warehouse/stock/{id}": {
+      "put": {
+        "operationId": "Warehouse_updateStock",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StockUpdateDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "summary": "Mức tối thiểu / ngừng dùng của một dòng tồn (một quy cách tại một kho)",
         "tags": [
           "warehouse"
         ]
@@ -4819,10 +4900,155 @@
         ]
       }
     },
+    "/api/v1/warehouse/reports/stock": {
+      "get": {
+        "operationId": "Warehouse_report",
+        "parameters": [
+          {
+            "name": "from",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "format": "date",
+              "example": "2026-11-02",
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "format": "date",
+              "example": "2026-11-02",
+              "type": "string"
+            }
+          },
+          {
+            "name": "warehouseId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StockReportDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Nhập – xuất – tồn theo khoảng ngày",
+        "tags": [
+          "warehouse"
+        ]
+      }
+    },
+    "/api/v1/warehouse/reports/as-of": {
+      "get": {
+        "operationId": "Warehouse_asOf",
+        "parameters": [
+          {
+            "name": "date",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "format": "date",
+              "example": "2026-11-02",
+              "type": "string"
+            }
+          },
+          {
+            "name": "warehouseId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StockAsOfDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Tồn cuối một ngày: bản chụp nếu có, kèm số tính lại từ phiếu",
+        "tags": [
+          "warehouse"
+        ]
+      }
+    },
+    "/api/v1/warehouse/snapshots/run": {
+      "post": {
+        "operationId": "Warehouse_runSnapshots",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SnapshotRunDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Chụp tồn cuối ngày cho các ngày đã qua còn thiếu (bình thường chạy tự động mỗi giờ)",
+        "tags": [
+          "warehouse"
+        ]
+      }
+    },
     "/api/v1/warehouse/slips": {
       "get": {
         "operationId": "Warehouse_slips",
         "parameters": [
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "format": "date",
+              "example": "2026-11-02",
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "format": "date",
+              "example": "2026-11-02",
+              "type": "string"
+            }
+          },
+          {
+            "name": "warehouseId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
           {
             "name": "kind",
             "required": false,
@@ -4831,9 +5057,25 @@
               "type": "string",
               "enum": [
                 "ISSUE",
-                "RECEIPT",
                 "RETURN",
-                "ADJUST"
+                "RECEIPT",
+                "ADJUST",
+                "TRANSFER_OUT",
+                "TRANSFER_IN"
+              ]
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "CONFIRMED",
+                "CANCELLED",
+                "PENDING",
+                "REJECTED"
               ]
             }
           },
@@ -4900,6 +5142,7 @@
             }
           }
         },
+        "summary": "Lập phiếu (chờ thủ kho xác nhận; thủ kho lập thì confirm=true để xác nhận luôn)",
         "tags": [
           "warehouse"
         ]
@@ -4920,6 +5163,138 @@
         ],
         "responses": {
           "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SlipDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "warehouse"
+        ]
+      }
+    },
+    "/api/v1/warehouse/transfers": {
+      "post": {
+        "operationId": "Warehouse_createTransfer",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransferInputDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SlipDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Phiếu chuyển kho A → B: thủ kho A xác nhận xuất, rồi thủ kho B xác nhận nhận",
+        "tags": [
+          "warehouse"
+        ]
+      }
+    },
+    "/api/v1/warehouse/slips/{id}/confirm": {
+      "post": {
+        "operationId": "Warehouse_confirmSlip",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SlipDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "warehouse"
+        ]
+      }
+    },
+    "/api/v1/warehouse/slips/{id}/reject": {
+      "post": {
+        "operationId": "Warehouse_rejectSlip",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VoidDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SlipDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "warehouse"
+        ]
+      }
+    },
+    "/api/v1/warehouse/slips/{id}/cancel": {
+      "post": {
+        "operationId": "Warehouse_cancelSlip",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
             "description": "",
             "content": {
               "application/json": {
@@ -4975,181 +5350,6 @@
         ]
       }
     },
-    "/api/v1/warehouse/counts": {
-      "get": {
-        "operationId": "Warehouse_counts",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/CountDto"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "warehouse"
-        ]
-      },
-      "post": {
-        "operationId": "Warehouse_createCount",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CountCreateDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CountDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "warehouse"
-        ]
-      }
-    },
-    "/api/v1/warehouse/counts/{id}": {
-      "get": {
-        "operationId": "Warehouse_count",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CountDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "warehouse"
-        ]
-      },
-      "put": {
-        "operationId": "Warehouse_updateCount",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CountUpdateDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CountDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "warehouse"
-        ]
-      }
-    },
-    "/api/v1/warehouse/counts/{id}/approve": {
-      "post": {
-        "operationId": "Warehouse_approveCount",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CountDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "Duyệt: tạo phiếu điều chỉnh chênh lệch (cần quyền quản lý kho)",
-        "tags": [
-          "warehouse"
-        ]
-      }
-    },
-    "/api/v1/warehouse/counts/{id}/cancel": {
-      "post": {
-        "operationId": "Warehouse_cancelCount",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "warehouse"
-        ]
-      }
-    },
     "/api/v1/warehouse/dies": {
       "get": {
         "operationId": "Warehouse_dieList",
@@ -5176,7 +5376,9 @@
                 "CHECKING",
                 "REPAIRING",
                 "BROKEN",
-                "DISPOSED"
+                "DISPOSED",
+                "TRANSIT",
+                "INCOMING"
               ]
             }
           },
@@ -5192,8 +5394,9 @@
             "name": "place",
             "required": false,
             "in": "query",
-            "description": "\"home\" = kho Âu Việt, hoặc id xưởng",
+            "description": "\"k:<id kho>\", \"x:<id xưởng>\" hoặc \"transit\" (đang chuyển / khuôn mới chờ nhận)",
             "schema": {
+              "pattern": "^(transit|[kx]:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$",
               "type": "string"
             }
           },
@@ -5494,10 +5697,75 @@
         ]
       }
     },
+    "/api/v1/warehouse/materials/import-paper": {
+      "post": {
+        "operationId": "Warehouse_importPaper",
+        "parameters": [
+          {
+            "name": "dryRun",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                },
+                "required": [
+                  "file"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaperImportReportDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Nhập bảng tồn giấy Excel vào Kho giấy (danh mục + phiếu kiểm kê nháp). dryRun=true chỉ xem trước",
+        "tags": [
+          "warehouse"
+        ]
+      }
+    },
     "/api/v1/warehouse/batches": {
       "get": {
         "operationId": "Warehouse_batches",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "tab",
+            "required": false,
+            "in": "query",
+            "description": "mine = chờ người đang xem xác nhận; open = còn chờ; all",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "mine",
+                "open",
+                "all"
+              ]
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
@@ -5542,6 +5810,7 @@
             }
           }
         },
+        "summary": "Lập phiếu giao nhận: từ kho / xưởng tới kho / xưởng (bắt buộc nơi đến)",
         "tags": [
           "warehouse"
         ]
@@ -5577,10 +5846,206 @@
         ]
       }
     },
-    "/api/v1/warehouse/die-counts": {
+    "/api/v1/warehouse/batches/{id}/send": {
+      "post": {
+        "operationId": "Warehouse_sendBatch",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BatchDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Thủ kho kho đi xác nhận xuất",
+        "tags": [
+          "warehouse"
+        ]
+      }
+    },
+    "/api/v1/warehouse/batches/{id}/receive": {
+      "post": {
+        "operationId": "Warehouse_receiveBatch",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BatchReceiveDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BatchDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Thủ kho kho nhận xác nhận đã nhận",
+        "tags": [
+          "warehouse"
+        ]
+      }
+    },
+    "/api/v1/warehouse/batches/{id}/reject": {
+      "post": {
+        "operationId": "Warehouse_rejectBatch",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BatchRejectDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "warehouse"
+        ]
+      }
+    },
+    "/api/v1/warehouse/batches/{id}/cancel": {
+      "post": {
+        "operationId": "Warehouse_cancelBatch",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "warehouse"
+        ]
+      }
+    },
+    "/api/v1/warehouse/die-journal": {
       "get": {
-        "operationId": "Warehouse_dieCounts",
-        "parameters": [],
+        "operationId": "Warehouse_dieJournal",
+        "parameters": [
+          {
+            "name": "from",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "format": "date",
+              "example": "2026-11-02",
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "format": "date",
+              "example": "2026-11-02",
+              "type": "string"
+            }
+          },
+          {
+            "name": "action",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "ISSUE",
+                "KEEP",
+                "PASS",
+                "DEFECT",
+                "DISPOSE",
+                "MOVE",
+                "REUSE",
+                "CREATE",
+                "RETURN",
+                "SEND_REPAIR",
+                "BACK_REPAIR",
+                "EDIT",
+                "IMPORT",
+                "REQUEST",
+                "SEND",
+                "RECEIVE",
+                "REJECT",
+                "COUNT"
+              ]
+            }
+          },
+          {
+            "name": "place",
+            "required": false,
+            "in": "query",
+            "description": "Tên kho hoặc xưởng (khớp nơi đi hoặc nơi đến)",
+            "schema": {
+              "maxLength": 120,
+              "type": "string"
+            }
+          },
+          {
+            "name": "userId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
@@ -5589,142 +6054,14 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/DieCountDto"
+                    "$ref": "#/components/schemas/DieJournalRowDto"
                   }
                 }
               }
             }
           }
         },
-        "tags": [
-          "warehouse"
-        ]
-      },
-      "post": {
-        "operationId": "Warehouse_createDieCount",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/DieCountCreateDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DieCountDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "warehouse"
-        ]
-      }
-    },
-    "/api/v1/warehouse/die-counts/{id}": {
-      "get": {
-        "operationId": "Warehouse_dieCount",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DieCountDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "warehouse"
-        ]
-      }
-    },
-    "/api/v1/warehouse/die-counts/{id}/marks": {
-      "post": {
-        "operationId": "Warehouse_markDieCount",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/DieCountMarkDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DieCountDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "warehouse"
-        ]
-      }
-    },
-    "/api/v1/warehouse/die-counts/{id}/finish": {
-      "post": {
-        "operationId": "Warehouse_finishDieCount",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DieCountDto"
-                }
-              }
-            }
-          }
-        },
+        "summary": "Nhật ký khuôn: mọi thao tác trong khoảng ngày",
         "tags": [
           "warehouse"
         ]
@@ -12045,14 +12382,148 @@
           "customerId"
         ]
       },
-      "StockItemDto": {
+      "WhWarehouseKind": {
+        "type": "string",
+        "enum": [
+          "STOCK",
+          "DIE"
+        ]
+      },
+      "KeeperDto": {
         "type": "object",
         "properties": {
           "id": {
             "type": "string"
           },
+          "fullName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "fullName"
+        ]
+      },
+      "WarehouseDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WhWarehouseKind"
+              }
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "address": {
+            "type": "string",
+            "nullable": true
+          },
+          "note": {
+            "type": "string",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "sortOrder": {
+            "type": "number"
+          },
+          "keepers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/KeeperDto"
+            }
+          },
+          "materials": {
+            "type": "number",
+            "description": "Số vật tư có ở kho"
+          },
+          "dies": {
+            "type": "number",
+            "description": "Khuôn đang ở kho (kho khuôn)"
+          },
+          "canConfirm": {
+            "type": "boolean",
+            "description": "Người đang xem xác nhận được phiếu của kho này"
+          },
+          "pending": {
+            "type": "number",
+            "description": "Phiếu đang chờ xác nhận"
+          },
+          "low": {
+            "type": "number",
+            "description": "Quy cách dưới mức tối thiểu"
+          }
+        },
+        "required": [
+          "kind",
+          "id",
+          "code",
+          "name",
+          "address",
+          "note",
+          "isActive",
+          "sortOrder",
+          "keepers",
+          "materials",
+          "dies",
+          "canConfirm",
+          "pending",
+          "low"
+        ]
+      },
+      "StockUnitDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "nullable": true,
+            "description": "null = đơn vị cơ sở"
+          },
+          "name": {
+            "type": "string"
+          },
+          "factor": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "factor"
+        ]
+      },
+      "StockItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Dòng tồn: một quy cách tại một kho"
+          },
+          "warehouseId": {
+            "type": "string"
+          },
+          "warehouseCode": {
+            "type": "string"
+          },
+          "specId": {
+            "type": "string"
+          },
           "materialId": {
             "type": "string"
+          },
+          "materialCode": {
+            "type": "string",
+            "nullable": true
           },
           "group": {
             "type": "string"
@@ -12061,7 +12532,8 @@
             "type": "string"
           },
           "unit": {
-            "type": "string"
+            "type": "string",
+            "description": "Đơn vị cơ sở"
           },
           "hasSizes": {
             "type": "boolean"
@@ -12089,15 +12561,30 @@
           "isActive": {
             "type": "boolean"
           },
+          "pendingOut": {
+            "type": "number",
+            "description": "Đang chờ xuất (phiếu xuất / chuyển đi chưa xác nhận)"
+          },
           "valueVnd": {
             "type": "number",
             "nullable": true,
             "description": "Giá trị tồn tham khảo (bình quân các lần nhập có giá)"
+          },
+          "units": {
+            "description": "Đơn vị chọn được khi lập phiếu (đơn vị cơ sở đầu tiên)",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StockUnitDto"
+            }
           }
         },
         "required": [
           "id",
+          "warehouseId",
+          "warehouseCode",
+          "specId",
           "materialId",
+          "materialCode",
           "group",
           "materialName",
           "unit",
@@ -12109,7 +12596,254 @@
           "minQty",
           "low",
           "isActive",
-          "valueVnd"
+          "pendingOut",
+          "valueVnd",
+          "units"
+        ]
+      },
+      "WhSlipKind": {
+        "type": "string",
+        "enum": [
+          "RECEIPT",
+          "ISSUE",
+          "RETURN",
+          "ADJUST",
+          "TRANSFER_OUT",
+          "TRANSFER_IN"
+        ]
+      },
+      "WhSlipStatus": {
+        "type": "string",
+        "enum": [
+          "PENDING",
+          "CONFIRMED",
+          "REJECTED",
+          "CANCELLED"
+        ]
+      },
+      "SlipRefDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WhSlipStatus"
+              }
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "warehouseId": {
+            "type": "string"
+          },
+          "warehouseCode": {
+            "type": "string"
+          },
+          "warehouseName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "id",
+          "code",
+          "warehouseId",
+          "warehouseCode",
+          "warehouseName"
+        ]
+      },
+      "SlipLineDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "specId": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string",
+            "description": "Đơn vị cơ sở"
+          },
+          "qty": {
+            "type": "number",
+            "description": "Theo đơn vị cơ sở"
+          },
+          "unitName": {
+            "type": "string",
+            "nullable": true,
+            "description": "Đơn vị đã ghi (null = đơn vị cơ sở)"
+          },
+          "unitQty": {
+            "type": "number",
+            "nullable": true
+          },
+          "unitPriceVnd": {
+            "type": "number",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "specId",
+          "label",
+          "unit",
+          "qty",
+          "unitName",
+          "unitQty",
+          "unitPriceVnd"
+        ]
+      },
+      "SlipDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WhSlipKind"
+              }
+            ]
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WhSlipStatus"
+              }
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "warehouseId": {
+            "type": "string"
+          },
+          "warehouseCode": {
+            "type": "string"
+          },
+          "warehouseName": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string"
+          },
+          "partnerId": {
+            "type": "string",
+            "nullable": true
+          },
+          "partnerName": {
+            "type": "string",
+            "nullable": true
+          },
+          "receiver": {
+            "type": "string",
+            "nullable": true
+          },
+          "purpose": {
+            "type": "string",
+            "nullable": true
+          },
+          "reference": {
+            "type": "string",
+            "nullable": true
+          },
+          "note": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdById": {
+            "type": "string"
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "confirmedAt": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true
+          },
+          "confirmedBy": {
+            "type": "string",
+            "nullable": true
+          },
+          "rejectReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "voidedAt": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true
+          },
+          "voidReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "counterpart": {
+            "nullable": true,
+            "description": "Phiếu chuyển kho: phiếu ở kho bên kia",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SlipRefDto"
+              }
+            ]
+          },
+          "canConfirm": {
+            "type": "boolean",
+            "description": "Người đang xem xác nhận / từ chối được"
+          },
+          "canCancel": {
+            "type": "boolean",
+            "description": "Người đang xem huỷ được (phiếu chưa xác nhận)"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SlipLineDto"
+            }
+          }
+        },
+        "required": [
+          "kind",
+          "status",
+          "id",
+          "code",
+          "warehouseId",
+          "warehouseCode",
+          "warehouseName",
+          "date",
+          "partnerId",
+          "partnerName",
+          "receiver",
+          "purpose",
+          "reference",
+          "note",
+          "createdById",
+          "createdBy",
+          "createdAt",
+          "confirmedAt",
+          "confirmedBy",
+          "rejectReason",
+          "voidedAt",
+          "voidReason",
+          "counterpart",
+          "canConfirm",
+          "canCancel",
+          "lines"
         ]
       },
       "PlaceCountDto": {
@@ -12163,7 +12897,9 @@
           "REPAIRING",
           "DEFECT",
           "BROKEN",
-          "DISPOSED"
+          "DISPOSED",
+          "TRANSIT",
+          "INCOMING"
         ]
       },
       "DieRowDto": {
@@ -12233,7 +12969,14 @@
           },
           "place": {
             "type": "string",
-            "description": "\"Kho · T4-K02\" hoặc tên xưởng"
+            "description": "\"Kho khuôn Âu Việt · T4-K02\", tên xưởng, hoặc \"A → B\" khi đang chuyển"
+          },
+          "warehouseId": {
+            "type": "string",
+            "description": "Kho quản lý (khuôn ở kho này khi holderId trống)"
+          },
+          "warehouseName": {
+            "type": "string"
           },
           "holderId": {
             "type": "string",
@@ -12242,6 +12985,11 @@
           "locationId": {
             "type": "string",
             "nullable": true
+          },
+          "pendingBatchId": {
+            "type": "string",
+            "nullable": true,
+            "description": "Phiếu giao nhận đang chờ xác nhận"
           },
           "expectedBackOn": {
             "type": "string",
@@ -12274,62 +13022,55 @@
           "pieces",
           "ups",
           "place",
+          "warehouseId",
+          "warehouseName",
           "holderId",
           "locationId",
+          "pendingBatchId",
           "expectedBackOn",
           "overdue",
           "needsReview",
           "reviewNote"
         ]
       },
-      "WhSlipKind": {
+      "WhDieBatchStatus": {
         "type": "string",
         "enum": [
-          "RECEIPT",
-          "ISSUE",
-          "RETURN",
-          "ADJUST"
+          "OPEN",
+          "DONE",
+          "REJECTED",
+          "CANCELLED"
         ]
       },
-      "SlipLineDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "stockItemId": {
-            "type": "string"
-          },
-          "label": {
-            "type": "string"
-          },
-          "unit": {
-            "type": "string"
-          },
-          "qty": {
-            "type": "number"
-          },
-          "unitPriceVnd": {
-            "type": "number",
-            "nullable": true
-          }
-        },
-        "required": [
-          "id",
-          "stockItemId",
-          "label",
-          "unit",
-          "qty",
-          "unitPriceVnd"
+      "WhConfirmState": {
+        "type": "string",
+        "enum": [
+          "PENDING",
+          "OK",
+          "NONE"
         ]
       },
-      "SlipDto": {
+      "BatchDto": {
         "type": "object",
         "properties": {
-          "kind": {
+          "status": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/WhSlipKind"
+                "$ref": "#/components/schemas/WhDieBatchStatus"
+              }
+            ]
+          },
+          "outState": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WhConfirmState"
+              }
+            ]
+          },
+          "inState": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WhConfirmState"
               }
             ]
           },
@@ -12342,27 +13083,48 @@
           "date": {
             "type": "string"
           },
-          "partnerId": {
+          "fromWarehouseId": {
             "type": "string",
             "nullable": true
           },
-          "partnerName": {
+          "fromPartnerId": {
             "type": "string",
             "nullable": true
           },
-          "receiver": {
+          "toWarehouseId": {
             "type": "string",
             "nullable": true
           },
-          "purpose": {
+          "toPartnerId": {
             "type": "string",
             "nullable": true
+          },
+          "toLocationId": {
+            "type": "string",
+            "nullable": true
+          },
+          "fromName": {
+            "type": "string"
+          },
+          "toName": {
+            "type": "string"
+          },
+          "isNew": {
+            "type": "boolean"
           },
           "reference": {
             "type": "string",
             "nullable": true
           },
           "note": {
+            "type": "string",
+            "nullable": true
+          },
+          "rejectReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "expectedBackOn": {
             "type": "string",
             "nullable": true
           },
@@ -12373,38 +13135,113 @@
             "format": "date-time",
             "type": "string"
           },
-          "voidedAt": {
+          "outBy": {
+            "type": "string",
+            "nullable": true
+          },
+          "outAt": {
             "format": "date-time",
             "type": "string",
             "nullable": true
           },
-          "voidReason": {
+          "inBy": {
             "type": "string",
             "nullable": true
           },
-          "lines": {
+          "inAt": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true
+          },
+          "waitingFor": {
+            "type": "string",
+            "nullable": true,
+            "description": "\"Chờ thủ kho Kho khuôn Âu Việt (Quỳnh) xác nhận xuất\""
+          },
+          "controlName": {
+            "type": "string",
+            "nullable": true,
+            "description": "Kho có thủ kho xác nhận xuất"
+          },
+          "canSend": {
+            "type": "boolean"
+          },
+          "canReceive": {
+            "type": "boolean"
+          },
+          "canReject": {
+            "type": "boolean"
+          },
+          "canCancel": {
+            "type": "boolean"
+          },
+          "dies": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/SlipLineDto"
+              "$ref": "#/components/schemas/DieRowDto"
             }
           }
         },
         "required": [
-          "kind",
+          "status",
+          "outState",
+          "inState",
           "id",
           "code",
           "date",
-          "partnerId",
-          "partnerName",
-          "receiver",
-          "purpose",
+          "fromWarehouseId",
+          "fromPartnerId",
+          "toWarehouseId",
+          "toPartnerId",
+          "toLocationId",
+          "fromName",
+          "toName",
+          "isNew",
           "reference",
           "note",
+          "rejectReason",
+          "expectedBackOn",
           "createdBy",
           "createdAt",
-          "voidedAt",
-          "voidReason",
-          "lines"
+          "outBy",
+          "outAt",
+          "inBy",
+          "inAt",
+          "waitingFor",
+          "controlName",
+          "canSend",
+          "canReceive",
+          "canReject",
+          "canCancel",
+          "dies"
+        ]
+      },
+      "DiePlaceDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "enum": [
+              "KHO",
+              "PARTNER"
+            ],
+            "type": "string"
+          },
+          "key": {
+            "type": "string",
+            "description": "\"k:<id>\" hoặc \"x:<id>\", dùng làm bộ lọc Ở đâu"
+          },
+          "name": {
+            "type": "string"
+          },
+          "dies": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "kind",
+          "key",
+          "name",
+          "dies"
         ]
       },
       "WarehouseOverviewDto": {
@@ -12416,10 +13253,30 @@
               "type": "number"
             }
           },
+          "warehouses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WarehouseDto"
+            }
+          },
           "lowStock": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/StockItemDto"
+            }
+          },
+          "toConfirm": {
+            "description": "Phiếu chờ người đang xem xác nhận",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SlipDto"
+            }
+          },
+          "inTransit": {
+            "description": "Hàng đang chuyển giữa các kho (đã xuất, kho nhận chưa xác nhận)",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SlipDto"
             }
           },
           "diesTotal": {
@@ -12451,17 +13308,97 @@
             "items": {
               "$ref": "#/components/schemas/SlipDto"
             }
+          },
+          "dieToConfirm": {
+            "description": "Phiếu giao nhận khuôn chờ người đang xem xác nhận",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BatchDto"
+            }
+          },
+          "dieInTransit": {
+            "description": "Khuôn đang chuyển giữa hai kho",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BatchDto"
+            }
+          },
+          "diePlaces": {
+            "description": "Số khuôn ở từng kho / xưởng",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DiePlaceDto"
+            }
           }
         },
         "required": [
           "diesByStatus",
+          "warehouses",
           "lowStock",
+          "toConfirm",
+          "inTransit",
           "diesTotal",
           "atPartners",
           "overdue",
           "checking",
           "needsReview",
-          "recentSlips"
+          "recentSlips",
+          "dieToConfirm",
+          "dieInTransit",
+          "diePlaces"
+        ]
+      },
+      "WarehouseInputDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "Mã kho dùng trong số phiếu: GIAY, BAT, OFFSET…",
+            "pattern": "^[A-Z0-9]{2,10}$"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "address": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 300
+          },
+          "kind": {
+            "description": "Chỉ đặt khi tạo kho",
+            "enum": [
+              "STOCK",
+              "DIE"
+            ],
+            "type": "string"
+          },
+          "note": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 500
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "sortOrder": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 10000
+          },
+          "keeperIds": {
+            "description": "Thủ kho: người xác nhận phiếu của kho này",
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        },
+        "required": [
+          "code",
+          "name",
+          "keeperIds"
         ]
       },
       "WhPartnerKind": {
@@ -12556,6 +13493,12 @@
           "id": {
             "type": "string"
           },
+          "warehouseId": {
+            "type": "string"
+          },
+          "warehouseName": {
+            "type": "string"
+          },
           "code": {
             "type": "string"
           },
@@ -12572,6 +13515,8 @@
         },
         "required": [
           "id",
+          "warehouseId",
+          "warehouseName",
           "code",
           "note",
           "isActive",
@@ -12581,6 +13526,11 @@
       "LocationInputDto": {
         "type": "object",
         "properties": {
+          "warehouseId": {
+            "type": "string",
+            "description": "Kho khuôn có kệ này",
+            "format": "uuid"
+          },
           "code": {
             "type": "string",
             "description": "Ví dụ \"T4-K02-O03\" hoặc \"Tầng 4\"",
@@ -12596,6 +13546,7 @@
           }
         },
         "required": [
+          "warehouseId",
           "code"
         ]
       },
@@ -12646,11 +13597,91 @@
           "name"
         ]
       },
+      "SpecDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "widthCm": {
+            "type": "number"
+          },
+          "lengthCm": {
+            "type": "number"
+          },
+          "label": {
+            "type": "string",
+            "description": "\"18 x 50,5\" / \"khổ 160\" / \"\""
+          },
+          "isActive": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "widthCm",
+          "lengthCm",
+          "label",
+          "isActive"
+        ]
+      },
+      "UnitDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "factor": {
+            "type": "number"
+          },
+          "specId": {
+            "type": "string",
+            "nullable": true
+          },
+          "specLabel": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "factor",
+          "specId",
+          "specLabel"
+        ]
+      },
+      "MaterialStockDto": {
+        "type": "object",
+        "properties": {
+          "warehouseId": {
+            "type": "string"
+          },
+          "warehouseCode": {
+            "type": "string"
+          },
+          "qty": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "warehouseId",
+          "warehouseCode",
+          "qty"
+        ]
+      },
       "WhMaterialDto": {
         "type": "object",
         "properties": {
           "id": {
             "type": "string"
+          },
+          "code": {
+            "type": "string",
+            "nullable": true
           },
           "group": {
             "type": "string"
@@ -12667,24 +13698,47 @@
           "isActive": {
             "type": "boolean"
           },
-          "items": {
+          "specs": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/StockItemDto"
+              "$ref": "#/components/schemas/SpecDto"
+            }
+          },
+          "units": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UnitDto"
+            }
+          },
+          "warehouseIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "stocks": {
+            "description": "Tổng tồn theo kho (đơn vị cơ sở)",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MaterialStockDto"
             }
           }
         },
         "required": [
           "id",
+          "code",
           "group",
           "name",
           "unit",
           "hasSizes",
           "isActive",
-          "items"
+          "specs",
+          "units",
+          "warehouseIds",
+          "stocks"
         ]
       },
-      "SizeInputDto": {
+      "SpecInputDto": {
         "type": "object",
         "properties": {
           "id": {
@@ -12693,19 +13747,14 @@
           },
           "widthCm": {
             "type": "number",
-            "description": "cm; 0 x 0 khi vật tư không theo khổ",
+            "description": "cm; 0 x 0 khi vật tư không theo khổ; dài 0 = chỉ có khổ rộng (cuộn)",
             "minimum": 0,
-            "maximum": 10000
+            "maximum": 100000
           },
           "lengthCm": {
             "type": "number",
             "minimum": 0,
-            "maximum": 10000
-          },
-          "minQty": {
-            "type": "number",
-            "nullable": true,
-            "minimum": 0
+            "maximum": 100000
           },
           "isActive": {
             "type": "boolean"
@@ -12716,9 +13765,48 @@
           "lengthCm"
         ]
       },
+      "UnitInputDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 20
+          },
+          "factor": {
+            "type": "number",
+            "description": "1 đơn vị này = factor đơn vị cơ sở",
+            "minimum": 0.0001,
+            "maximum": 100000000
+          },
+          "widthCm": {
+            "type": "number",
+            "nullable": true,
+            "description": "Hệ số riêng cho một quy cách (khổ); bỏ trống = áp dụng mọi quy cách",
+            "minimum": 0
+          },
+          "lengthCm": {
+            "type": "number",
+            "nullable": true,
+            "minimum": 0
+          }
+        },
+        "required": [
+          "name",
+          "factor"
+        ]
+      },
       "WhMaterialInputDto": {
         "type": "object",
         "properties": {
+          "code": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 40
+          },
           "group": {
             "type": "string",
             "maxLength": 60
@@ -12729,6 +13817,7 @@
           },
           "unit": {
             "type": "string",
+            "description": "Đơn vị cơ sở: tồn lưu theo đơn vị này",
             "maxLength": 20
           },
           "hasSizes": {
@@ -12737,11 +13826,25 @@
           "isActive": {
             "type": "boolean"
           },
-          "sizes": {
-            "description": "Danh sách khổ (vật tư theo khổ) hoặc một dòng 0 x 0",
+          "specs": {
+            "description": "Quy cách (khổ); vật tư không theo khổ để trống",
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/SizeInputDto"
+              "$ref": "#/components/schemas/SpecInputDto"
+            }
+          },
+          "units": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UnitInputDto"
+            }
+          },
+          "warehouseIds": {
+            "description": "Kho có vật tư này",
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
             }
           }
         },
@@ -12750,40 +13853,23 @@
           "name",
           "unit",
           "hasSizes",
-          "sizes"
+          "specs",
+          "units",
+          "warehouseIds"
         ]
       },
-      "MonthLockDto": {
+      "StockUpdateDto": {
         "type": "object",
         "properties": {
-          "month": {
-            "type": "string"
+          "minQty": {
+            "type": "number",
+            "nullable": true,
+            "minimum": 0
           },
-          "lockedBy": {
-            "type": "string"
-          },
-          "lockedAt": {
-            "format": "date-time",
-            "type": "string"
+          "isActive": {
+            "type": "boolean"
           }
-        },
-        "required": [
-          "month",
-          "lockedBy",
-          "lockedAt"
-        ]
-      },
-      "MonthDto": {
-        "type": "object",
-        "properties": {
-          "month": {
-            "type": "string",
-            "pattern": "^\\d{4}-(0[1-9]|1[0-2])$"
-          }
-        },
-        "required": [
-          "month"
-        ]
+        }
       },
       "CardRowDto": {
         "type": "object",
@@ -12852,11 +13938,175 @@
           "rows"
         ]
       },
+      "StockReportRowDto": {
+        "type": "object",
+        "properties": {
+          "stockId": {
+            "type": "string"
+          },
+          "specId": {
+            "type": "string"
+          },
+          "group": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "opening": {
+            "type": "number"
+          },
+          "inQty": {
+            "type": "number"
+          },
+          "outQty": {
+            "type": "number"
+          },
+          "closing": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "stockId",
+          "specId",
+          "group",
+          "label",
+          "unit",
+          "opening",
+          "inQty",
+          "outQty",
+          "closing"
+        ]
+      },
+      "StockReportDto": {
+        "type": "object",
+        "properties": {
+          "warehouseId": {
+            "type": "string"
+          },
+          "from": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StockReportRowDto"
+            }
+          }
+        },
+        "required": [
+          "warehouseId",
+          "from",
+          "to",
+          "rows"
+        ]
+      },
+      "StockAsOfRowDto": {
+        "type": "object",
+        "properties": {
+          "stockId": {
+            "type": "string"
+          },
+          "specId": {
+            "type": "string"
+          },
+          "group": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "qty": {
+            "type": "number",
+            "description": "Theo bản chụp cuối ngày nếu có, nếu không thì tính từ phiếu"
+          },
+          "liveQty": {
+            "type": "number",
+            "description": "Tính lại từ phiếu hiện có (khác bản chụp khi có phiếu bổ sung về sau)"
+          }
+        },
+        "required": [
+          "stockId",
+          "specId",
+          "group",
+          "label",
+          "unit",
+          "qty",
+          "liveQty"
+        ]
+      },
+      "StockAsOfDto": {
+        "type": "object",
+        "properties": {
+          "source": {
+            "enum": [
+              "SNAPSHOT",
+              "LIVE"
+            ],
+            "type": "string"
+          },
+          "warehouseId": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string"
+          },
+          "takenAt": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true,
+            "description": "Lúc chụp (bản chụp cuối ngày)"
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StockAsOfRowDto"
+            }
+          }
+        },
+        "required": [
+          "source",
+          "warehouseId",
+          "date",
+          "takenAt",
+          "rows"
+        ]
+      },
+      "SnapshotRunDto": {
+        "type": "object",
+        "properties": {
+          "days": {
+            "type": "number"
+          },
+          "rows": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "days",
+          "rows"
+        ]
+      },
       "SlipLineInputDto": {
         "type": "object",
         "properties": {
-          "stockItemId": {
+          "specId": {
             "type": "string",
+            "format": "uuid"
+          },
+          "unitId": {
+            "type": "string",
+            "nullable": true,
+            "description": "Đơn vị đã ghi; bỏ trống = đơn vị cơ sở",
             "format": "uuid"
           },
           "qty": {
@@ -12871,7 +14121,7 @@
           }
         },
         "required": [
-          "stockItemId",
+          "specId",
           "qty"
         ]
       },
@@ -12882,6 +14132,10 @@
             "type": "string",
             "format": "date",
             "example": "2026-11-02"
+          },
+          "warehouseId": {
+            "type": "string",
+            "format": "uuid"
           },
           "kind": {
             "type": "string",
@@ -12923,11 +14177,66 @@
             "items": {
               "$ref": "#/components/schemas/SlipLineInputDto"
             }
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Người lập là thủ kho của kho: xác nhận luôn"
           }
         },
         "required": [
           "date",
+          "warehouseId",
           "kind",
+          "lines"
+        ]
+      },
+      "TransferInputDto": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "example": "2026-11-02"
+          },
+          "fromWarehouseId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "toWarehouseId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "receiver": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 120
+          },
+          "reference": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 60
+          },
+          "note": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 500
+          },
+          "lines": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SlipLineInputDto"
+            }
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Người lập là thủ kho kho đi: xác nhận xuất luôn"
+          }
+        },
+        "required": [
+          "date",
+          "fromWarehouseId",
+          "toWarehouseId",
           "lines"
         ]
       },
@@ -12941,175 +14250,6 @@
         },
         "required": [
           "reason"
-        ]
-      },
-      "WhCountStatus": {
-        "type": "string",
-        "enum": [
-          "DRAFT",
-          "APPROVED",
-          "CANCELLED"
-        ]
-      },
-      "CountLineDto": {
-        "type": "object",
-        "properties": {
-          "stockItemId": {
-            "type": "string"
-          },
-          "label": {
-            "type": "string"
-          },
-          "group": {
-            "type": "string"
-          },
-          "unit": {
-            "type": "string"
-          },
-          "systemQty": {
-            "type": "number"
-          },
-          "countedQty": {
-            "type": "number",
-            "nullable": true
-          },
-          "diff": {
-            "type": "number",
-            "nullable": true
-          }
-        },
-        "required": [
-          "stockItemId",
-          "label",
-          "group",
-          "unit",
-          "systemQty",
-          "countedQty",
-          "diff"
-        ]
-      },
-      "CountDto": {
-        "type": "object",
-        "properties": {
-          "status": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/WhCountStatus"
-              }
-            ]
-          },
-          "id": {
-            "type": "string"
-          },
-          "code": {
-            "type": "string"
-          },
-          "date": {
-            "type": "string"
-          },
-          "note": {
-            "type": "string",
-            "nullable": true
-          },
-          "createdBy": {
-            "type": "string"
-          },
-          "createdAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "approvedAt": {
-            "format": "date-time",
-            "type": "string",
-            "nullable": true
-          },
-          "adjustSlipCode": {
-            "type": "string",
-            "nullable": true
-          },
-          "counted": {
-            "type": "number"
-          },
-          "total": {
-            "type": "number"
-          },
-          "lines": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/CountLineDto"
-            }
-          }
-        },
-        "required": [
-          "status",
-          "id",
-          "code",
-          "date",
-          "note",
-          "createdBy",
-          "createdAt",
-          "approvedAt",
-          "adjustSlipCode",
-          "counted",
-          "total",
-          "lines"
-        ]
-      },
-      "CountCreateDto": {
-        "type": "object",
-        "properties": {
-          "date": {
-            "type": "string",
-            "format": "date",
-            "example": "2026-11-02"
-          },
-          "groups": {
-            "description": "Chỉ kiểm các nhóm này; bỏ trống = tất cả",
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "note": {
-            "type": "string",
-            "nullable": true,
-            "maxLength": 300
-          }
-        },
-        "required": [
-          "date"
-        ]
-      },
-      "CountEntryDto": {
-        "type": "object",
-        "properties": {
-          "stockItemId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "countedQty": {
-            "type": "number",
-            "nullable": true,
-            "minimum": 0
-          }
-        },
-        "required": [
-          "stockItemId",
-          "countedQty"
-        ]
-      },
-      "CountUpdateDto": {
-        "type": "object",
-        "properties": {
-          "entries": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/CountEntryDto"
-            }
-          }
-        },
-        "required": [
-          "entries"
         ]
       },
       "DieListDto": {
@@ -13152,7 +14292,13 @@
           "DISPOSE",
           "MOVE",
           "EDIT",
-          "IMPORT"
+          "IMPORT",
+          "REQUEST",
+          "SEND",
+          "RECEIVE",
+          "REJECT",
+          "REUSE",
+          "COUNT"
         ]
       },
       "DieMoveDto": {
@@ -13182,6 +14328,10 @@
           "date": {
             "type": "string"
           },
+          "fromPlace": {
+            "type": "string",
+            "nullable": true
+          },
           "place": {
             "type": "string",
             "nullable": true
@@ -13195,6 +14345,10 @@
             "nullable": true
           },
           "note": {
+            "type": "string",
+            "nullable": true
+          },
+          "batchId": {
             "type": "string",
             "nullable": true
           },
@@ -13217,10 +14371,12 @@
           "id",
           "actionLabel",
           "date",
+          "fromPlace",
           "place",
           "reference",
           "expectedBackOn",
           "note",
+          "batchId",
           "batchCode",
           "user",
           "createdAt"
@@ -13263,15 +14419,12 @@
             "items": {
               "type": "string",
               "enum": [
-                "ISSUE",
                 "KEEP",
-                "RETURN",
                 "PASS",
                 "DEFECT",
-                "SEND_REPAIR",
-                "BACK_REPAIR",
                 "DISPOSE",
-                "MOVE"
+                "MOVE",
+                "REUSE"
               ]
             }
           },
@@ -13297,6 +14450,16 @@
           },
           "hasPhoto": {
             "type": "boolean"
+          },
+          "pending": {
+            "nullable": true,
+            "description": "Phiếu giao nhận đang chờ, kèm quyền xác nhận của người đang xem",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BatchDto"
+              }
+            ]
           },
           "similar": {
             "description": "Khuôn cùng ký hiệu, kích thước gần giống",
@@ -13353,7 +14516,14 @@
           },
           "place": {
             "type": "string",
-            "description": "\"Kho · T4-K02\" hoặc tên xưởng"
+            "description": "\"Kho khuôn Âu Việt · T4-K02\", tên xưởng, hoặc \"A → B\" khi đang chuyển"
+          },
+          "warehouseId": {
+            "type": "string",
+            "description": "Kho quản lý (khuôn ở kho này khi holderId trống)"
+          },
+          "warehouseName": {
+            "type": "string"
           },
           "holderId": {
             "type": "string",
@@ -13362,6 +14532,11 @@
           "locationId": {
             "type": "string",
             "nullable": true
+          },
+          "pendingBatchId": {
+            "type": "string",
+            "nullable": true,
+            "description": "Phiếu giao nhận đang chờ xác nhận"
           },
           "expectedBackOn": {
             "type": "string",
@@ -13390,6 +14565,7 @@
           "costVnd",
           "note",
           "hasPhoto",
+          "pending",
           "similar",
           "moves",
           "id",
@@ -13404,8 +14580,11 @@
           "pieces",
           "ups",
           "place",
+          "warehouseId",
+          "warehouseName",
           "holderId",
           "locationId",
+          "pendingBatchId",
           "expectedBackOn",
           "overdue",
           "needsReview",
@@ -13488,8 +14667,8 @@
           "owner": {
             "enum": [
               "CUSTOMER",
-              "AU_VIET",
-              "PARTNER"
+              "PARTNER",
+              "AU_VIET"
             ],
             "type": "string"
           },
@@ -13503,16 +14682,32 @@
             "nullable": true,
             "maxLength": 1000
           },
-          "locationId": {
+          "toWarehouseId": {
             "type": "string",
             "nullable": true,
-            "description": "Chỉ khi tạo mới: khuôn về kho chờ kiểm, ở thẳng một vị trí, hoặc giao thẳng tới xưởng",
+            "description": "Chỉ khi tạo mới, bắt buộc một trong hai: khuôn làm xong nhập kho nào, hoặc giao thẳng tới xưởng nào",
             "format": "uuid"
           },
-          "holderId": {
+          "toPartnerId": {
             "type": "string",
             "nullable": true,
             "format": "uuid"
+          },
+          "toLocationId": {
+            "type": "string",
+            "nullable": true,
+            "description": "Kệ cất khi nhận (kho)",
+            "format": "uuid"
+          },
+          "reference": {
+            "type": "string",
+            "nullable": true,
+            "description": "Lệnh bế khi giao thẳng tới xưởng",
+            "maxLength": 60
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Thủ kho xác nhận luôn (đã nhận / đã giao)"
           },
           "force": {
             "type": "boolean",
@@ -13544,32 +14739,24 @@
           "action": {
             "type": "string",
             "enum": [
-              "ISSUE",
               "KEEP",
-              "RETURN",
               "PASS",
               "DEFECT",
-              "SEND_REPAIR",
-              "BACK_REPAIR",
               "DISPOSE",
-              "MOVE"
+              "MOVE",
+              "REUSE"
             ]
-          },
-          "partnerId": {
-            "type": "string",
-            "nullable": true,
-            "description": "Xưởng ngoài (xuất, chuyển sửa, gửi giữ); bỏ trống khi dùng / để tại kho Âu Việt",
-            "format": "uuid"
           },
           "locationId": {
             "type": "string",
             "nullable": true,
-            "description": "Kệ trong kho (kiểm đạt, chuyển vị trí)",
+            "description": "Kệ trong kho (kiểm đạt, đổi kệ)",
             "format": "uuid"
           },
           "reference": {
             "type": "string",
             "nullable": true,
+            "description": "Lệnh bế (bắt buộc khi bế lệnh mới tại xưởng)",
             "maxLength": 60
           },
           "note": {
@@ -13658,72 +14845,118 @@
           "issues"
         ]
       },
-      "WhBatchKind": {
-        "type": "string",
-        "enum": [
-          "OUT",
-          "IN"
-        ]
-      },
-      "BatchDto": {
+      "PaperImportItemDto": {
         "type": "object",
         "properties": {
-          "kind": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/WhBatchKind"
-              }
-            ]
+          "row": {
+            "type": "number"
           },
-          "id": {
+          "group": {
             "type": "string"
           },
-          "code": {
+          "name": {
             "type": "string"
           },
-          "date": {
+          "size": {
             "type": "string"
           },
-          "partnerId": {
-            "type": "string"
-          },
-          "partnerName": {
-            "type": "string"
-          },
-          "reference": {
-            "type": "string",
+          "qty": {
+            "type": "number",
             "nullable": true
           },
           "note": {
             "type": "string",
             "nullable": true
-          },
-          "createdBy": {
+          }
+        },
+        "required": [
+          "row",
+          "group",
+          "name",
+          "size",
+          "qty",
+          "note"
+        ]
+      },
+      "PaperImportReportDto": {
+        "type": "object",
+        "properties": {
+          "sheet": {
             "type": "string"
           },
-          "createdAt": {
-            "format": "date-time",
-            "type": "string"
+          "rows": {
+            "type": "number",
+            "description": "Số dòng (loại giấy × khổ) đọc được"
           },
-          "dies": {
+          "materialsCreated": {
+            "type": "number"
+          },
+          "specsCreated": {
+            "type": "number"
+          },
+          "counted": {
+            "type": "number",
+            "description": "Số quy cách có số tồn đưa vào phiếu tồn đầu"
+          },
+          "keptExisting": {
+            "type": "number",
+            "description": "Quy cách đã có phiếu trên phần mềm, giữ tồn hiện tại"
+          },
+          "slipCode": {
+            "type": "string",
+            "nullable": true,
+            "description": "Phiếu điều chỉnh \"Tồn đầu\" đã lập, chờ xác nhận (null khi xem trước hoặc không có gì để ghi)"
+          },
+          "totalQty": {
+            "type": "number"
+          },
+          "items": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/DieRowDto"
+              "$ref": "#/components/schemas/PaperImportItemDto"
+            }
+          },
+          "issues": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ImportIssueDto"
             }
           }
         },
         "required": [
-          "kind",
-          "id",
-          "code",
-          "date",
-          "partnerId",
-          "partnerName",
-          "reference",
-          "note",
-          "createdBy",
-          "createdAt",
-          "dies"
+          "sheet",
+          "rows",
+          "materialsCreated",
+          "specsCreated",
+          "counted",
+          "keptExisting",
+          "slipCode",
+          "totalQty",
+          "items",
+          "issues"
+        ]
+      },
+      "NewDieLineDto": {
+        "type": "object",
+        "properties": {
+          "symbolCode": {
+            "type": "string",
+            "pattern": "^[A-Z]{2,5}$"
+          },
+          "productName": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "size": {
+            "type": "string",
+            "nullable": true,
+            "description": "\"24x24x12,5\" hoặc chữ",
+            "maxLength": 120
+          }
+        },
+        "required": [
+          "symbolCode",
+          "productName"
         ]
       },
       "BatchInputDto": {
@@ -13740,23 +14973,45 @@
             "format": "date",
             "example": "2026-11-02"
           },
-          "kind": {
+          "fromWarehouseId": {
             "type": "string",
-            "enum": [
-              "IN",
-              "OUT"
-            ]
+            "nullable": true,
+            "description": "Từ: một kho hoặc một xưởng",
+            "format": "uuid"
           },
-          "partnerId": {
+          "fromPartnerId": {
             "type": "string",
+            "nullable": true,
+            "format": "uuid"
+          },
+          "toWarehouseId": {
+            "type": "string",
+            "nullable": true,
+            "description": "Đến (bắt buộc): một kho hoặc một xưởng",
+            "format": "uuid"
+          },
+          "toPartnerId": {
+            "type": "string",
+            "nullable": true,
+            "format": "uuid"
+          },
+          "toLocationId": {
+            "type": "string",
+            "nullable": true,
             "format": "uuid"
           },
           "dieIds": {
-            "minItems": 1,
             "type": "array",
             "items": {
               "type": "string",
               "format": "uuid"
+            }
+          },
+          "newDies": {
+            "description": "Khuôn có sẵn trong kho đi nhưng chưa có mã: cấp mã khi lập phiếu",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NewDieLineDto"
             }
           },
           "reference": {
@@ -13768,18 +15023,60 @@
             "type": "string",
             "nullable": true,
             "maxLength": 500
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Thủ kho xác nhận xuất luôn"
           }
         },
         "required": [
           "date",
-          "kind",
-          "partnerId",
           "dieIds"
         ]
       },
-      "DieCountLineDto": {
+      "BatchReceiveDto": {
         "type": "object",
         "properties": {
+          "locationId": {
+            "type": "string",
+            "nullable": true,
+            "description": "Kệ cất khuôn",
+            "format": "uuid"
+          }
+        }
+      },
+      "BatchRejectDto": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "reason"
+        ]
+      },
+      "DieJournalRowDto": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WhDieAction"
+              }
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
           "dieId": {
             "type": "string"
           },
@@ -13789,93 +15086,54 @@
           "productName": {
             "type": "string"
           },
-          "place": {
+          "actionLabel": {
             "type": "string"
           },
-          "found": {
-            "type": "boolean"
-          },
-          "extra": {
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "dieId",
-          "code",
-          "productName",
-          "place",
-          "found",
-          "extra"
-        ]
-      },
-      "DieCountDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "scope": {
-            "type": "string"
-          },
-          "createdBy": {
-            "type": "string"
-          },
-          "createdAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "finishedAt": {
-            "format": "date-time",
+          "fromPlace": {
             "type": "string",
             "nullable": true
           },
-          "lines": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/DieCountLineDto"
-            }
+          "place": {
+            "type": "string",
+            "nullable": true
+          },
+          "reference": {
+            "type": "string",
+            "nullable": true
+          },
+          "note": {
+            "type": "string",
+            "nullable": true
+          },
+          "batchId": {
+            "type": "string",
+            "nullable": true
+          },
+          "batchCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "user": {
+            "type": "string",
+            "nullable": true
           }
         },
         "required": [
+          "action",
           "id",
-          "scope",
-          "createdBy",
+          "date",
           "createdAt",
-          "finishedAt",
-          "lines"
-        ]
-      },
-      "DieCountCreateDto": {
-        "type": "object",
-        "properties": {
-          "locationId": {
-            "type": "string",
-            "nullable": true,
-            "description": "Kệ cần kiểm; bỏ trống cùng holderId = toàn kho Âu Việt",
-            "format": "uuid"
-          },
-          "holderId": {
-            "type": "string",
-            "nullable": true,
-            "description": "Hoặc một xưởng ngoài",
-            "format": "uuid"
-          }
-        }
-      },
-      "DieCountMarkDto": {
-        "type": "object",
-        "properties": {
-          "die": {
-            "type": "string",
-            "description": "Mã khuôn (quét / gõ) hoặc id"
-          },
-          "found": {
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "die",
-          "found"
+          "dieId",
+          "code",
+          "productName",
+          "actionLabel",
+          "fromPlace",
+          "place",
+          "reference",
+          "note",
+          "batchId",
+          "batchCode",
+          "user"
         ]
       }
     }

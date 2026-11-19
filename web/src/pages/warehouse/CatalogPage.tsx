@@ -1,15 +1,13 @@
-import { EditOutlined, InboxOutlined, LockOutlined, MinusCircleOutlined, PlusOutlined, UnlockOutlined } from '@ant-design/icons';
-import { Alert, App, AutoComplete, Button, DatePicker, Descriptions, Flex, Form, Input, InputNumber, List, Modal, Popconfirm, Select, Space, Switch, Table, Tabs, Tag, Typography, Upload } from 'antd';
-import dayjs, { type Dayjs } from 'dayjs';
+import { EditOutlined, InboxOutlined, MinusCircleOutlined, PlusOutlined } from '@ant-design/icons';
+import { Alert, App, AutoComplete, Button, Descriptions, Flex, Form, Input, InputNumber, Modal, Popconfirm, Select, Space, Switch, Table, Tabs, Tag, Typography, Upload } from 'antd';
 import { useState } from 'react';
 import type { Schemas } from '../../api/client';
-import { useLocations, useMonthLocks, usePartners, useSymbols, useWarehouseMutations, useWhMaterials } from '../../api/warehouse';
+import { useLocations, usePartners, useSymbols, useWarehouseMutations, useWarehouses, useWhMaterials, useWhPeople } from '../../api/warehouse';
 import { useCan } from '../../lib/access';
 import { errorMessage } from '../../lib/errors';
-import { formatDateTime } from '../../lib/format';
 import { cm, PageHead, PARTNER_KIND, qty, STATUS, type DieStatus } from './common';
 
-/** Danh mục riêng của kho: vật tư và khổ, đối tác, vị trí kệ, ký hiệu khuôn, chốt tháng, nhập bảng khuôn Excel */
+/** Danh mục riêng của kho: kho và thủ kho, vật tư (quy cách, đơn vị tính), đối tác, vị trí kệ, ký hiệu khuôn, chốt tháng, nhập bảng khuôn Excel */
 export function WarehouseCatalogPage() {
   const can = useCan();
   return (
@@ -17,12 +15,17 @@ export function WarehouseCatalogPage() {
       <PageHead title="Danh mục kho" />
       <Tabs
         items={[
-          { key: 'materials', label: 'Vật tư & khổ', children: <Materials /> },
+          { key: 'warehouses', label: 'Kho', children: <Warehouses /> },
+          { key: 'materials', label: 'Vật tư', children: <Materials /> },
           { key: 'partners', label: 'Đối tác', children: <Partners /> },
           { key: 'locations', label: 'Vị trí kệ', children: <Locations /> },
           { key: 'symbols', label: 'Ký hiệu khuôn', children: <Symbols /> },
-          { key: 'locks', label: 'Chốt tồn tháng', children: <MonthLocks /> },
-          ...(can('warehouse.manage') ? [{ key: 'import', label: 'Nhập bảng khuôn Excel', children: <ImportDies /> }] : []),
+          ...(can('warehouse.manage')
+            ? [
+                { key: 'import-paper', label: 'Nhập tồn giấy Excel', children: <ImportPaper /> },
+                { key: 'import', label: 'Nhập bảng khuôn Excel', children: <ImportDies /> },
+              ]
+            : []),
         ]}
       />
     </Flex>
@@ -32,40 +35,129 @@ export function WarehouseCatalogPage() {
 const ok = (message: { success: (s: string) => void }, close: () => void) => () => (message.success('Đã lưu'), close());
 
 type Material = Schemas['WhMaterialDto'];
-type MaterialForm = { group: string; name: string; unit: string; hasSizes: boolean; isActive: boolean; minQty?: number | null; sizes: Array<{ id?: string; widthCm?: number; lengthCm?: number; minQty?: number | null; isActive?: boolean }> };
+type Warehouse = Schemas['WarehouseDto'];
 
-function Materials() {
+function Warehouses() {
   const can = useCan();
-  const { data, isFetching } = useWhMaterials();
-  const [editing, setEditing] = useState<Material | 'new' | null>(null);
+  const { data, isFetching } = useWarehouses();
+  const [editing, setEditing] = useState<Warehouse | 'new' | null>(null);
   return (
     <Flex vertical gap={12}>
-      {can('warehouse.manage') && <Button type="primary" icon={<PlusOutlined />} style={{ alignSelf: 'flex-start' }} onClick={() => setEditing('new')}>Thêm vật tư</Button>}
-      <Table<Material>
+      <Typography.Text type="secondary">
+        Mỗi kho có thủ kho riêng. Phiếu nhập / xuất / chuyển của kho chỉ làm thay đổi tồn khi thủ kho của kho đó xác nhận. Kho chưa có thủ kho: ai có quyền lập phiếu cũng xác nhận được.
+      </Typography.Text>
+      {can('warehouse.manage') && <Button type="primary" icon={<PlusOutlined />} style={{ alignSelf: 'flex-start' }} onClick={() => setEditing('new')}>Thêm kho</Button>}
+      <Table<Warehouse>
         rowKey="id"
         size="small"
         loading={isFetching}
         dataSource={data}
-        pagination={{ pageSize: 50, hideOnSinglePage: true }}
-        locale={{ emptyText: 'Chưa có vật tư. Ví dụ: nhóm Giấy, "Giấy ngoại IC 145", đơn vị tờ, các khổ 18 x 50,5 và 27 x 23.' }}
+        pagination={false}
         columns={[
-          { title: 'Nhóm', dataIndex: 'group', width: 120 },
+          { title: 'Mã', dataIndex: 'code', width: 100, render: (v: string) => <Tag>{v}</Tag> },
+          { title: 'Tên kho', dataIndex: 'name', render: (v: string, w) => <span style={{ opacity: w.isActive ? 1 : 0.5 }}>{v}{!w.isActive && ' (ngừng dùng)'}</span> },
+          { title: 'Quản lý', dataIndex: 'kind', width: 150, render: (k: Warehouse['kind']) => (k === 'DIE' ? 'Khuôn (từng cái)' : 'Vật tư (số lượng)') },
+          { title: 'Thủ kho', key: 'k', render: (_, w) => w.keepers.map((k) => k.fullName).join(', ') || <Typography.Text type="secondary">chưa chỉ định</Typography.Text> },
+          { title: 'Địa chỉ', dataIndex: 'address', ellipsis: true },
+          { title: 'Đang quản lý', key: 'n', width: 120, align: 'right', render: (_, w) => (w.kind === 'DIE' ? `${w.dies} khuôn` : `${w.materials} vật tư`) },
+          { key: 'e', width: 60, render: (_, w) => can('warehouse.manage') && <Button size="small" type="text" icon={<EditOutlined />} onClick={() => setEditing(w)} aria-label={`Sửa ${w.name}`} /> },
+        ]}
+      />
+      {editing && <WarehouseModal warehouse={editing === 'new' ? null : editing} onClose={() => setEditing(null)} />}
+    </Flex>
+  );
+}
+
+function WarehouseModal({ warehouse, onClose }: { warehouse: Warehouse | null; onClose: () => void }) {
+  const { message } = App.useApp();
+  const [form] = Form.useForm<Schemas['WarehouseInputDto']>();
+  const people = useWhPeople();
+  const { saveWarehouse } = useWarehouseMutations();
+  return (
+    <Modal open title={warehouse ? `Sửa ${warehouse.name}` : 'Thêm kho'} okText="Lưu" cancelText="Đóng" onCancel={onClose} onOk={() => form.submit()} confirmLoading={saveWarehouse.isPending} destroyOnHidden>
+      <Form
+        form={form}
+        layout="vertical"
+        initialValues={warehouse ? { ...warehouse, keeperIds: warehouse.keepers.map((k) => k.id) } : { kind: 'STOCK', isActive: true, keeperIds: [], sortOrder: 50 }}
+        onFinish={(v) =>
+          saveWarehouse.mutate(
+            { id: warehouse?.id, code: v.code.toUpperCase(), name: v.name, address: v.address || null, note: v.note || null, kind: warehouse ? undefined : v.kind, isActive: v.isActive, sortOrder: v.sortOrder, keeperIds: v.keeperIds ?? [] },
+            { onSuccess: ok(message, onClose), onError: (e) => message.error(errorMessage(e)) },
+          )
+        }
+      >
+        <Flex gap={12}>
+          <Form.Item name="code" label="Mã kho" rules={[{ required: true, pattern: /^[A-Za-z0-9]{2,10}$/, message: '2–10 chữ hoặc số' }]} extra="Dùng trong số phiếu, ví dụ XK-GIAY-…">
+            <Input style={{ width: 130 }} placeholder="GIAY" />
+          </Form.Item>
+          <Form.Item name="name" label="Tên kho" rules={[{ required: true }]} style={{ flex: 1 }}>
+            <Input placeholder="Kho giấy" />
+          </Form.Item>
+        </Flex>
+        <Form.Item name="address" label="Địa chỉ"><Input /></Form.Item>
+        {!warehouse && (
+          <Form.Item name="kind" label="Cách quản lý">
+            <Select options={[{ value: 'STOCK', label: 'Theo số lượng (giấy, vật tư, hàng tồn…)' }, { value: 'DIE', label: 'Từng cái (khuôn)' }]} />
+          </Form.Item>
+        )}
+        <Form.Item name="keeperIds" label="Thủ kho (xác nhận phiếu)">
+          <Select mode="multiple" allowClear showSearch optionFilterProp="label" options={(people.data ?? []).map((p) => ({ value: p.id, label: p.fullName }))} />
+        </Form.Item>
+        <Flex gap={24}>
+          <Form.Item name="sortOrder" label="Thứ tự hiển thị"><InputNumber min={0} style={{ width: 100 }} /></Form.Item>
+          <Form.Item name="isActive" label="Đang dùng" valuePropName="checked"><Switch /></Form.Item>
+        </Flex>
+        <Form.Item name="note" label="Ghi chú"><Input /></Form.Item>
+      </Form>
+    </Modal>
+  );
+}
+
+function Materials() {
+  const can = useCan();
+  const { data, isFetching } = useWhMaterials();
+  const warehouses = useWarehouses();
+  const [editing, setEditing] = useState<Material | 'new' | null>(null);
+  const [q, setQ] = useState('');
+  const [kho, setKho] = useState<string>('all');
+  const text = q.trim().toLowerCase();
+  const rows = (data ?? []).filter((m) => (kho === 'all' || m.warehouseIds.includes(kho)) && (!text || `${m.code ?? ''} ${m.group} ${m.name}`.toLowerCase().includes(text)));
+  const khoName = new Map((warehouses.data ?? []).map((w) => [w.id, w.code]));
+  return (
+    <Flex vertical gap={12}>
+      <Typography.Text type="secondary">
+        Một danh mục vật tư chung cho mọi kho. Mỗi vật tư có đơn vị cơ sở (tồn lưu theo đơn vị này), các quy cách / khổ, các đơn vị khác có hệ số quy đổi (đặt riêng được cho từng quy cách), và các kho có vật tư.
+      </Typography.Text>
+      <Flex wrap gap={12} align="center">
+        {can('warehouse.manage') && <Button type="primary" icon={<PlusOutlined />} onClick={() => setEditing('new')}>Thêm vật tư</Button>}
+        <Input.Search id="material-search" placeholder="Mã, nhóm, tên" allowClear onChange={(e) => setQ(e.target.value)} style={{ width: 240 }} />
+        <Select value={kho} onChange={setKho} style={{ width: 200 }} options={[{ value: 'all', label: 'Mọi kho' }, ...(warehouses.data ?? []).filter((w) => w.kind === 'STOCK').map((w) => ({ value: w.id, label: w.name }))]} />
+      </Flex>
+      <Table<Material>
+        rowKey="id"
+        size="small"
+        loading={isFetching}
+        dataSource={rows}
+        pagination={{ pageSize: 50, hideOnSinglePage: true }}
+        locale={{ emptyText: 'Chưa có vật tư. Ví dụ: nhóm GN, "Giấy ngoại IC 145", đơn vị tờ, khổ 18 x 50,5 và 27 x 23, đơn vị ram = 500 tờ.' }}
+        columns={[
+          { title: 'Mã', dataIndex: 'code', width: 110 },
+          { title: 'Nhóm', dataIndex: 'group', width: 110 },
           { title: 'Vật tư', dataIndex: 'name', render: (v: string, m) => <span style={{ opacity: m.isActive ? 1 : 0.5 }}>{v}{!m.isActive && ' (ngừng dùng)'}</span> },
-          { title: 'ĐVT', dataIndex: 'unit', width: 70 },
+          { title: 'Đơn vị', key: 'u', width: 170, render: (_, m) => [m.unit, ...m.units.map((u) => `${u.name} = ${qty(u.factor)}${u.specLabel ? ` (${u.specLabel})` : ''}`)].join(' · ') },
           {
-            title: 'Khổ (cm) · tồn',
+            title: 'Quy cách',
             key: 's',
             render: (_, m) =>
               m.hasSizes ? (
                 <Flex wrap gap={4}>
-                  {m.items.map((i) => (
-                    <Tag key={i.id} color={i.low ? 'red' : undefined} style={{ opacity: i.isActive ? 1 : 0.5 }}>{cm(i.widthCm)} x {cm(i.lengthCm)} · {qty(i.qty)}</Tag>
-                  ))}
+                  {m.specs.map((p) => <Tag key={p.id} style={{ opacity: p.isActive ? 1 : 0.5 }}>{p.label}</Tag>)}
                 </Flex>
               ) : (
-                `Không theo khổ · tồn ${qty(m.items[0]?.qty ?? 0)}`
+                <Typography.Text type="secondary">Không theo khổ</Typography.Text>
               ),
           },
+          { title: 'Tồn theo kho', key: 't', width: 180, render: (_, m) => m.warehouseIds.map((w) => `${khoName.get(w) ?? '?'}: ${qty(m.stocks.find((s) => s.warehouseId === w)?.qty ?? 0)}`).join(' · ') },
           { key: 'e', width: 60, render: (_, m) => can('warehouse.manage') && <Button size="small" type="text" icon={<EditOutlined />} onClick={() => setEditing(m)} aria-label={`Sửa ${m.name}`} /> },
         ]}
       />
@@ -74,98 +166,145 @@ function Materials() {
   );
 }
 
+type SpecRow = { id?: string; widthCm?: number; lengthCm?: number; isActive?: boolean };
+type UnitRow = { id?: string; name?: string; factor?: number; spec?: string };
+type MaterialForm = { code?: string; group: string; name: string; unit: string; hasSizes: boolean; isActive: boolean; warehouseIds: string[]; specs: SpecRow[]; units: UnitRow[] };
+const specKey = (w?: number | null, l?: number | null) => `${w ?? 0}x${l ?? 0}`;
+const specText = (w?: number | null, l?: number | null) => (w && l ? `${cm(w)} x ${cm(l)}` : w ? `khổ ${cm(w)}` : '');
+
 function MaterialModal({ material, groups, onClose }: { material: Material | null; groups: string[]; onClose: () => void }) {
   const { message } = App.useApp();
   const [form] = Form.useForm<MaterialForm>();
+  const warehouses = useWarehouses();
   const { saveMaterial } = useWarehouseMutations();
   const hasSizes = Form.useWatch('hasSizes', form);
+  const unit = Form.useWatch('unit', form);
+  const specs = (Form.useWatch('specs', form) ?? []) as SpecRow[];
   const initial: MaterialForm = material
     ? {
+        code: material.code ?? undefined,
         group: material.group,
         name: material.name,
         unit: material.unit,
         hasSizes: material.hasSizes,
         isActive: material.isActive,
-        minQty: material.hasSizes ? null : (material.items[0]?.minQty ?? null),
-        sizes: material.hasSizes ? material.items.map((i) => ({ id: i.id, widthCm: i.widthCm, lengthCm: i.lengthCm, minQty: i.minQty, isActive: i.isActive })) : [],
+        warehouseIds: material.warehouseIds,
+        specs: material.hasSizes ? material.specs.map((p) => ({ id: p.id, widthCm: p.widthCm, lengthCm: p.lengthCm, isActive: p.isActive })) : [],
+        units: material.units.map((u) => {
+          const p = material.specs.find((x) => x.id === u.specId);
+          return { id: u.id, name: u.name, factor: u.factor, spec: p ? specKey(p.widthCm, p.lengthCm) : '' };
+        }),
       }
-    : { group: groups[0] ?? 'Giấy', name: '', unit: 'tờ', hasSizes: true, isActive: true, sizes: [{}] };
+    : { group: groups[0] ?? 'Giấy', name: '', unit: 'tờ', hasSizes: true, isActive: true, warehouseIds: [], specs: [{}], units: [] };
   const submit = (v: MaterialForm) =>
     saveMaterial.mutate(
       {
         id: material?.id,
+        code: v.code?.trim() || null,
         group: v.group,
         name: v.name,
         unit: v.unit,
         hasSizes: v.hasSizes,
         isActive: v.isActive,
-        sizes: v.hasSizes
-          ? v.sizes.map((s) => ({ id: s.id, widthCm: s.widthCm ?? 0, lengthCm: s.lengthCm ?? 0, minQty: s.minQty ?? null, isActive: s.isActive ?? true }))
-          : [{ id: material?.hasSizes === false ? material.items[0]?.id : undefined, widthCm: 0, lengthCm: 0, minQty: v.minQty ?? null }],
+        warehouseIds: v.warehouseIds ?? [],
+        specs: v.hasSizes ? (v.specs ?? []).map((s) => ({ id: s.id, widthCm: s.widthCm ?? 0, lengthCm: s.lengthCm ?? 0, isActive: s.isActive ?? true })) : [],
+        units: (v.units ?? [])
+          .filter((u) => u.name && u.factor)
+          .map((u) => {
+            const [w, l] = u.spec ? u.spec.split('x').map(Number) : [null, null];
+            return { id: u.id, name: u.name!, factor: u.factor!, widthCm: u.spec ? w : null, lengthCm: u.spec ? l : null };
+          }),
       },
       { onSuccess: ok(message, onClose), onError: (e) => message.error(errorMessage(e)) },
     );
+  const specOptions = [{ value: '', label: 'Mọi quy cách' }, ...specs.filter((s) => s.widthCm).map((s) => ({ value: specKey(s.widthCm, s.lengthCm), label: specText(s.widthCm, s.lengthCm) }))];
   return (
-    <Modal open width={680} title={material ? `Sửa ${material.name}` : 'Thêm vật tư'} okText="Lưu" cancelText="Đóng" onCancel={onClose} onOk={() => form.submit()} confirmLoading={saveMaterial.isPending} destroyOnHidden>
+    <Modal open width={820} title={material ? `Sửa ${material.name}` : 'Thêm vật tư'} okText="Lưu" cancelText="Đóng" onCancel={onClose} onOk={() => form.submit()} confirmLoading={saveMaterial.isPending} destroyOnHidden>
       <Form<MaterialForm> form={form} layout="vertical" initialValues={initial} onFinish={submit}>
         <Flex wrap gap={12}>
+          <Form.Item name="code" label="Mã vật tư">
+            <Input style={{ width: 130 }} placeholder="GN-IC145" />
+          </Form.Item>
           <Form.Item name="group" label="Nhóm" rules={[{ required: true }]}>
-            <AutoComplete style={{ width: 150 }} options={[...new Set([...groups, 'Giấy', 'Màng', 'Mực', 'Keo', 'Phụ liệu'])].map((g) => ({ value: g }))} />
+            <AutoComplete style={{ width: 150 }} options={[...new Set([...groups, 'Đề can', 'Giấy ngoại', 'Op', 'Bạt', 'Mực', 'Keo', 'Thành phẩm'])].map((g) => ({ value: g }))} />
           </Form.Item>
           <Form.Item name="name" label="Tên vật tư" rules={[{ required: true }]} style={{ flex: 1, minWidth: 220 }}>
             <Input placeholder="Giấy ngoại IC 145" />
           </Form.Item>
-          <Form.Item name="unit" label="Đơn vị" rules={[{ required: true }]}>
-            <AutoComplete style={{ width: 90 }} options={['tờ', 'kg', 'cuộn', 'm', 'lít', 'cái'].map((u) => ({ value: u }))} />
+          <Form.Item name="unit" label="Đơn vị cơ sở" rules={[{ required: true }]} extra="Tồn lưu theo đơn vị này">
+            <AutoComplete style={{ width: 110 }} options={['tờ', 'm', 'm²', 'kg', 'lít', 'cái', 'cuộn'].map((u) => ({ value: u }))} />
           </Form.Item>
         </Flex>
+        <Form.Item name="warehouseIds" label="Có ở kho">
+          <Select mode="multiple" allowClear options={(warehouses.data ?? []).filter((w) => w.kind === 'STOCK').map((w) => ({ value: w.id, label: w.name }))} placeholder="Chọn kho giữ vật tư này" />
+        </Form.Item>
         <Flex gap={24}>
-          <Form.Item name="hasSizes" label="Theo khổ" valuePropName="checked">
+          <Form.Item name="hasSizes" label="Có quy cách / khổ" valuePropName="checked">
             <Switch disabled={!!material} />
           </Form.Item>
           <Form.Item name="isActive" label="Đang dùng" valuePropName="checked">
             <Switch />
           </Form.Item>
-          {!hasSizes && (
-            <Form.Item name="minQty" label="Tồn tối thiểu">
-              <InputNumber min={0} />
-            </Form.Item>
-          )}
         </Flex>
         {hasSizes && (
-          <Form.List name="sizes">
+          <Form.List name="specs">
             {(fields, { add, remove }) => (
-              <Flex vertical gap={4}>
-                <Typography.Text type="secondary">Mỗi khổ một dòng (rộng x dài, cm). "27x23" và "27 x 23" là một khổ. Khổ đã có phiếu thì không sửa số, chỉ tắt đi.</Typography.Text>
+              <Flex vertical gap={4} style={{ marginBottom: 16 }}>
+                <Typography.Text strong>Quy cách (cm)</Typography.Text>
+                <Typography.Text type="secondary">Giấy: rộng × dài. Cuộn (bạt, decal cuộn): chỉ ghi khổ rộng, dài để trống. Quy cách đã có phiếu thì không sửa số được, chỉ tắt đi.</Typography.Text>
                 {fields.map((f) => {
-                  const saved = !!form.getFieldValue(['sizes', f.name, 'id']);
+                  const saved = !!form.getFieldValue(['specs', f.name, 'id']);
                   return (
                     <Flex key={f.key} gap={8} align="start">
                       <Form.Item name={[f.name, 'widthCm']} style={{ marginBottom: 8 }} rules={[{ required: true, message: 'Rộng' }]}>
                         <InputNumber min={0.1} decimalSeparator="," placeholder="Rộng" style={{ width: 100 }} />
                       </Form.Item>
                       <span style={{ lineHeight: '32px' }}>x</span>
-                      <Form.Item name={[f.name, 'lengthCm']} style={{ marginBottom: 8 }} rules={[{ required: true, message: 'Dài' }]}>
-                        <InputNumber min={0.1} decimalSeparator="," placeholder="Dài" style={{ width: 100 }} />
-                      </Form.Item>
-                      <Form.Item name={[f.name, 'minQty']} style={{ marginBottom: 8 }}>
-                        <InputNumber min={0} placeholder="Tồn tối thiểu" style={{ width: 140 }} />
+                      <Form.Item name={[f.name, 'lengthCm']} style={{ marginBottom: 8 }}>
+                        <InputNumber min={0} decimalSeparator="," placeholder="Dài" style={{ width: 100 }} />
                       </Form.Item>
                       {saved ? (
                         <Form.Item name={[f.name, 'isActive']} valuePropName="checked" style={{ marginBottom: 8 }}>
                           <Switch checkedChildren="Dùng" unCheckedChildren="Tắt" />
                         </Form.Item>
                       ) : (
-                        <Button type="text" icon={<MinusCircleOutlined />} onClick={() => remove(f.name)} aria-label="Bỏ khổ" />
+                        <Button type="text" icon={<MinusCircleOutlined />} onClick={() => remove(f.name)} aria-label="Bỏ quy cách" />
                       )}
                     </Flex>
                   );
                 })}
-                <Button type="dashed" icon={<PlusOutlined />} onClick={() => add({ isActive: true })} style={{ alignSelf: 'flex-start' }}>Thêm khổ</Button>
+                <Button type="dashed" icon={<PlusOutlined />} onClick={() => add({ isActive: true })} style={{ alignSelf: 'flex-start' }}>Thêm quy cách</Button>
               </Flex>
             )}
           </Form.List>
         )}
+        <Form.List name="units">
+          {(fields, { add, remove }) => (
+            <Flex vertical gap={4}>
+              <Typography.Text strong>Đơn vị tính khác</Typography.Text>
+              <Typography.Text type="secondary">Ví dụ 1 ram = 500 {unit || 'tờ'}; riêng khổ bìa dày 1 ram = 250. Bạt: 1 cuộn khổ 3,2 m = 50 m. Đơn vị cơ sở ({unit || '…'}) luôn có sẵn.</Typography.Text>
+              {fields.map((f) => (
+                <Flex key={f.key} gap={8} align="start" wrap>
+                  <span style={{ lineHeight: '32px' }}>1</span>
+                  <Form.Item name={[f.name, 'name']} style={{ marginBottom: 8 }} rules={[{ required: true, message: 'Tên đơn vị' }]}>
+                    <AutoComplete style={{ width: 110 }} placeholder="ram" options={['ram', 'cuộn', 'thùng', 'tấm', 'bộ', 'm²'].map((u) => ({ value: u }))} />
+                  </Form.Item>
+                  <span style={{ lineHeight: '32px' }}>=</span>
+                  <Form.Item name={[f.name, 'factor']} style={{ marginBottom: 8 }} rules={[{ required: true, message: 'Hệ số' }]}>
+                    <InputNumber min={0.0001} decimalSeparator="," style={{ width: 110 }} placeholder="500" suffix={unit} />
+                  </Form.Item>
+                  {hasSizes && (
+                    <Form.Item name={[f.name, 'spec']} style={{ marginBottom: 8 }}>
+                      <Select aria-label="Áp dụng cho" style={{ width: 170 }} options={specOptions} placeholder="Mọi quy cách" />
+                    </Form.Item>
+                  )}
+                  <Button type="text" icon={<MinusCircleOutlined />} onClick={() => remove(f.name)} aria-label="Bỏ đơn vị" />
+                </Flex>
+              ))}
+              <Button type="dashed" icon={<PlusOutlined />} onClick={() => add({ spec: '' })} style={{ alignSelf: 'flex-start' }}>Thêm đơn vị</Button>
+            </Flex>
+          )}
+        </Form.List>
       </Form>
     </Modal>
   );
@@ -236,18 +375,23 @@ function Locations() {
   const { message } = App.useApp();
   const { data, isFetching } = useLocations();
   const { saveLocation } = useWarehouseMutations();
+  const warehouses = useWarehouses();
+  const khos = (warehouses.data ?? []).filter((w) => w.kind === 'DIE' && w.isActive);
   const [code, setCode] = useState('');
+  const [kho, setKho] = useState<string | undefined>(undefined);
+  const khoId = kho ?? khos[0]?.id;
   return (
     <Flex vertical gap={12}>
-      <Typography.Text type="secondary">Mã kệ nên theo dạng Tầng-Kệ-Ô, ví dụ T4-K02-O03, để thủ kho tìm khuôn nhanh.</Typography.Text>
+      <Typography.Text type="secondary">Mỗi kệ thuộc một kho khuôn. Mã kệ nên theo dạng Tầng-Kệ-Ô, ví dụ T4-K02-O03, để thủ kho tìm khuôn nhanh.</Typography.Text>
       {can('warehouse.manage') && (
-        <Space.Compact style={{ maxWidth: 360 }}>
+        <Space.Compact style={{ maxWidth: 520 }}>
+          <Select id="location-kho" value={khoId} onChange={setKho} style={{ width: 190 }} options={khos.map((k) => ({ value: k.id, label: k.name }))} />
           <Input id="location-code" placeholder="Mã vị trí mới" value={code} onChange={(e) => setCode(e.target.value)} />
           <Button
             type="primary"
-            disabled={!code.trim()}
+            disabled={!code.trim() || !khoId}
             loading={saveLocation.isPending}
-            onClick={() => saveLocation.mutate({ code: code.trim() }, { onSuccess: () => (setCode(''), message.success('Đã thêm vị trí')), onError: (e) => message.error(errorMessage(e)) })}
+            onClick={() => saveLocation.mutate({ code: code.trim(), warehouseId: khoId! }, { onSuccess: () => (setCode(''), message.success('Đã thêm vị trí')), onError: (e) => message.error(errorMessage(e)) })}
           >
             Thêm
           </Button>
@@ -261,6 +405,7 @@ function Locations() {
         pagination={false}
         locale={{ emptyText: 'Chưa có vị trí' }}
         columns={[
+          { title: 'Kho', dataIndex: 'warehouseName', width: 180 },
           { title: 'Mã vị trí', dataIndex: 'code', render: (v: string, l) => <span style={{ opacity: l.isActive ? 1 : 0.5 }}>{v}</span> },
           { title: 'Số khuôn', dataIndex: 'dies', width: 110, align: 'right' },
           { title: 'Ghi chú', dataIndex: 'note' },
@@ -269,7 +414,7 @@ function Locations() {
             key: 'a',
             width: 110,
             render: (_, l) => (
-              <Switch size="small" checked={l.isActive} disabled={!can('warehouse.manage')} onChange={(isActive) => saveLocation.mutate({ id: l.id, code: l.code, note: l.note, isActive }, { onError: (e) => message.error(errorMessage(e)) })} />
+              <Switch size="small" checked={l.isActive} disabled={!can('warehouse.manage')} onChange={(isActive) => saveLocation.mutate({ id: l.id, warehouseId: l.warehouseId, code: l.code, note: l.note, isActive }, { onError: (e) => message.error(errorMessage(e)) })} />
             ),
           },
         ]}
@@ -312,49 +457,6 @@ function Symbols() {
             render: (_, s) => <Switch size="small" checked={s.isActive} disabled={!can('warehouse.manage')} onChange={(isActive) => saveSymbol.mutate({ code: s.code, name: s.name, isActive })} />,
           },
         ]}
-      />
-    </Flex>
-  );
-}
-
-function MonthLocks() {
-  const can = useCan();
-  const { message } = App.useApp();
-  const { data } = useMonthLocks();
-  const { lockMonth, unlockMonth } = useWarehouseMutations();
-  const [month, setMonth] = useState<Dayjs | null>(dayjs().subtract(1, 'month'));
-  return (
-    <Flex vertical gap={12} style={{ maxWidth: 640 }}>
-      <Typography.Text type="secondary">Chốt tồn tháng xong thì không lập, không huỷ phiếu kho có ngày trong tháng đó nữa, để số tồn đã báo cáo không bị thay đổi. Chốt của kho độc lập với khoá sổ kế toán.</Typography.Text>
-      {can('warehouse.manage') && (
-        <Space>
-          <DatePicker id="lock-month" picker="month" format="MM/YYYY" value={month} onChange={setMonth} allowClear={false} />
-          <Button type="primary" icon={<LockOutlined />} loading={lockMonth.isPending} onClick={() => month && lockMonth.mutate(month.format('YYYY-MM'), { onSuccess: () => message.success(`Đã chốt tháng ${month.format('MM/YYYY')}`), onError: (e) => message.error(errorMessage(e)) })}>
-            Chốt tồn tháng
-          </Button>
-        </Space>
-      )}
-      <List
-        size="small"
-        bordered
-        dataSource={data}
-        locale={{ emptyText: 'Chưa chốt tháng nào' }}
-        renderItem={(l) => (
-          <List.Item
-            actions={
-              can('warehouse.manage')
-                ? [
-                    <Popconfirm key="u" title={`Mở lại tháng ${l.month.slice(5)}/${l.month.slice(0, 4)}?`} okText="Mở lại" cancelText="Không" onConfirm={() => unlockMonth.mutate(l.month)}>
-                      <Button size="small" icon={<UnlockOutlined />}>Mở lại</Button>
-                    </Popconfirm>,
-                  ]
-                : []
-            }
-          >
-            <strong>Tháng {l.month.slice(5)}/{l.month.slice(0, 4)}</strong>
-            <Typography.Text type="secondary" style={{ marginLeft: 12 }}>{l.lockedBy}, {formatDateTime(String(l.lockedAt))}</Typography.Text>
-          </List.Item>
-        )}
       />
     </Flex>
   );
@@ -428,6 +530,92 @@ function ImportDies() {
               { title: 'Dòng', dataIndex: 'row', width: 70 },
               { title: 'Mã', dataIndex: 'code', width: 100 },
               { title: 'Nội dung', dataIndex: 'message' },
+            ]}
+          />
+        </Flex>
+      )}
+    </Flex>
+  );
+}
+
+/** Nhập bảng tồn giấy (Google Sheets "THEO DÕI GIẤY TỒN" tải về dạng .xlsx): danh mục + phiếu tồn đầu chờ xác nhận */
+function ImportPaper() {
+  const { message } = App.useApp();
+  const { importPaper } = useWarehouseMutations();
+  const [file, setFile] = useState<File | null>(null);
+  const [report, setReport] = useState<Schemas['PaperImportReportDto'] | null>(null);
+  const [dry, setDry] = useState(true);
+  const run = (dryRun: boolean) =>
+    file &&
+    importPaper.mutate(
+      { file, dryRun },
+      {
+        onSuccess: (r) => {
+          setReport(r);
+          setDry(dryRun);
+          if (!dryRun) message.success(r.slipCode ? `Đã nhập; phiếu tồn đầu ${r.slipCode} chờ thủ kho xác nhận` : 'Đã nhập danh mục');
+        },
+        onError: (e) => message.error(errorMessage(e)),
+      },
+    );
+  return (
+    <Flex vertical gap={12} style={{ maxWidth: 900 }}>
+      <Typography.Paragraph type="secondary" style={{ margin: 0 }}>
+        Chọn bảng tồn giấy đang theo dõi (trên Google Sheets: Tệp → Tải xuống → Microsoft Excel). Phần mềm đọc sheet có cột Mã VT, Loại giấy, Khổ giấy, TỒN; tạo vật tư (đơn vị tờ) và quy cách theo khổ ở Kho giấy, rồi lập
+        một phiếu điều chỉnh "Tồn đầu" với số tồn trong bảng. Thủ kho Kho giấy vào Tồn kho & phiếu → Chờ xác nhận, xem lại và bấm Xác nhận thì số đó thành tồn. Chạy lại không tạo trùng; quy cách đã có phiếu thì giữ tồn hiện tại.
+      </Typography.Paragraph>
+      <Upload.Dragger
+        accept=".xlsx"
+        maxCount={1}
+        beforeUpload={(f) => {
+          setFile(f);
+          setReport(null);
+          return false;
+        }}
+        onRemove={() => (setFile(null), setReport(null))}
+      >
+        <p className="ant-upload-drag-icon"><InboxOutlined /></p>
+        <p>Kéo file .xlsx vào đây hoặc bấm để chọn</p>
+      </Upload.Dragger>
+      <Space>
+        <Button disabled={!file} loading={importPaper.isPending && importPaper.variables?.dryRun} onClick={() => run(true)}>Xem trước</Button>
+        <Popconfirm title="Nhập danh mục giấy và lập phiếu tồn đầu?" okText="Nhập" cancelText="Không" disabled={!report || !dry} onConfirm={() => run(false)}>
+          <Button type="primary" disabled={!report || !dry} loading={importPaper.isPending && importPaper.variables?.dryRun === false}>Nhập</Button>
+        </Popconfirm>
+      </Space>
+      {report && (
+        <Flex vertical gap={12}>
+          <Alert
+            type={dry ? 'info' : 'success'}
+            title={dry ? `Xem trước sheet "${report.sheet}" — chưa ghi gì` : report.slipCode ? `Đã nhập. Phiếu tồn đầu ${report.slipCode} chờ thủ kho Kho giấy xác nhận (Tồn kho & phiếu → Chờ xác nhận).` : 'Đã nhập danh mục'}
+            description={`${report.rows} loại giấy × khổ; ${report.materialsCreated} vật tư mới, ${report.specsCreated} quy cách mới; ${report.counted} quy cách có số tồn, tổng ${report.totalQty.toLocaleString('vi-VN')} tờ${report.keptExisting ? `; ${report.keptExisting} quy cách đã có phiếu, giữ tồn hiện tại` : ''}.`}
+          />
+          {report.issues.length > 0 && (
+            <Table<Schemas['ImportIssueDto']>
+              rowKey={(r) => `${r.row}-${r.message}`}
+              size="small"
+              dataSource={report.issues}
+              pagination={false}
+              title={() => `${report.issues.length} điểm cần xem`}
+              columns={[
+                { title: 'Dòng', dataIndex: 'row', width: 70, render: (v: number) => v || '' },
+                { title: 'Giấy', dataIndex: 'code', width: 260 },
+                { title: 'Nội dung', dataIndex: 'message' },
+              ]}
+            />
+          )}
+          <Table<Schemas['PaperImportItemDto']>
+            rowKey="row"
+            size="small"
+            dataSource={report.items}
+            pagination={{ pageSize: 50, hideOnSinglePage: true }}
+            columns={[
+              { title: 'Dòng', dataIndex: 'row', width: 70 },
+              { title: 'Nhóm', dataIndex: 'group', width: 110 },
+              { title: 'Loại giấy', dataIndex: 'name' },
+              { title: 'Khổ', dataIndex: 'size', width: 120 },
+              { title: 'Tồn (tờ)', dataIndex: 'qty', width: 100, align: 'right', render: (v: number | null) => (v === null ? <Typography.Text type="secondary">chưa đếm</Typography.Text> : v.toLocaleString('vi-VN')) },
+              { title: 'Ghi chú', dataIndex: 'note', width: 200 },
             ]}
           />
         </Flex>

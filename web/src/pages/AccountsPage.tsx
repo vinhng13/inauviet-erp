@@ -333,7 +333,7 @@ function IssuedPasswordModal({ issued, onClose }: { issued: { account: Account; 
     <Modal open title="Gửi thông tin đăng nhập" okText="Đã ghi lại" onOk={onClose} onCancel={onClose} cancelButtonProps={{ style: { display: 'none' } }}>
       <Flex vertical gap={12}>
         <Alert type="warning" showIcon title="Mật khẩu này chỉ hiện một lần. Gửi cho người dùng qua Zalo hoặc nói trực tiếp." />
-        <div style={{ background: 'rgba(0,0,0,0.04)', borderRadius: 8, padding: '12px 16px', fontFamily: 'ui-monospace, Consolas, monospace', fontSize: 15, lineHeight: 1.8 }}>
+        <div style={{ background: 'var(--app-border-soft)', borderRadius: 8, padding: '12px 16px', fontFamily: 'ui-monospace, Consolas, monospace', fontSize: 15, lineHeight: 1.8 }}>
           <div>
             Tên đăng nhập: <strong>{issued.account.username}</strong>
           </div>

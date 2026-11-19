@@ -10,25 +10,56 @@ import { Prisma } from '../generated/prisma/client';
 import type { WhDieStatus } from '../generated/prisma/enums';
 import { NumberingService } from '../numbering/numbering.service';
 import { PrismaService, type Tx } from '../prisma/prisma.service';
-import { ACTION_LABEL, allowedActions, TRANSITIONS, type MoveAction } from './die-rules';
+import { ACTION_LABEL, allowedActions, batchStates, parseSize, sizeMatches, sizeQuery, TRANSITIONS } from './die-rules';
 import type {
   BatchDto,
   BatchInputDto,
+  BatchQueryDto,
   DieActionDto,
-  DieCountCreateDto,
-  DieCountDto,
   DieDto,
   DieInputDto,
+  DieJournalQueryDto,
+  DieJournalRowDto,
   DieListDto,
+  DiePlaceDto,
   DieQueryDto,
   DieRowDto,
 } from './warehouse.dto';
-import { dieInclude, dieRow, dieSearchText, placeOf, sizeOf, type DieWithPlace } from './wh-common';
+import { batchEnds, batchFromName, batchToName, canConfirmIn, dieInclude, dieRow, dieSearchText, placeOf, sizeOf, type DieWithPlace } from './wh-common';
 
 /** Photos of dies live next to chat files, in their own folder */
 export class WhFiles extends ChatFiles {}
 
-/** Khuôn: hồ sơ, vòng luân chuyển, giao nhận nhiều khuôn, kiểm kê theo kệ, tìm khuôn dùng lại. */
+const keepers = { members: { include: { user: { select: { fullName: true } } } } } as const;
+
+const batchFull = {
+  fromWarehouse: { select: { name: true } },
+  fromPartner: { select: { name: true } },
+  toWarehouse: { select: { name: true, ...keepers } },
+  toPartner: { select: { name: true } },
+  toLocation: { select: { code: true } },
+  control: { select: { name: true, ...keepers } },
+  createdBy: { select: { fullName: true } },
+  outBy: { select: { fullName: true } },
+  inBy: { select: { fullName: true } },
+  items: { include: { die: { include: dieInclude } } },
+} satisfies Prisma.WhDieBatchInclude;
+
+type BatchFull = Prisma.WhDieBatchGetPayload<{ include: typeof batchFull }>;
+
+const keeperIds = (w: { members: Array<{ userId: string }> } | null) => (w ? w.members.map((m) => m.userId) : []);
+const keeperNames = (w: { members: Array<{ user: { fullName: string } }> } | null) => (w ? w.members.map((m) => m.user.fullName).join(', ') || 'người có quyền quản lý khuôn' : '');
+
+/** Một bên của phiếu giao nhận */
+interface End {
+  warehouseId: string | null;
+  partnerId: string | null;
+}
+
+/**
+ * Khuôn: hồ sơ, giao nhận giữa kho và xưởng (thủ kho xác nhận xuất / nhận), thao tác tại chỗ,
+ * kiểm kê theo kho và kệ, nhật ký, tìm khuôn dùng lại.
+ */
 @Injectable()
 export class DiesService {
   constructor(
@@ -42,20 +73,24 @@ export class DiesService {
     return todayInZone(this.env.APP_TIMEZONE);
   }
 
+  // ───────────── Danh sách, hồ sơ ─────────────
+
   async list(q: DieQueryDto): Promise<DieListDto> {
     const and: Prisma.WhDieWhereInput[] = [];
     if (q.status) and.push({ status: q.status });
     else if (q.flag !== 'review') and.push({ status: { not: 'DISPOSED' } });
     if (q.symbol) and.push({ symbolCode: q.symbol });
-    if (q.place === 'home') and.push({ holderId: null });
-    else if (q.place) and.push({ holderId: q.place });
+    if (q.place === 'transit') and.push({ status: { in: ['TRANSIT', 'INCOMING'] } });
+    else if (q.place?.startsWith('k:')) and.push({ warehouseId: q.place.slice(2), holderId: null, status: { notIn: ['TRANSIT', 'INCOMING'] } });
+    else if (q.place?.startsWith('x:')) and.push({ holderId: q.place.slice(2) });
     if (q.flag === 'review') and.push({ needsReview: true });
     if (q.flag === 'out') and.push({ holderId: { not: null } });
     if (q.flag === 'overdue') {
       and.push({ status: { in: ['IN_USE', 'REPAIRING'] }, expectedBackOn: { lt: dateField(this.today(), 'today') } });
     }
     const text = q.q?.trim();
-    if (text) and.push({ OR: [{ code: { contains: text, mode: 'insensitive' } }, { searchText: { contains: toSearchText(text) } }] });
+    const dims = text ? sizeQuery(text) : null;
+    if (text && !dims) and.push({ OR: [{ code: { contains: text, mode: 'insensitive' } }, { searchText: { contains: toSearchText(text) } }] });
     const tol = q.tol ?? 0.5;
     const near = (field: 'lengthCm' | 'widthCm' | 'heightCm', v?: number) => {
       if (v === undefined) return;
@@ -64,17 +99,19 @@ export class DiesService {
     near('lengthCm', q.l);
     near('widthCm', q.w);
     near('heightCm', q.h);
-    const rows = await this.prisma.whDie.findMany({
+    let rows = await this.prisma.whDie.findMany({
       where: { AND: and },
       include: dieInclude,
       orderBy: [{ symbolCode: 'asc' }, { seq: 'asc' }],
-      take: 1000,
+      take: dims ? undefined : 1000,
     });
+    // "24x24x12.5": mỗi chiều khớp một chiều của khuôn, không cần đúng thứ tự
+    if (dims) rows = rows.filter((d) => sizeMatches(dims, [d.lengthCm, d.widthCm, d.heightCm].map((v) => (v === null ? null : Number(v))), tol)).slice(0, 1000);
     const today = this.today();
     return { items: rows.map((d) => dieRow(d, today)), total: rows.length };
   }
 
-  async get(id: string): Promise<DieDto> {
+  async get(id: string, actor: AuthUser): Promise<DieDto> {
     const d = await this.prisma.whDie.findUnique({
       where: { id },
       include: {
@@ -82,7 +119,7 @@ export class DiesService {
         maker: { select: { name: true } },
         moves: {
           orderBy: [{ date: 'desc' }, { createdAt: 'desc' }],
-          include: { user: { select: { fullName: true } }, batch: { select: { code: true } } },
+          include: { user: { select: { fullName: true } }, batch: { select: { id: true, code: true } } },
         },
       },
     });
@@ -98,7 +135,8 @@ export class DiesService {
       costVnd: d.costVnd === null ? null : Number(d.costVnd),
       note: d.note,
       hasPhoto: !!d.photo,
-      allowedActions: allowedActions(d.status),
+      allowedActions: allowedActions(d.status, !!d.holderId, !!d.pendingBatchId),
+      pending: d.pendingBatchId ? await this.batch(d.pendingBatchId, actor) : null,
       similar: similar.map((s) => dieRow(s, today)),
       moves: d.moves.map((m) => ({
         id: m.id,
@@ -106,10 +144,12 @@ export class DiesService {
         actionLabel: ACTION_LABEL[m.action],
         date: formatDateOnly(m.date),
         toStatus: m.toStatus,
+        fromPlace: m.fromPlace,
         place: m.place,
         reference: m.reference,
         expectedBackOn: formatDateOnly(m.expectedBackOn),
         note: m.note,
+        batchId: m.batch?.id ?? null,
         batchCode: m.batch?.code ?? null,
         user: m.user?.fullName ?? null,
         createdAt: m.createdAt,
@@ -124,7 +164,7 @@ export class DiesService {
     return this.prisma.whDie.findMany({
       where: {
         symbolCode,
-        status: { not: 'DISPOSED' },
+        status: { notIn: ['DISPOSED', 'INCOMING'] },
         lengthCm: near(l)!,
         widthCm: near(w)!,
         ...(h === null ? {} : { heightCm: near(h)! }),
@@ -135,8 +175,13 @@ export class DiesService {
     });
   }
 
+  /**
+   * Khuôn mới: bắt buộc chọn nơi nhận (kho hoặc xưởng bế). Khuôn chờ nhận cho tới khi thủ kho xác nhận:
+   * nhập kho thì thủ kho kho đó xác nhận đã nhận; giao thẳng tới xưởng thì thủ kho kho quản lý xác nhận đã giao.
+   */
   async create(dto: DieInputDto, actor: AuthUser): Promise<DieDto> {
     if (!dto.symbolCode) throw DomainError.badRequest('WH_SYMBOL_REQUIRED', 'Choose the die symbol');
+    if (!!dto.toWarehouseId === !!dto.toPartnerId) throw DomainError.badRequest('WH_DIE_DEST_REQUIRED', 'Choose where the new die goes: one warehouse or one workshop');
     const symbol = await this.prisma.whDieSymbol.findUnique({ where: { code: dto.symbolCode } });
     if (!symbol || !symbol.isActive) throw DomainError.badRequest('WH_SYMBOL_NOT_FOUND', 'Unknown die symbol');
     if (!dto.force) {
@@ -148,41 +193,31 @@ export class DiesService {
         });
       }
     }
-    const id = await this.prisma.$transaction(async (tx) => {
+    const { dieId, batchId } = await this.prisma.$transaction(async (tx) => {
+      const home = dto.toWarehouseId ? await this.dieKho(tx, dto.toWarehouseId) : await this.defaultDieKho(tx);
+      const maker = dto.makerId ? await tx.whPartner.findUnique({ where: { id: dto.makerId } }) : null;
+      if (dto.makerId && !maker) throw DomainError.notFound('WhPartner', dto.makerId);
       const { lastNo } = await tx.whDieSymbol.update({ where: { code: dto.symbolCode! }, data: { lastNo: { increment: 1 } } });
       const code = `${dto.symbolCode}-${String(lastNo).padStart(3, '0')}`;
-      const holder = dto.holderId ? await tx.whPartner.findUnique({ where: { id: dto.holderId } }) : null;
-      const location = dto.locationId ? await tx.whLocation.findUnique({ where: { id: dto.locationId } }) : null;
-      // Khuôn mới về kho thì qua bước kiểm (trừ khi đã chọn kệ); giao thẳng tới xưởng thì sẵn sàng tại xưởng
-      const status: WhDieStatus = holder || location ? 'READY' : 'CHECKING';
       const fields = this.fields(dto);
       const d = await tx.whDie.create({
-        data: {
-          code,
-          symbolCode: dto.symbolCode!,
-          seq: lastNo,
-          ...fields,
-          status,
-          holderId: holder?.id ?? null,
-          locationId: holder ? null : (location?.id ?? null),
-          searchText: dieSearchText({ code, ...fields }, sizeOf(fields)),
-        },
+        data: { code, symbolCode: dto.symbolCode!, seq: lastNo, ...fields, status: 'INCOMING', warehouseId: home.id, searchText: dieSearchText({ code, ...fields }, sizeOf(fields)) },
       });
-      await tx.whDieMove.create({
-        data: {
-          dieId: d.id,
-          action: 'CREATE',
-          date: dateField(this.today(), 'today'),
-          toStatus: status,
-          place: holder?.name ?? (location ? `Kho · ${location.code}` : 'Kho Âu Việt'),
-          partnerId: holder?.id,
-          locationId: location?.id,
-          userId: actor.id,
-        },
-      });
-      return d.id;
+      const today = this.today();
+      const b = await this.openBatch(
+        tx,
+        { warehouseId: null, partnerId: maker?.id ?? null },
+        { warehouseId: dto.toWarehouseId ?? null, partnerId: dto.toPartnerId ?? null },
+        { date: today, dieIds: [d.id], toLocationId: dto.toLocationId ?? null, reference: dto.reference ?? null, isNew: true },
+        actor,
+      );
+      return { dieId: d.id, batchId: b };
     });
-    return this.get(id);
+    if (dto.confirm) {
+      if (dto.toWarehouseId) await this.receive(batchId, { locationId: dto.toLocationId ?? null }, actor);
+      else await this.send(batchId, actor);
+    }
+    return this.get(dieId, actor);
   }
 
   async update(id: string, dto: DieInputDto, actor: AuthUser): Promise<DieDto> {
@@ -211,7 +246,7 @@ export class DiesService {
         });
       }
     });
-    return this.get(id);
+    return this.get(id, actor);
   }
 
   private fields(dto: DieInputDto) {
@@ -233,65 +268,60 @@ export class DiesService {
     } as const;
   }
 
+  private async dieKho(tx: Tx, id: string) {
+    const w = await tx.whWarehouse.findUnique({ where: { id }, include: { members: true } });
+    if (!w) throw DomainError.notFound('WhWarehouse', id);
+    if (w.kind !== 'DIE') throw DomainError.badRequest('WH_WAREHOUSE_NOT_DIE', 'This warehouse does not keep dies');
+    if (!w.isActive) throw DomainError.badRequest('WH_WAREHOUSE_INACTIVE', 'This warehouse is not in use');
+    return w;
+  }
+
+  private async defaultDieKho(tx: Tx) {
+    const w = await tx.whWarehouse.findFirst({ where: { kind: 'DIE', isActive: true }, orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }], include: { members: true } });
+    if (!w) throw DomainError.badRequest('WH_NO_DIE_WAREHOUSE', 'Create a die warehouse first');
+    return w;
+  }
+
+  private async keeperOf(tx: Tx, warehouseId: string): Promise<string[]> {
+    return (await tx.whWarehouseMember.findMany({ where: { warehouseId }, select: { userId: true } })).map((m) => m.userId);
+  }
+
+  // ───────────── Thao tác tại chỗ ─────────────
 
   async action(id: string, dto: DieActionDto, actor: AuthUser): Promise<DieDto> {
     await this.prisma.$transaction((tx) => this.applyAction(tx, id, dto, actor));
-    return this.get(id);
+    return this.get(id, actor);
   }
 
   /**
-   * One step of the die's life. Only actions allowed from the current status are accepted, so a die
-   * cannot be passed before it came back, or issued while it is out, defective or disposed.
+   * Khuôn không đổi nơi: bế xong xưởng giữ, bế lệnh mới tại xưởng, kiểm đạt, báo lỗi, thanh lý, đổi kệ.
+   * Kiểm đạt, đổi kệ, thanh lý trong kho chỉ thủ kho kho đó làm.
    */
-  private async applyAction(tx: Tx, id: string, dto: DieActionDto, actor: AuthUser, batchId?: string): Promise<void> {
+  private async applyAction(tx: Tx, id: string, dto: DieActionDto, actor: AuthUser): Promise<void> {
     const d = await tx.whDie.findUnique({ where: { id }, include: dieInclude });
     if (!d) throw DomainError.notFound('WhDie', id);
-    const action = dto.action as MoveAction;
+    const action = dto.action;
     const rule = TRANSITIONS[action];
-    if (!rule.from.includes(d.status)) {
-      throw DomainError.conflict('WH_DIE_ACTION_NOT_ALLOWED', `${d.code}: action ${action} is not allowed while ${d.status}`, {
-        code: d.code,
-        status: d.status,
-        action,
-      });
+    if (!allowedActions(d.status, !!d.holderId, !!d.pendingBatchId).includes(action)) {
+      if (d.pendingBatchId) throw DomainError.conflict('WH_DIE_PENDING', `${d.code} is on a transfer waiting for confirmation`, { code: d.code });
+      throw DomainError.conflict('WH_DIE_ACTION_NOT_ALLOWED', `${d.code}: action ${action} is not allowed while ${d.status}`, { code: d.code, status: d.status, action });
     }
-    const partner = dto.partnerId ? await tx.whPartner.findUnique({ where: { id: dto.partnerId } }) : null;
-    if (dto.partnerId && !partner) throw DomainError.notFound('WhPartner', dto.partnerId);
-    const location = dto.locationId ? await tx.whLocation.findUnique({ where: { id: dto.locationId } }) : null;
-    if (dto.locationId && !location) throw DomainError.notFound('WhLocation', dto.locationId);
-
-    let holderId = d.holderId;
+    if (rule.at === 'KHO' && !canConfirmIn(actor, await this.keeperOf(tx, d.warehouseId), 'warehouse.dies')) {
+      throw DomainError.forbidden('WH_NOT_KEEPER', 'Only the storekeeper of this warehouse can do this');
+    }
     let locationId = d.locationId;
-    if (rule.place === 'PARTNER') {
-      if (!partner) throw DomainError.badRequest('WH_PARTNER_REQUIRED', 'Choose the workshop');
-      holderId = partner.id;
-      locationId = null;
-    } else if (rule.place === 'HOME') {
-      holderId = null;
-      if (action === 'PASS') {
-        if (!location) throw DomainError.badRequest('WH_LOCATION_REQUIRED', 'Choose the shelf the die goes to');
-        locationId = location.id;
-      } else if (location) locationId = location.id;
-    } else if (rule.place === 'ANY') {
-      if (partner) {
-        holderId = partner.id;
-        locationId = null;
-      } else if (action === 'MOVE') {
-        if (!location) throw DomainError.badRequest('WH_LOCATION_REQUIRED', 'Choose a shelf or a workshop');
-        holderId = null;
-        locationId = location.id;
-      }
-      // ISSUE without a partner: used in Âu Việt's own workshop, stays where it is
+    if (action === 'PASS' || action === 'MOVE') {
+      if (!dto.locationId) throw DomainError.badRequest('WH_LOCATION_REQUIRED', 'Choose the shelf');
+      const l = await tx.whLocation.findUnique({ where: { id: dto.locationId } });
+      if (!l || l.warehouseId !== d.warehouseId) throw DomainError.badRequest('WH_LOCATION_OTHER_WAREHOUSE', 'The shelf must be in the warehouse that keeps the die');
+      locationId = l.id;
     }
+    const reference = cleanText(dto.reference);
+    if (action === 'REUSE' && !reference) throw DomainError.badRequest('WH_REFERENCE_REQUIRED', 'Enter the production order');
     const status: WhDieStatus = rule.to === 'SAME' ? d.status : action === 'DEFECT' && dto.broken ? 'BROKEN' : rule.to;
     const needsBack = status === 'IN_USE' || status === 'REPAIRING';
     const expected = needsBack && dto.expectedBackOn ? dateField(dto.expectedBackOn, 'expectedBackOn') : needsBack ? d.expectedBackOn : null;
-
-    const updated = await tx.whDie.update({
-      where: { id },
-      data: { status, holderId, locationId, expectedBackOn: expected },
-      include: dieInclude,
-    });
+    const updated = await tx.whDie.update({ where: { id }, data: { status, locationId, expectedBackOn: expected }, include: dieInclude });
     await tx.whDieMove.create({
       data: {
         dieId: id,
@@ -299,82 +329,372 @@ export class DiesService {
         date: dateField(dto.date, 'date'),
         fromStatus: d.status,
         toStatus: status,
+        fromPlace: action === 'MOVE' ? placeOf(d) : null,
         place: placeOf(updated),
-        partnerId: holderId,
+        partnerId: d.holderId,
         locationId,
-        reference: cleanText(dto.reference),
+        reference,
         expectedBackOn: expected,
         note: cleanText(dto.note),
-        batchId: batchId ?? null,
         userId: actor.id,
       },
     });
   }
 
-  // ───────────── Giao nhận nhiều khuôn ─────────────
+  // ───────────── Phiếu giao nhận ─────────────
 
   async createBatch(dto: BatchInputDto, actor: AuthUser): Promise<BatchDto> {
-    const ids = [...new Set(dto.dieIds)];
-    const batchId = await this.prisma.$transaction(async (tx) => {
-      const partner = await tx.whPartner.findUnique({ where: { id: dto.partnerId } });
-      if (!partner) throw DomainError.notFound('WhPartner', dto.partnerId);
-      const b = await tx.whDieBatch.create({
-        data: {
-          code: await this.numbering.next(tx, 'GN', dateField(dto.date, 'date')),
-          kind: dto.kind,
-          date: dateField(dto.date, 'date'),
-          partnerId: partner.id,
-          reference: cleanText(dto.reference),
-          note: cleanText(dto.note),
-          createdById: actor.id,
-        },
-      });
-      for (const dieId of ids) {
-        await this.applyAction(
-          tx,
-          dieId,
-          {
-            action: dto.kind === 'OUT' ? 'ISSUE' : 'RETURN',
-            date: dto.date,
-            partnerId: dto.kind === 'OUT' ? partner.id : null,
-            expectedBackOn: dto.expectedBackOn,
-            reference: dto.reference,
-            note: dto.note,
-          },
-          actor,
-          b.id,
-        );
+    const id = await this.prisma.$transaction(async (tx) => {
+      const from: End = { warehouseId: dto.fromWarehouseId ?? null, partnerId: dto.fromPartnerId ?? null };
+      if (!!from.warehouseId === !!from.partnerId) throw DomainError.badRequest('WH_BATCH_FROM_REQUIRED', 'Choose where the dies come from');
+      const ids = [...new Set(dto.dieIds)];
+      // Khuôn có sẵn trong kho đi nhưng chưa có mã: cấp mã ngay, đánh dấu cần bổ sung thông tin
+      if (dto.newDies?.length) {
+        if (!from.warehouseId) throw DomainError.badRequest('WH_NEW_DIE_FROM_KHO', 'Uncoded dies can only leave from a warehouse');
+        for (const n of dto.newDies) {
+          const symbol = await tx.whDieSymbol.findUnique({ where: { code: n.symbolCode } });
+          if (!symbol || !symbol.isActive) throw DomainError.badRequest('WH_SYMBOL_NOT_FOUND', 'Unknown die symbol');
+          const { lastNo } = await tx.whDieSymbol.update({ where: { code: n.symbolCode }, data: { lastNo: { increment: 1 } } });
+          const code = `${n.symbolCode}-${String(lastNo).padStart(3, '0')}`;
+          const size = parseSize(n.size);
+          const d = await tx.whDie.create({
+            data: {
+              code,
+              symbolCode: n.symbolCode,
+              seq: lastNo,
+              productName: n.productName.trim(),
+              ...size,
+              status: 'READY',
+              warehouseId: from.warehouseId,
+              needsReview: true,
+              reviewNote: 'Cấp mã khi lập phiếu giao nhận, cần bổ sung thông tin',
+              searchText: dieSearchText({ code, productName: n.productName, sizeText: size.sizeText }, sizeOf(size)),
+            },
+            include: dieInclude,
+          });
+          await tx.whDieMove.create({
+            data: { dieId: d.id, action: 'CREATE', date: dateField(dto.date, 'date'), toStatus: 'READY', place: placeOf(d), note: 'Khuôn có sẵn trong kho, cấp mã khi giao', userId: actor.id },
+          });
+          ids.push(d.id);
+        }
       }
-      return b.id;
+      if (!ids.length) throw DomainError.badRequest('WH_BATCH_EMPTY', 'Choose at least one die');
+      return this.openBatch(
+        tx,
+        from,
+        { warehouseId: dto.toWarehouseId ?? null, partnerId: dto.toPartnerId ?? null },
+        { date: dto.date, dieIds: ids, toLocationId: dto.toLocationId ?? null, reference: dto.reference ?? null, note: dto.note ?? null, expectedBackOn: dto.expectedBackOn ?? null },
+        actor,
+      );
     });
-    return this.batch(batchId);
+    if (dto.confirm) await this.send(id, actor);
+    return this.batch(id, actor);
   }
 
-  async batches(): Promise<BatchDto[]> {
-    const rows = await this.prisma.whDieBatch.findMany({ orderBy: { createdAt: 'desc' }, take: 100, select: { id: true } });
-    return Promise.all(rows.map((r) => this.batch(r.id)));
+  /** Lập phiếu: kiểm nơi đi / nơi đến, khuôn phải đang ở nơi đi và không nằm trong phiếu khác */
+  private async openBatch(
+    tx: Tx,
+    from: End,
+    to: End,
+    o: { date: string; dieIds: string[]; toLocationId?: string | null; reference?: string | null; note?: string | null; expectedBackOn?: string | null; isNew?: boolean },
+    actor: AuthUser,
+  ): Promise<string> {
+    if (!!to.warehouseId === !!to.partnerId) throw DomainError.badRequest('WH_BATCH_TO_REQUIRED', 'Choose where the dies go: one warehouse or one workshop');
+    if ((from.warehouseId && from.warehouseId === to.warehouseId) || (from.partnerId && from.partnerId === to.partnerId)) {
+      throw DomainError.badRequest('WH_BATCH_SAME_PLACE', 'Where the dies go must differ from where they are');
+    }
+    const fromKho = from.warehouseId ? await this.dieKho(tx, from.warehouseId) : null;
+    const toKho = to.warehouseId ? await this.dieKho(tx, to.warehouseId) : null;
+    const fromPartner = from.partnerId ? await tx.whPartner.findUnique({ where: { id: from.partnerId } }) : null;
+    if (from.partnerId && !fromPartner) throw DomainError.notFound('WhPartner', from.partnerId);
+    if (to.partnerId) {
+      const p = await tx.whPartner.findUnique({ where: { id: to.partnerId } });
+      if (!p || !p.isActive) throw DomainError.notFound('WhPartner', to.partnerId);
+    }
+    if (o.toLocationId) {
+      const l = await tx.whLocation.findUnique({ where: { id: o.toLocationId } });
+      if (!l || l.warehouseId !== to.warehouseId) throw DomainError.badRequest('WH_LOCATION_OTHER_WAREHOUSE', 'The shelf must be in the receiving warehouse');
+    }
+    const dies = await tx.whDie.findMany({ where: { id: { in: o.dieIds } }, include: dieInclude });
+    if (dies.length !== o.dieIds.length) throw DomainError.notFound('WhDie', o.dieIds.find((i) => !dies.some((d) => d.id === i))!);
+    for (const d of dies) {
+      if (d.pendingBatchId) throw DomainError.conflict('WH_DIE_PENDING', `${d.code} is already on a transfer waiting for confirmation`, { code: d.code });
+      if (o.isNew) continue;
+      if (['DISPOSED', 'BROKEN', 'TRANSIT', 'INCOMING'].includes(d.status)) {
+        throw DomainError.conflict('WH_DIE_ACTION_NOT_ALLOWED', `${d.code} cannot be moved while ${d.status}`, { code: d.code, status: d.status, action: 'TRANSFER' });
+      }
+      const here = fromKho ? !d.holderId && d.warehouseId === fromKho.id : d.holderId === from.partnerId;
+      if (!here) throw DomainError.conflict('WH_DIE_NOT_HERE', `${d.code} is not at ${fromKho?.name ?? fromPartner?.name}`, { code: d.code, place: placeOf(d) });
+    }
+    const states = batchStates(!!fromKho, !!toKho);
+    const date = dateField(o.date, 'date');
+    const fromName = fromKho?.name ?? fromPartner?.name ?? 'Nơi làm khuôn (chưa ghi)';
+    const toName = toKho?.name ?? (await tx.whPartner.findUnique({ where: { id: to.partnerId! } }))!.name;
+    const b = await tx.whDieBatch.create({
+      data: {
+        code: await this.numbering.next(tx, 'GN', date),
+        date,
+        fromWarehouseId: fromKho?.id ?? null,
+        fromPartnerId: fromPartner?.id ?? null,
+        toWarehouseId: toKho?.id ?? null,
+        toPartnerId: to.partnerId,
+        toLocationId: o.toLocationId ?? null,
+        controlWarehouseId: fromKho?.id ?? dies[0].warehouseId,
+        status: 'OPEN',
+        outState: states.out,
+        inState: states.in,
+        isNew: !!o.isNew,
+        expectedBackOn: o.expectedBackOn ? dateField(o.expectedBackOn, 'expectedBackOn') : null,
+        reference: cleanText(o.reference),
+        note: cleanText(o.note),
+        createdById: actor.id,
+        items: { create: dies.map((d) => ({ dieId: d.id })) },
+      },
+    });
+    await tx.whDie.updateMany({ where: { id: { in: dies.map((d) => d.id) } }, data: { pendingBatchId: b.id } });
+    await tx.whDieMove.createMany({
+      data: dies.map((d) => ({
+        dieId: d.id,
+        action: 'REQUEST' as const,
+        date,
+        fromStatus: d.status,
+        toStatus: d.status,
+        fromPlace: fromName,
+        place: toName,
+        reference: cleanText(o.reference),
+        batchId: b.id,
+        userId: actor.id,
+      })),
+    });
+    return b.id;
   }
 
-  async batch(id: string): Promise<BatchDto> {
-    const b = await this.prisma.whDieBatch.findUnique({
-      where: { id },
-      include: { partner: { select: { name: true } }, createdBy: { select: { fullName: true } }, moves: { include: { die: { include: dieInclude } } } },
+  /** Thủ kho xác nhận xuất. Tới xưởng: khuôn tới nơi ngay. Tới kho khác: khuôn đang chuyển, chờ kho nhận. */
+  async send(id: string, actor: AuthUser): Promise<BatchDto> {
+    await this.prisma.$transaction(async (tx) => {
+      const b = await tx.whDieBatch.findUnique({ where: { id }, include: { ...batchEnds, items: { include: { die: { include: dieInclude } } } } });
+      if (!b) throw DomainError.notFound('WhDieBatch', id);
+      if (b.status !== 'OPEN' || b.outState !== 'PENDING') throw DomainError.conflict('WH_BATCH_NOT_PENDING', 'This transfer is not waiting to be sent');
+      if (!canConfirmIn(actor, await this.keeperOf(tx, b.controlWarehouseId!), 'warehouse.dies')) {
+        throw DomainError.forbidden('WH_NOT_KEEPER', 'Only the storekeeper of the sending warehouse can confirm');
+      }
+      const arrived = b.inState === 'NONE';
+      const claimed = await tx.whDieBatch.updateMany({
+        where: { id, status: 'OPEN', outState: 'PENDING' },
+        data: { outState: 'OK', outById: actor.id, outAt: new Date(), ...(arrived ? { status: 'DONE' } : {}) },
+      });
+      if (!claimed.count) throw DomainError.conflict('WH_BATCH_NOT_PENDING', 'This transfer is not waiting to be sent');
+      const date = dateField(this.today(), 'today');
+      const fromName = batchFromName(b);
+      const toName = batchToName(b);
+      for (const { die: d } of b.items) {
+        let data: Prisma.WhDieUncheckedUpdateInput;
+        let status: WhDieStatus;
+        if (arrived) {
+          // Tới xưởng: gửi sửa nếu khuôn lỗi, đang bế nếu có lệnh, không thì xưởng giữ
+          status = d.status === 'DEFECT' ? 'REPAIRING' : b.reference ? 'IN_USE' : 'READY';
+          const needsBack = status === 'IN_USE' || status === 'REPAIRING';
+          data = { status, holderId: b.toPartnerId, locationId: null, pendingBatchId: null, expectedBackOn: needsBack ? b.expectedBackOn : null };
+        } else {
+          status = 'TRANSIT';
+          data = { status, holderId: null, locationId: null };
+        }
+        await tx.whDie.update({ where: { id: d.id }, data });
+        await tx.whDieMove.create({
+          data: {
+            dieId: d.id,
+            action: 'SEND',
+            date,
+            fromStatus: d.status,
+            toStatus: status,
+            fromPlace: fromName,
+            place: arrived ? toName : `Đang chuyển tới ${toName}`,
+            partnerId: arrived ? b.toPartnerId : null,
+            reference: b.reference,
+            expectedBackOn: arrived ? b.expectedBackOn : null,
+            batchId: b.id,
+            userId: actor.id,
+          },
+        });
+      }
     });
+    return this.batch(id, actor);
+  }
+
+  /** Thủ kho kho nhận xác nhận đã nhận. Khuôn từ xưởng về ở trạng thái chờ kiểm. */
+  async receive(id: string, dto: { locationId?: string | null }, actor: AuthUser): Promise<BatchDto> {
+    await this.prisma.$transaction(async (tx) => {
+      const b = await tx.whDieBatch.findUnique({ where: { id }, include: { ...batchEnds, items: { include: { die: { include: dieInclude } } } } });
+      if (!b) throw DomainError.notFound('WhDieBatch', id);
+      if (b.status !== 'OPEN' || b.inState !== 'PENDING') throw DomainError.conflict('WH_BATCH_NOT_PENDING', 'This transfer is not waiting to be received');
+      if (b.outState === 'PENDING') throw DomainError.conflict('WH_TRANSFER_NOT_SENT', 'The sending warehouse has not confirmed yet');
+      if (!canConfirmIn(actor, await this.keeperOf(tx, b.toWarehouseId!), 'warehouse.dies')) {
+        throw DomainError.forbidden('WH_NOT_KEEPER', 'Only the storekeeper of the receiving warehouse can confirm');
+      }
+      const locationId = dto.locationId ?? b.toLocationId;
+      if (locationId) {
+        const l = await tx.whLocation.findUnique({ where: { id: locationId } });
+        if (!l || l.warehouseId !== b.toWarehouseId) throw DomainError.badRequest('WH_LOCATION_OTHER_WAREHOUSE', 'The shelf must be in the receiving warehouse');
+      }
+      const claimed = await tx.whDieBatch.updateMany({
+        where: { id, status: 'OPEN', inState: 'PENDING' },
+        data: { inState: 'OK', inById: actor.id, inAt: new Date(), status: 'DONE', toLocationId: locationId ?? null },
+      });
+      if (!claimed.count) throw DomainError.conflict('WH_BATCH_NOT_PENDING', 'This transfer is not waiting to be received');
+      const date = dateField(this.today(), 'today');
+      // Kho → kho: khuôn giữ trạng thái trước khi xuất (vd đang chờ kiểm); từ xưởng về: chờ kiểm
+      const before = new Map((await tx.whDieMove.findMany({ where: { batchId: id, action: 'SEND' }, select: { dieId: true, fromStatus: true } })).map((m) => [m.dieId, m.fromStatus]));
+      for (const { die: d } of b.items) {
+        const status: WhDieStatus = b.isNew ? 'READY' : b.fromWarehouseId ? (before.get(d.id) ?? 'READY') : 'CHECKING';
+        const updated = await tx.whDie.update({
+          where: { id: d.id },
+          data: { status, holderId: null, warehouseId: b.toWarehouseId!, locationId: locationId ?? null, expectedBackOn: null, pendingBatchId: null },
+          include: dieInclude,
+        });
+        await tx.whDieMove.create({
+          data: {
+            dieId: d.id,
+            action: 'RECEIVE',
+            date,
+            fromStatus: d.status,
+            toStatus: status,
+            fromPlace: batchFromName(b),
+            place: placeOf(updated),
+            locationId: locationId ?? null,
+            reference: b.reference,
+            batchId: b.id,
+            userId: actor.id,
+          },
+        });
+      }
+    });
+    return this.batch(id, actor);
+  }
+
+  /** Từ chối (thủ kho) hoặc huỷ (người lập) trước khi khuôn rời nơi đi; khuôn ở nguyên chỗ cũ */
+  async close(id: string, kind: 'REJECTED' | 'CANCELLED', reason: string | null, actor: AuthUser): Promise<BatchDto | null> {
+    const removed = await this.prisma.$transaction(async (tx) => {
+      const b = await tx.whDieBatch.findUnique({ where: { id }, include: { control: { include: { members: true } }, toWarehouse: { include: { members: true } }, items: true } });
+      if (!b) throw DomainError.notFound('WhDieBatch', id);
+      if (b.status !== 'OPEN' || b.outState === 'OK') throw DomainError.conflict('WH_BATCH_ALREADY_SENT', 'The dies have already left; this transfer can no longer be rejected or cancelled');
+      if (kind === 'REJECTED') {
+        const ok = (b.outState === 'PENDING' && canConfirmIn(actor, keeperIds(b.control), 'warehouse.dies')) || (b.toWarehouse && canConfirmIn(actor, keeperIds(b.toWarehouse), 'warehouse.dies'));
+        if (!ok) throw DomainError.forbidden('WH_NOT_KEEPER', 'Only a storekeeper on this transfer can reject it');
+      } else if (b.createdById !== actor.id && !actor.isAdmin) {
+        throw DomainError.forbidden('WH_NOT_CREATOR', 'Only the person who made this transfer can cancel it');
+      }
+      await tx.whDieBatch.update({ where: { id }, data: { status: kind, rejectReason: cleanText(reason) } });
+      const dieIds = b.items.map((i) => i.dieId);
+      await tx.whDie.updateMany({ where: { id: { in: dieIds } }, data: { pendingBatchId: null } });
+      if (b.isNew) {
+        // Khuôn mới chưa từng về: bỏ luôn hồ sơ
+        await tx.whDie.deleteMany({ where: { id: { in: dieIds }, status: 'INCOMING' } });
+        return true;
+      }
+      await tx.whDieMove.createMany({
+        data: dieIds.map((dieId) => ({ dieId, action: 'REJECT' as const, date: dateField(this.today(), 'today'), note: [kind === 'REJECTED' ? 'Từ chối' : 'Huỷ phiếu', cleanText(reason)].filter(Boolean).join(': '), batchId: id, userId: actor.id })),
+      });
+      return false;
+    });
+    return removed ? null : this.batch(id, actor);
+  }
+
+  async batches(q: BatchQueryDto, actor: AuthUser): Promise<BatchDto[]> {
+    const tab = q.tab ?? 'open';
+    const rows = await this.prisma.whDieBatch.findMany({
+      where: tab === 'all' ? {} : { status: 'OPEN' },
+      orderBy: [{ date: 'desc' }, { createdAt: 'desc' }],
+      take: tab === 'all' ? 200 : 500,
+      include: batchFull,
+    });
+    const out = rows.map((b) => this.batchDto(b, actor));
+    return tab === 'mine' ? out.filter((b) => b.canSend || b.canReceive) : out;
+  }
+
+  async batch(id: string, actor: AuthUser): Promise<BatchDto> {
+    const b = await this.prisma.whDieBatch.findUnique({ where: { id }, include: batchFull });
     if (!b) throw DomainError.notFound('WhDieBatch', id);
+    return this.batchDto(b, actor);
+  }
+
+  private batchDto(b: BatchFull, actor: AuthUser): BatchDto {
+    const open = b.status === 'OPEN';
+    const canSend = open && b.outState === 'PENDING' && !!b.control && canConfirmIn(actor, keeperIds(b.control), 'warehouse.dies');
+    const canReceive = open && b.outState !== 'PENDING' && b.inState === 'PENDING' && !!b.toWarehouse && canConfirmIn(actor, keeperIds(b.toWarehouse), 'warehouse.dies');
+    const keeperOfTo = !!b.toWarehouse && canConfirmIn(actor, keeperIds(b.toWarehouse), 'warehouse.dies');
+    const waitingFor = !open
+      ? null
+      : b.outState === 'PENDING'
+        ? `Chờ thủ kho ${b.control?.name ?? ''} (${keeperNames(b.control)}) xác nhận xuất`
+        : `Chờ thủ kho ${b.toWarehouse?.name ?? ''} (${keeperNames(b.toWarehouse)}) xác nhận đã nhận`;
     const today = this.today();
     return {
       id: b.id,
       code: b.code,
-      kind: b.kind,
-      date: formatDateOnly(b.date),
-      partnerId: b.partnerId,
-      partnerName: b.partner.name,
+      date: formatDateOnly(b.date)!,
+      fromWarehouseId: b.fromWarehouseId,
+      fromPartnerId: b.fromPartnerId,
+      toWarehouseId: b.toWarehouseId,
+      toPartnerId: b.toPartnerId,
+      toLocationId: b.toLocationId,
+      fromName: batchFromName(b),
+      toName: batchToName(b) + (b.toLocation ? ` · ${b.toLocation.code}` : ''),
+      status: b.status,
+      outState: b.outState,
+      inState: b.inState,
+      isNew: b.isNew,
       reference: b.reference,
       note: b.note,
+      rejectReason: b.rejectReason,
+      expectedBackOn: formatDateOnly(b.expectedBackOn),
       createdBy: b.createdBy.fullName,
       createdAt: b.createdAt,
-      dies: b.moves.map((m) => dieRow(m.die, today)).sort((x, y) => x.code.localeCompare(y.code)),
+      outBy: b.outBy?.fullName ?? null,
+      outAt: b.outAt,
+      inBy: b.inBy?.fullName ?? null,
+      inAt: b.inAt,
+      waitingFor,
+      controlName: b.control?.name ?? null,
+      canSend,
+      canReceive,
+      canReject: open && b.outState !== 'OK' && ((b.outState === 'PENDING' && canSend) || keeperOfTo),
+      canCancel: open && b.outState !== 'OK' && (b.createdById === actor.id || actor.isAdmin),
+      dies: b.items.map((i) => dieRow(i.die, today)).sort((x, y) => x.code.localeCompare(y.code)),
     };
+  }
+
+  // ───────────── Nhật ký ─────────────
+
+  async journal(q: DieJournalQueryDto): Promise<DieJournalRowDto[]> {
+    const place = q.place?.trim();
+    const rows = await this.prisma.whDieMove.findMany({
+      where: {
+        date: { gte: dateField(q.from, 'from'), lte: dateField(q.to, 'to') },
+        ...(q.action ? { action: q.action } : {}),
+        ...(q.userId ? { userId: q.userId } : {}),
+        ...(place ? { OR: [{ place: { startsWith: place, mode: 'insensitive' } }, { fromPlace: { startsWith: place, mode: 'insensitive' } }, { place: { startsWith: `Đang chuyển tới ${place}`, mode: 'insensitive' } }] } : {}),
+      },
+      orderBy: [{ date: 'asc' }, { createdAt: 'asc' }],
+      take: 2000,
+      include: { die: { select: { code: true, productName: true } }, batch: { select: { id: true, code: true } }, user: { select: { fullName: true } } },
+    });
+    return rows.map((m) => ({
+      id: m.id,
+      date: formatDateOnly(m.date)!,
+      createdAt: m.createdAt,
+      dieId: m.dieId,
+      code: m.die.code,
+      productName: m.die.productName,
+      action: m.action,
+      actionLabel: ACTION_LABEL[m.action],
+      fromPlace: m.fromPlace,
+      place: m.place,
+      reference: m.reference,
+      note: m.note,
+      batchId: m.batch?.id ?? null,
+      batchCode: m.batch?.code ?? null,
+      user: m.user?.fullName ?? null,
+    }));
   }
 
   // ───────────── Ảnh khuôn ─────────────
@@ -393,112 +713,28 @@ export class DiesService {
     return this.files.path(d.photo);
   }
 
-  // ───────────── Kiểm kê khuôn ─────────────
-
-  async createDieCount(dto: DieCountCreateDto, actor: AuthUser): Promise<DieCountDto> {
-    const id = await this.prisma.$transaction(async (tx) => {
-      let scope = 'Toàn kho Âu Việt';
-      const where: Prisma.WhDieWhereInput = { status: { not: 'DISPOSED' } };
-      if (dto.holderId) {
-        const p = await tx.whPartner.findUnique({ where: { id: dto.holderId } });
-        if (!p) throw DomainError.notFound('WhPartner', dto.holderId);
-        scope = p.name;
-        where.holderId = p.id;
-      } else {
-        where.holderId = null;
-        if (dto.locationId) {
-          const l = await tx.whLocation.findUnique({ where: { id: dto.locationId } });
-          if (!l) throw DomainError.notFound('WhLocation', dto.locationId);
-          scope = `Kệ ${l.code}`;
-          where.locationId = l.id;
-        }
-      }
-      const dies = await tx.whDie.findMany({ where, select: { id: true } });
-      const c = await tx.whDieCount.create({
-        data: { scope, locationId: dto.holderId ? null : (dto.locationId ?? null), createdById: actor.id, lines: { create: dies.map((d) => ({ dieId: d.id })) } },
-      });
-      return c.id;
-    });
-    return this.dieCount(id);
-  }
-
-  async dieCounts(): Promise<DieCountDto[]> {
-    const rows = await this.prisma.whDieCount.findMany({ orderBy: { createdAt: 'desc' }, take: 30, select: { id: true } });
-    return Promise.all(rows.map((r) => this.dieCount(r.id)));
-  }
-
-  async dieCount(id: string): Promise<DieCountDto> {
-    const c = await this.prisma.whDieCount.findUnique({
-      where: { id },
-      include: { createdBy: { select: { fullName: true } }, lines: { include: { die: { include: dieInclude } } } },
-    });
-    if (!c) throw DomainError.notFound('WhDieCount', id);
-    return {
-      id: c.id,
-      scope: c.scope,
-      createdBy: c.createdBy.fullName,
-      createdAt: c.createdAt,
-      finishedAt: c.finishedAt,
-      lines: c.lines
-        .map((l) => ({ dieId: l.dieId, code: l.die.code, productName: l.die.productName, place: placeOf(l.die), found: l.found, extra: l.extra }))
-        .sort((a, b) => a.code.localeCompare(b.code)),
-    };
-  }
-
-  /** Tick (or scan) one die. A die found here that the software places elsewhere is added as "extra". */
-  async markDieCount(id: string, die: string, found: boolean): Promise<DieCountDto> {
-    const c = await this.prisma.whDieCount.findUnique({ where: { id } });
-    if (!c) throw DomainError.notFound('WhDieCount', id);
-    if (c.finishedAt) throw DomainError.conflict('WH_COUNT_CLOSED', 'This count is already finished');
-    const key = die.trim();
-    const d = await this.prisma.whDie.findFirst({ where: /^[0-9a-f-]{36}$/i.test(key) ? { id: key } : { code: key.toUpperCase() } });
-    if (!d) throw DomainError.notFound('WhDie', key);
-    await this.prisma.whDieCountLine.upsert({
-      where: { countId_dieId: { countId: id, dieId: d.id } },
-      create: { countId: id, dieId: d.id, found, extra: true },
-      update: { found },
-    });
-    return this.dieCount(id);
-  }
-
-  /** Kết thúc: khuôn không thấy được đánh dấu cần xác nhận; khuôn thấy ở kệ khác được chuyển về kệ đang kiểm */
-  async finishDieCount(id: string, actor: AuthUser): Promise<DieCountDto> {
-    await this.prisma.$transaction(async (tx) => {
-      const c = await tx.whDieCount.findUnique({ where: { id }, include: { lines: { include: { die: true } }, location: true } });
-      if (!c) throw DomainError.notFound('WhDieCount', id);
-      if (c.finishedAt) throw DomainError.conflict('WH_COUNT_CLOSED', 'This count is already finished');
-      const today = dateField(this.today(), 'today');
-      for (const l of c.lines) {
-        if (!l.found && !l.extra) {
-          await tx.whDie.update({ where: { id: l.dieId }, data: { needsReview: true, reviewNote: `Không thấy khi kiểm kê ${c.scope} ngày ${this.today()}` } });
-        } else if (l.found && l.extra && c.location && l.die.status === 'READY') {
-          await tx.whDie.update({ where: { id: l.dieId }, data: { holderId: null, locationId: c.location.id } });
-          await tx.whDieMove.create({
-            data: { dieId: l.dieId, action: 'MOVE', date: today, fromStatus: 'READY', toStatus: 'READY', place: `Kho · ${c.location.code}`, locationId: c.location.id, note: `Thấy khi kiểm kê ${c.scope}`, userId: actor.id },
-          });
-        }
-      }
-      await tx.whDieCount.update({ where: { id }, data: { finishedAt: new Date() } });
-    });
-    return this.dieCount(id);
-  }
-
   // ───────────── Tổng quan ─────────────
 
-  async overviewParts(): Promise<{
+  async overviewParts(actor: AuthUser): Promise<{
     diesTotal: number;
     diesByStatus: Record<string, number>;
     atPartners: Array<{ holderId: string; name: string; inUse: number; kept: number; overdue: number }>;
     overdue: DieRowDto[];
     checking: DieRowDto[];
     needsReview: number;
+    dieToConfirm: BatchDto[];
+    dieInTransit: BatchDto[];
+    diePlaces: DiePlaceDto[];
   }> {
     const today = this.today();
-    const [byStatus, out, checking, needsReview] = await Promise.all([
+    const [byStatus, out, checking, needsReview, open, khos, atKho] = await Promise.all([
       this.prisma.whDie.groupBy({ by: ['status'], _count: { _all: true } }),
       this.prisma.whDie.findMany({ where: { holderId: { not: null }, status: { not: 'DISPOSED' } }, include: dieInclude }),
       this.prisma.whDie.findMany({ where: { status: 'CHECKING' }, include: dieInclude, take: 50, orderBy: { updatedAt: 'desc' } }),
       this.prisma.whDie.count({ where: { needsReview: true } }),
+      this.batches({ tab: 'open' }, actor),
+      this.prisma.whWarehouse.findMany({ where: { kind: 'DIE', isActive: true }, orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }] }),
+      this.prisma.whDie.groupBy({ by: ['warehouseId'], where: { holderId: null, status: { notIn: ['DISPOSED', 'TRANSIT', 'INCOMING'] } }, _count: { _all: true } }),
     ]);
     const rowsOut = out.map((d) => dieRow(d, today));
     const places = new Map<string, { holderId: string; name: string; inUse: number; kept: number; overdue: number }>();
@@ -509,15 +745,22 @@ export class DiesService {
       if (r.overdue) p.overdue++;
       places.set(r.holderId!, p);
     }
+    const atPartners = [...places.values()].sort((a, b) => b.inUse + b.kept - (a.inUse + a.kept));
     const overdueAll = await this.list({ flag: 'overdue' });
     const diesByStatus = Object.fromEntries(byStatus.map((s) => [s.status, s._count._all]));
     return {
       diesTotal: byStatus.filter((s) => s.status !== 'DISPOSED').reduce((a, s) => a + s._count._all, 0),
       diesByStatus,
-      atPartners: [...places.values()].sort((a, b) => b.inUse + b.kept - (a.inUse + a.kept)),
+      atPartners,
       overdue: overdueAll.items,
       checking: checking.map((d) => dieRow(d, today)),
       needsReview,
+      dieToConfirm: open.filter((b) => b.canSend || b.canReceive),
+      dieInTransit: open.filter((b) => b.outState === 'OK' && b.inState === 'PENDING'),
+      diePlaces: [
+        ...khos.map((k) => ({ key: `k:${k.id}`, name: k.name, kind: 'KHO' as const, dies: atKho.find((a) => a.warehouseId === k.id)?._count._all ?? 0 })),
+        ...atPartners.map((p) => ({ key: `x:${p.holderId}`, name: p.name, kind: 'PARTNER' as const, dies: p.inUse + p.kept })),
+      ],
     };
   }
 }

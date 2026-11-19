@@ -1,10 +1,22 @@
-# Inauviet ERP — Technical Spec (v0.10)
+# Inauviet ERP — Technical Spec (v0.13)
 
 **Backend:** Node.js 22 LTS · NestJS · Prisma 7 · PostgreSQL
 **Frontend:** React 19 · TypeScript · Vite · Ant Design 6
 **Repository:** `Inauviet/ERP/` with `api/` and `web/` (npm workspaces), next to `Inauviet/CMS/`
 **Scope:** A simple order and delivery tracker. Staff create orders with a delivery plan, follow every order on a board, mark deliveries done, and optionally record payments.
 **Status:** Codebase initialized 29 Oct 2026 (milestones M0–M3 built and tested, M4 deployment files in place). Open questions are in section 12.
+
+**Changes in v0.13 (20 Nov 2026)**
+- Removed stock counts (Kiểm kê vật tư), die counts (Kiểm kê khuôn) and month locks (Chốt tồn tháng): menu, pages, endpoints and the `warehouse.count` permission are gone. The tables `WhCount*`, `WhDieCount*`, `WhMonthLock` stay for history but nothing reads or writes them, and no slip is blocked by a month lock any more. Adjustment slips (DC-) can now be voided like other slips. Sections 15.x that describe counts and locks are historical.
+- The paper stock import creates a PENDING adjustment slip "Tồn đầu" instead of a draft count; the storekeeper confirms it like any slip.
+
+**Changes in v0.12 (dies across warehouses, confirmed transfers, 20 Nov 2026)**
+- Dies belong to a die warehouse (`WhDie.warehouseId`): Kho khuôn Âu Việt (KHUON) and Kho Xuân Đỉnh (XUANDINH, formerly a "workshop"). Shelves belong to a warehouse. Every move between places is a transfer (`WhDieBatch`, GN-…) with a required destination and storekeeper confirmation; see 15.6. New menu **Nhật ký khuôn**.
+
+**Changes in v0.11 (multi-warehouse Kho, 19 Nov 2026)**
+- Warehouses are data, not code: `WhWarehouse` (code, name, address, kind STOCK / DIE, storekeepers). Seeded: GIAY, BAT, OFFSET (stock), KHUON (dies). Existing materials, slips, counts and month locks moved to GIAY.
+- One material catalog for all warehouses: material → quy cách (`WhSpec`, the former `WhStockItem`) → units (`WhUnit`, factor to the base unit, optionally per spec) and warehouse links (`WhWarehouseMaterial`). Stock is per warehouse × spec (`WhStock`).
+- Slips belong to a warehouse, carry the unit used and its factor, and wait for the storekeeper: PENDING → CONFIRMED / REJECTED / CANCELLED. Stock changes only on confirmation. Transfers A → B are two linked slips. Daily end-of-day snapshots (`WhDailyStock`). See 15.5.
 
 **Changes in v0.10.1 (18 Nov 2026)**
 - Chart of accounts: migration `20261118090000_tt133_chart` loads the full Circular 133 chart (123 level-1 and level-2 accounts). Within each family only the level the books post to is active (111 on, 1111/1112 off; 1331 on, 133 off), so a figure is never split between a main account and its sub-accounts; inactive accounts cannot be posted to.
@@ -657,3 +669,52 @@ Separate module for the storekeeper. Customer names and order numbers are typed 
 
 Photos are stored next to chat files (`<CHAT_FILES_DIR>/../warehouse`). The user guide is a static page in `web/public/huong-dan/` (served at `/huong-dan/index.html`, opened from the "Hướng dẫn" button in the header, which jumps to the chapter of the current module). Paper stock has no file to import yet: the first stock count enters opening quantities.
 
+### 15.5 Multi-warehouse model (v0.11, migration `20261119090000_warehouses`)
+
+| Table | Holds |
+|---|---|
+| `WhWarehouse` | code (in slip numbers), name, address, kind STOCK / DIE, active, sort order |
+| `WhWarehouseMember` | storekeepers of a warehouse |
+| `WhMaterial` | shared catalog: optional code, group, name, **base unit**, has sizes |
+| `WhSpec` | quy cách of a material (width × length cm; length 0 = roll width only; 0 × 0 = no sizes) |
+| `WhUnit` | other units: 1 unit = `factor` base units; `specId` set = factor for that spec only (spec-specific wins over material-wide of the same name) |
+| `WhWarehouseMaterial` | which warehouses hold a material |
+| `WhStock` | on-hand qty (base unit) and min qty per warehouse × spec; created for every linked warehouse × spec |
+| `WhSlip` / `WhSlipLine` | + `warehouseId`, `status`, `confirmedAt/By`, `rejectReason`, `transferId`; lines keep base `qty` plus `unitName`, `unitQty`, `factor` at the time of the slip |
+| `WhCount` | + `warehouseId`; lines per spec |
+| `WhMonthLock` | per warehouse (PK warehouseId + month) |
+| `WhDailyStock` | end-of-day snapshot: date × warehouse × spec → qty |
+
+Rules:
+- **Confirmation.** A slip is created PENDING (no stock change). The storekeepers of its warehouse confirm or reject it; admins always can; a warehouse without storekeepers lets anyone with `warehouse.slip` confirm. `confirm: true` on create confirms straight away when the creator may. Confirming claims the slip with `UPDATE … WHERE status = 'PENDING'` before moving stock, so a double click cannot apply it twice. Short stock is refused at confirmation (`WH_STOCK_SHORT`). The creator (or a storekeeper) can cancel a pending slip; only a storekeeper can void a confirmed one.
+- **Transfers** (`POST /warehouse/transfers`): TRANSFER_OUT in A and TRANSFER_IN in B with one `transferId`, numbered `CK-<A>-…` and `CK-<B>-…`. The destination is linked to the material automatically. B can confirm only after A confirmed (`WH_TRANSFER_NOT_SENT`). Before A confirms, rejecting / cancelling either side closes both; afterwards only voiding (by A's storekeeper) reverses both sides.
+- **Units.** Each line is converted to the base unit (`qty × factor`, 3 decimals) at creation; the factor is stored so later catalog changes do not alter history. Receipt prices are per the unit used; the average price per base unit is `Σ(qty × price / factor) / Σ qty`.
+- **Counts** are per warehouse (one open count each); approval by `warehouse.manage` or that warehouse's storekeeper creates a CONFIRMED adjustment slip.
+- **Reports.** Ledger = confirmed, non-void slip lines by slip date; signed −qty for ISSUE / TRANSFER_OUT. `GET reports/stock?warehouseId&from&to` → opening, in, out, closing per spec. `GET reports/as-of?warehouseId&date` → snapshot qty when one exists for that day (else the ledger), plus `liveQty` from the ledger.
+- **Snapshots.** `WhSnapshotService` runs hourly (off in tests; `WH_SNAPSHOT_TIMER` overrides) and writes every finished day not yet stored, per warehouse, back to the first slip (max 370 days); `POST snapshots/run` does it on demand. Snapshots are never rewritten.
+
+Endpoints added: `GET/POST/PUT warehouses`, `GET people`, `PUT stock/:id` (min qty), `POST transfers`, `POST slips/:id/confirm|reject|cancel`, `GET reports/stock`, `GET reports/as-of`, `POST snapshots/run`; `stock`, `slips`, `counts`, `month-locks` take `warehouseId`; `DELETE month-locks/:warehouseId/:month`.
+
+### 15.6 Dies across warehouses (v0.12, migration `20261120090000_die_transfers`)
+
+| Change | |
+|---|---|
+| `WhWarehouse` | seeded XUANDINH (kind DIE); KHUON renamed "Kho khuôn Âu Việt". Dies held by the old partner "Xuân Đỉnh" moved into it (IN_USE → READY), partner deactivated. Missing workshops seeded (A.Kiên Trương Định, Em Hòa, Khoa Nhật Minh, Mê Linh). |
+| `WhLocation` | + `warehouseId`; code unique per warehouse |
+| `WhDie` | + `warehouseId` (managing warehouse; the die is there when `holderId` is null), `pendingBatchId`; statuses + `TRANSIT`, `INCOMING` |
+| `WhDieBatch` | from / to (`fromWarehouseId` / `fromPartnerId`, `toWarehouseId` / `toPartnerId`), `toLocationId`, `controlWarehouseId`, `status` OPEN / DONE / REJECTED / CANCELLED, `outState` / `inState` PENDING / OK / NONE, `outBy/At`, `inBy/At`, `isNew`, `expectedBackOn`, `rejectReason`; old `kind` / `partnerId` kept nullable for history |
+| `WhDieBatchItem` | dies on a transfer (back-filled from old batch moves) |
+| `WhDieMove` | + `fromPlace`; actions + REQUEST, SEND, RECEIVE, REJECT, REUSE, COUNT |
+| `WhDieCount` | + `warehouseId` |
+
+Rules:
+- **Moves need a transfer.** Kho → workshop: the sending warehouse's storekeeper confirms (`send`); the die arrives at once (IN_USE with a reference, REPAIRING if it was DEFECT, else READY = kept). Workshop → kho: no send step; the receiving storekeeper confirms (`receive`), the die becomes CHECKING. Kho → kho: send (die TRANSIT, no reject any more), then receive (status before sending is kept). Workshop → workshop: the storekeeper of the die's managing warehouse confirms as the send step. A warehouse without storekeepers lets anyone with `warehouse.dies` confirm; admins always can. Claims use `UPDATE … WHERE state = 'PENDING'`.
+- A die is on at most one open transfer (`WH_DIE_PENDING`) and must be at the "from" place (`WH_DIE_NOT_HERE`). Before the dies leave, a storekeeper on the transfer can reject (reason required) and the creator can cancel; the dies stay put.
+- **New dies** require a destination (`WH_DIE_DEST_REQUIRED`): created INCOMING with an `isNew` transfer from the maker; rejecting it deletes the die. Uncoded dies can be added to a transfer from a warehouse (`newDies`): coded on the spot, `needsReview`.
+- **In-place actions** (no transfer): REUSE (new order at the workshop holding the die, reference required), KEEP, DEFECT anywhere; PASS, MOVE (shelf in the same warehouse), DISPOSE in a warehouse by its storekeeper.
+- **Search:** `q` like `24x24x12.5` matches dies whose dimensions each fall within ±0.5 cm in any order (`sizeQuery` / `sizeMatches`). `place` = `k:<warehouse>` / `x:<partner>` / `transit`.
+- **Journal:** `GET die-journal?from&to&action&place&userId` lists moves by date with from → to, reference, user and transfer.
+
+Endpoints: `GET batches?tab=mine|open|all`, `GET batches/:id`, `POST batches`, `POST batches/:id/send|receive|reject|cancel`, `GET die-journal`; `POST dies` takes `toWarehouseId` / `toPartnerId`, `toLocationId`, `reference`, `confirm`; `POST dies/:id/actions` accepts only the in-place actions; `POST die-counts` takes `warehouseId`; `POST/PUT locations` require `warehouseId`.
+
+**Paper stock import** (`POST materials/import-paper?dryRun`, CLI `npm run kho:giay -- file.xlsx --write`): reads the sheet whose header row has "Loại giấy" (columns Mã VT, Khổ giấy, TỒN, Ghi chú; "TỒN" may sit in the row above). Creates materials in Kho giấy (unit tờ, group from Mã VT: DC → Đề can, GN → Giấy ngoại, C<gsm> → Couche, else as written; names matched case-insensitively), sizes, stock rows, then one PENDING adjustment slip (DC-GIAY-…, purpose "Tồn đầu") with the sheet's quantities for the storekeeper to confirm. Sizes that already have pending or confirmed slips keep their stock; rows without a quantity create the size only. Re-running creates nothing new.

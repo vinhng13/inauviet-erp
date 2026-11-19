@@ -10,7 +10,7 @@ export function LoginPage() {
   const [error, setError] = useState<string | null>(null);
 
   return (
-    <Flex align="center" justify="center" style={{ minHeight: '100vh', padding: 16, background: 'var(--ant-color-bg-layout, #f5f5f5)' }}>
+    <Flex align="center" justify="center" style={{ minHeight: '100vh', padding: 16, background: 'var(--app-bg)' }}>
       <Card style={{ width: '100%', maxWidth: 380 }} styles={{ body: { padding: 28 } }}>
         <Flex vertical gap={20}>
           <Flex align="center" gap={12}>

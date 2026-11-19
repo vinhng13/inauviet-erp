@@ -16,6 +16,7 @@
     "db:migrate": "npm run db:migrate -w api",
     "db:seed": "npm run db:seed -w api",
     "kho:import": "npm run kho:import -w api --",
+    "kho:giay": "npm run kho:giay -w api --",
     "api:types": "npm run openapi -w api && npm run api:types -w web",
     "test": "npm test -w api && npm test -w web",
     "test:e2e": "npm run test:e2e -w api",

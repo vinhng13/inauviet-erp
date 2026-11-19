@@ -1,7 +1,182 @@
 body {
   margin: 0;
   font-variant-numeric: tabular-nums;
+  background: var(--app-bg, #f9fafb);
+  -webkit-font-smoothing: antialiased;
 }
 .row-voided td {
   opacity: 0.55;
+}
+
+/* Thẻ: bo 12px, viền mảnh, bóng rất nhẹ (theo mẫu DropX) */
+.ant-card {
+  box-shadow: var(--app-shadow);
+}
+.ant-card .ant-card-head-title {
+  font-weight: 600;
+}
+
+/* Bảng: tiêu đề cột chữ nhỏ, xám */
+.ant-table-thead > tr > th {
+  font-size: 12px;
+  font-weight: 600 !important;
+  letter-spacing: 0.01em;
+}
+
+/* Tiêu đề trang */
+h3.ant-typography {
+  font-size: 20px !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.01em;
+}
+
+/* Nhãn nhóm trên menu trái */
+.nav-section {
+  margin: 4px 0 6px;
+  padding: 0 20px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--app-text-2);
+}
+
+/* Chip tài khoản ở đáy menu trái */
+.user-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--app-border);
+  border-radius: 10px;
+  background: var(--app-card);
+  color: var(--app-text);
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+}
+.user-chip:hover {
+  border-color: var(--app-primary);
+}
+.avatar-initials {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #3b82f6, #10b981);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* Thẻ số liệu nền chuyển màu */
+.stat-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 12px;
+  padding: 16px 18px;
+  color: #fff;
+  min-height: 104px;
+  box-shadow: var(--app-shadow);
+  transition: transform 0.15s ease;
+}
+.stat-card::after {
+  content: '';
+  position: absolute;
+  right: -30px;
+  top: -30px;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+}
+.stat-card:hover {
+  transform: translateY(-1px);
+}
+.stat-card:focus-visible {
+  outline: 2px solid var(--app-primary);
+  outline-offset: 2px;
+}
+.stat-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 500;
+  opacity: 0.95;
+}
+.stat-card-icon {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.2);
+}
+.stat-card-value {
+  margin-top: 8px;
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+.stat-card-hint {
+  margin-top: 6px;
+  font-size: 12px;
+  opacity: 0.9;
+}
+
+/* Ô biểu tượng module: nền nhạt cùng màu module */
+.module-tile {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  flex: none;
+}
+.module-tile svg {
+  width: 22px;
+  height: 22px;
+}
+.module-tile.sm {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+}
+.module-tile.sm svg {
+  width: 16px;
+  height: 16px;
+}
+.module-switch {
+  padding: 5px 8px;
+}
+
+.ant-dropdown .ant-dropdown-menu {
+  border: 1px solid var(--app-border);
+}
+@media (max-width: 575px) {
+  .stat-card {
+    padding: 12px 14px;
+    min-height: 92px;
+  }
+  .stat-card-head {
+    font-size: 12px;
+    align-items: flex-start;
+    gap: 6px;
+  }
+  .stat-card-icon {
+    width: 26px;
+    height: 26px;
+  }
+  .stat-card-icon svg {
+    width: 15px;
+    height: 15px;
+  }
+  .stat-card-value {
+    font-size: 22px;
+  }
 }

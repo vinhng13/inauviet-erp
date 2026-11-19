@@ -67,13 +67,13 @@ export function OrdersPage() {
         rowKey="id"
         loading={isFetching}
         dataSource={data?.items}
-        scroll={{ x: 1180 }}
+        scroll={{ x: 1420 }}
         onRow={(o) => ({ onClick: () => navigate(`/orders/${o.id}`), style: { cursor: 'pointer' } })}
         pagination={{ current: page, pageSize: 20, total: data?.total, showSizeChanger: false, onChange: (p) => set('page', String(p)) }}
         columns={[
           { title: 'Mã đơn', dataIndex: 'code', width: 140, render: (v) => <Typography.Text strong style={{ whiteSpace: 'nowrap' }}>{v}</Typography.Text> },
-          { title: 'Khách hàng', render: (_, o) => <div>{o.customerName}<div style={{ fontSize: 12, opacity: 0.65 }}>{o.customerPhone}</div></div> },
-          { title: 'Hàng', dataIndex: 'summary', ellipsis: true },
+          { title: 'Khách hàng', width: 180, render: (_, o) => <div>{o.customerName}<div style={{ fontSize: 12, opacity: 0.65 }}>{o.customerPhone}</div></div> },
+          { title: 'Hàng', dataIndex: 'summary', width: 200, ellipsis: true },
           { title: 'Ngày đặt', dataIndex: 'orderDate', width: 110, render: formatDate },
           { title: 'Hạn', dataIndex: 'dueDate', width: 110, render: (v, o) => <Typography.Text type={o.isOverdue ? 'danger' : undefined}>{formatDate(v)}</Typography.Text> },
           { title: 'Trạng thái', dataIndex: 'status', width: 140, render: (s) => <OrderStatusTag status={s} /> },

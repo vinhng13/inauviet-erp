@@ -134,7 +134,8 @@ export function ConversationsPage() {
   const screens = Grid.useBreakpoint();
   const { token } = theme.useToken();
   const [query, setQuery] = useState<ConversationQuery>({ filter: 'all' });
-  const height = screens.lg ? 'calc(100vh - 64px - 48px)' : 'calc(100vh - 64px - 24px)';
+  // Màn hình lớn không có thanh trên cùng (tài khoản ở đáy menu trái); màn hình nhỏ có thanh 64px
+  const height = screens.lg ? 'calc(100vh - 48px)' : 'calc(100vh - 64px - 24px)';
   const open = (id?: string) => setParams(id ? { id } : {}, { replace: !!selected && !!id });
 
   const list = <ConversationList query={query} setQuery={setQuery} selected={selected} onOpen={open} />;

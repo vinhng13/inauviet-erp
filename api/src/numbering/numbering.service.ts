@@ -25,6 +25,11 @@ const RUNNING: DocumentPrefix[] = ['KH', 'NCC'];
 export class NumberingService {
   constructor(@Inject(ENV) private readonly env: Env) {}
 
+  /** Kho: số phiếu có mã kho, ví dụ XK-GIAY-2611-0004 (dãy số riêng cho từng loại phiếu và từng kho) */
+  async nextWarehouse(tx: Tx, kind: 'NK' | 'XK' | 'NL' | 'DC' | 'CK' | 'KKV', warehouseCode: string, now: Date = new Date()): Promise<string> {
+    return this.next(tx, `${kind}-${warehouseCode}` as DocumentPrefix, now);
+  }
+
   async next(tx: Tx, prefix: DocumentPrefix, now: Date = new Date()): Promise<string> {
     const period = RUNNING.includes(prefix) ? '' : periodInZone(this.env.APP_TIMEZONE, now);
     const rows = await tx.$queryRaw<Array<{ lastNo: number }>>`

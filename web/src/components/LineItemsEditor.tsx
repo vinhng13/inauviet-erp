@@ -102,7 +102,7 @@ export function LineItemsEditor({ form, showMoney, minQty, canRemove, idPrefix }
             const removable = fields.length > 1 && (canRemove?.(line) ?? true);
             const label = (text: string) => (i === 0 ? text : undefined);
             return (
-              <Row key={f.key} gutter={8} align="top" style={{ borderBottom: '1px dashed #e5e9ee', marginBottom: 8 }}>
+              <Row key={f.key} gutter={8} align="top" style={{ borderBottom: '1px dashed var(--app-border)', marginBottom: 8 }}>
                 <Form.Item name={[f.name, 'id']} hidden>
                   <Input />
                 </Form.Item>

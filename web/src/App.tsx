@@ -7,6 +7,7 @@ import { ApiError } from './api/client';
 import { keys, useMe } from './api/hooks';
 import { AppLayout } from './layout/AppLayout';
 import { useCan, type Permission } from './lib/access';
+import { ThemeProvider } from './lib/theme';
 import { errorMessage } from './lib/errors';
 import './lib/format';
 import { AccountsPage } from './pages/AccountsPage';
@@ -41,9 +42,10 @@ import { QuotesPage } from './pages/QuotesPage';
 import { RolesPage } from './pages/RolesPage';
 import { WarehouseBatchesPage } from './pages/warehouse/BatchesPage';
 import { WarehouseCatalogPage } from './pages/warehouse/CatalogPage';
-import { WarehouseCountsPage } from './pages/warehouse/CountsPage';
+import { WarehouseDieJournalPage } from './pages/warehouse/DieJournalPage';
 import { WarehouseDiesPage } from './pages/warehouse/DiesPage';
 import { WarehouseOverviewPage } from './pages/warehouse/OverviewPage';
+import { WarehouseReportPage } from './pages/warehouse/ReportPage';
 import { WarehouseStockPage } from './pages/warehouse/StockPage';
 
 /** Any 401 means the session ended (expired, logged out elsewhere, account locked): show the sign-in page. */
@@ -65,66 +67,306 @@ const queryClient: QueryClient = new QueryClient({
   },
 });
 
-const theme = {
-  token: {
-    colorPrimary: '#0a6f9c',
-    fontFamily: '"Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", sans-serif',
-    borderRadius: 8,
-  },
-};
-
 export function App() {
   return (
-    <ConfigProvider locale={viVN} theme={theme}>
-      <AntApp>
-        <QueryClientProvider client={queryClient}>
-          <BrowserRouter>
-            <SignInGate>
-              <Routes>
-                <Route index element={<ModulePickerPage />} />
-                <Route element={<AppLayout />}>
-                  <Route path="/board" element={<Allow p="orders.view"><BoardPage /></Allow>} />
-                  <Route path="/conversations" element={<Allow p="conversations.view"><ConversationsPage /></Allow>} />
-                  <Route path="/channels" element={<Allow p="channels.manage"><ChannelsPage /></Allow>} />
-                  <Route path="/quotes" element={<Allow p="quotes.view"><QuotesPage /></Allow>} />
-                  <Route path="/quotes/new" element={<Allow p="quotes.create"><QuoteEditorPage /></Allow>} />
-                  <Route path="/quotes/:id" element={<Allow p="quotes.view"><QuoteDetailPage /></Allow>} />
-                  <Route path="/quotes/:id/edit" element={<Allow p="quotes.update"><QuoteEditorPage /></Allow>} />
-                  <Route path="/orders" element={<Allow p="orders.view"><OrdersPage /></Allow>} />
-                  <Route path="/orders/new" element={<Allow p="orders.create"><NewOrderPage /></Allow>} />
-                  <Route path="/orders/:id" element={<Allow p="orders.view"><OrderDetailPage /></Allow>} />
-                  <Route path="/design" element={<Allow p="design.view"><DesignPage /></Allow>} />
-                  <Route path="/production" element={<Allow p="production.view"><ProductionPage /></Allow>} />
-                  <Route path="/deliveries" element={<Allow p="deliveries.view"><DeliveriesPage /></Allow>} />
-                  <Route path="/payments" element={<Allow p="payments.view"><PaymentsPage /></Allow>} />
-                  <Route path="/accounting" element={<Allow p="accounting.view"><AccountingOverviewPage /></Allow>} />
-                  <Route path="/accounting/periods" element={<Allow p="accounting.view"><AccountingPeriodsPage /></Allow>} />
-                  <Route path="/accounting/cash" element={<Allow p="accounting.view"><AccountingCashPage /></Allow>} />
-                  <Route path="/accounting/debts" element={<Allow p="accounting.view"><AccountingDebtsPage /></Allow>} />
-                  <Route path="/accounting/stock" element={<Allow p="accounting.view"><AccountingStockPage /></Allow>} />
-                  <Route path="/accounting/assets" element={<Allow p="accounting.view"><AccountingAssetsPage /></Allow>} />
-                  <Route path="/accounting/tax" element={<Allow p="accounting.view"><AccountingTaxPage /></Allow>} />
-                  <Route path="/accounting/journal" element={<Allow p="accounting.view"><AccountingJournalPage /></Allow>} />
-                  <Route path="/accounting/reports" element={<Allow p="accounting.view"><AccountingReportsPage /></Allow>} />
-                  <Route path="/warehouse" element={<Allow p="warehouse.view"><WarehouseOverviewPage /></Allow>} />
-                  <Route path="/warehouse/stock" element={<Allow p="warehouse.view"><WarehouseStockPage /></Allow>} />
-                  <Route path="/warehouse/dies" element={<Allow p="warehouse.view"><WarehouseDiesPage /></Allow>} />
-                  <Route path="/warehouse/batches" element={<Allow p="warehouse.view"><WarehouseBatchesPage /></Allow>} />
-                  <Route path="/warehouse/counts" element={<Allow p="warehouse.view"><WarehouseCountsPage /></Allow>} />
-                  <Route path="/warehouse/catalog" element={<Allow p="warehouse.view"><WarehouseCatalogPage /></Allow>} />
-                  <Route path="/customers" element={<Allow p="customers.view"><CustomersPage /></Allow>} />
-                  <Route path="/customers/:id" element={<Allow p="customers.view"><CustomerDetailPage /></Allow>} />
-                  <Route path="/products" element={<Allow p="products.view"><ProductsPage /></Allow>} />
-                  <Route path="/accounts" element={<Allow p="accounts.view"><AccountsPage /></Allow>} />
-                  <Route path="/roles" element={<Allow p="roles.view"><RolesPage /></Allow>} />
-                  <Route path="*" element={<Result status="404" title="Không có trang này" />} />
-                </Route>
-              </Routes>
-            </SignInGate>
-          </BrowserRouter>
-        </QueryClientProvider>
-      </AntApp>
-    </ConfigProvider>
+    <ThemeProvider>
+      <ConfigProvider locale={viVN}>
+        <AntApp>
+          <QueryClientProvider client={queryClient}>
+            <BrowserRouter>
+              <SignInGate>
+                <Routes>
+                  <Route index element={<ModulePickerPage />} />
+                  <Route element={<AppLayout />}>
+                    <Route
+                      path="/board"
+                      element={
+                        <Allow p="orders.view">
+                          <BoardPage />
+                        </Allow>
+                      }
+                    />
+                    <Route
+                      path="/conversations"
+                      element={
+                        <Allow p="conversations.view">
+                          <ConversationsPage />
+                        </Allow>
+                      }
+                    />
+                    <Route
+                      path="/channels"
+                      element={
+                        <Allow p="channels.manage">
+                          <ChannelsPage />
+                        </Allow>
+                      }
+                    />
+                    <Route
+                      path="/quotes"
+                      element={
+                        <Allow p="quotes.view">
+                          <QuotesPage />
+                        </Allow>
+                      }
+                    />
+                    <Route
+                      path="/quotes/new"
+                      element={
+                        <Allow p="quotes.create">
+                          <QuoteEditorPage />
+                        </Allow>
+                      }
+                    />
+                    <Route
+                      path="/quotes/:id"
+                      element={
+                        <Allow p="quotes.view">
+                          <QuoteDetailPage />
+                        </Allow>
+                      }
+                    />
+                    <Route
+                      path="/quotes/:id/edit"
+                      element={
+                        <Allow p="quotes.update">
+                          <QuoteEditorPage />
+                        </Allow>
+                      }
+                    />
+                    <Route
+                      path="/orders"
+                      element={
+                        <Allow p="orders.view">
+                          <OrdersPage />
+                        </Allow>
+                      }
+                    />
+                    <Route
+                      path="/orders/new"
+                      element={
+                        <Allow p="orders.create">
+                          <NewOrderPage />
+                        </Allow>
+                      }
+                    />
+                    <Route
+                      path="/orders/:id"
+                      element={
+                        <Allow p="orders.view">
+                          <OrderDetailPage />
+                        </Allow>
+                      }
+                    />
+                    <Route
+                      path="/design"
+                      element={
+                        <Allow p="design.view">
+                          <DesignPage />
+                        </Allow>
+                      }
+                    />
+                    <Route
+                      path="/production"
+                      element={
+                        <Allow p="production.view">
+                          <ProductionPage />
+                        </Allow>
+                      }
+                    />
+                    <Route
+                      path="/deliveries"
+                      element={
+                        <Allow p="deliveries.view">
+                          <DeliveriesPage />
+                        </Allow>
+                      }
+                    />
+                    <Route
+                      path="/payments"
+                      element={
+                        <Allow p="payments.view">
+                          <PaymentsPage />
+                        </Allow>
+                      }
+                    />
+                    <Route
+                      path="/accounting"
+                      element={
+                        <Allow p="accounting.view">
+                          <AccountingOverviewPage />
+                        </Allow>
+                      }
+                    />
+                    <Route
+                      path="/accounting/periods"
+                      element={
+                        <Allow p="accounting.view">
+                          <AccountingPeriodsPage />
+                        </Allow>
+                      }
+                    />
+                    <Route
+                      path="/accounting/cash"
+                      element={
+                        <Allow p="accounting.view">
+                          <AccountingCashPage />
+                        </Allow>
+                      }
+                    />
+                    <Route
+                      path="/accounting/debts"
+                      element={
+                        <Allow p="accounting.view">
+                          <AccountingDebtsPage />
+                        </Allow>
+                      }
+                    />
+                    <Route
+                      path="/accounting/stock"
+                      element={
+                        <Allow p="accounting.view">
+                          <AccountingStockPage />
+                        </Allow>
+                      }
+                    />
+                    <Route
+                      path="/accounting/assets"
+                      element={
+                        <Allow p="accounting.view">
+                          <AccountingAssetsPage />
+                        </Allow>
+                      }
+                    />
+                    <Route
+                      path="/accounting/tax"
+                      element={
+                        <Allow p="accounting.view">
+                          <AccountingTaxPage />
+                        </Allow>
+                      }
+                    />
+                    <Route
+                      path="/accounting/journal"
+                      element={
+                        <Allow p="accounting.view">
+                          <AccountingJournalPage />
+                        </Allow>
+                      }
+                    />
+                    <Route
+                      path="/accounting/reports"
+                      element={
+                        <Allow p="accounting.view">
+                          <AccountingReportsPage />
+                        </Allow>
+                      }
+                    />
+                    <Route
+                      path="/warehouse"
+                      element={
+                        <Allow p="warehouse.view">
+                          <WarehouseOverviewPage />
+                        </Allow>
+                      }
+                    />
+                    <Route
+                      path="/warehouse/stock"
+                      element={
+                        <Allow p="warehouse.view">
+                          <WarehouseStockPage />
+                        </Allow>
+                      }
+                    />
+                    <Route
+                      path="/warehouse/dies"
+                      element={
+                        <Allow p="warehouse.view">
+                          <WarehouseDiesPage />
+                        </Allow>
+                      }
+                    />
+                    <Route
+                      path="/warehouse/batches"
+                      element={
+                        <Allow p="warehouse.view">
+                          <WarehouseBatchesPage />
+                        </Allow>
+                      }
+                    />
+                    <Route
+                      path="/warehouse/die-journal"
+                      element={
+                        <Allow p="warehouse.view">
+                          <WarehouseDieJournalPage />
+                        </Allow>
+                      }
+                    />
+                    <Route
+                      path="/warehouse/reports"
+                      element={
+                        <Allow p="warehouse.view">
+                          <WarehouseReportPage />
+                        </Allow>
+                      }
+                    />
+                    <Route
+                      path="/warehouse/catalog"
+                      element={
+                        <Allow p="warehouse.view">
+                          <WarehouseCatalogPage />
+                        </Allow>
+                      }
+                    />
+                    <Route
+                      path="/customers"
+                      element={
+                        <Allow p="customers.view">
+                          <CustomersPage />
+                        </Allow>
+                      }
+                    />
+                    <Route
+                      path="/customers/:id"
+                      element={
+                        <Allow p="customers.view">
+                          <CustomerDetailPage />
+                        </Allow>
+                      }
+                    />
+                    <Route
+                      path="/products"
+                      element={
+                        <Allow p="products.view">
+                          <ProductsPage />
+                        </Allow>
+                      }
+                    />
+                    <Route
+                      path="/accounts"
+                      element={
+                        <Allow p="accounts.view">
+                          <AccountsPage />
+                        </Allow>
+                      }
+                    />
+                    <Route
+                      path="/roles"
+                      element={
+                        <Allow p="roles.view">
+                          <RolesPage />
+                        </Allow>
+                      }
+                    />
+                    <Route path="*" element={<Result status="404" title="Không có trang này" />} />
+                  </Route>
+                </Routes>
+              </SignInGate>
+            </BrowserRouter>
+          </QueryClientProvider>
+        </AntApp>
+      </ConfigProvider>
+    </ThemeProvider>
   );
 }
 

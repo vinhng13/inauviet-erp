@@ -93,7 +93,7 @@ function StepPanel({ order, step, reached }: { order: Order; step: number; reach
   else if (step === 5) body = <ProductionStep order={order} />;
   else body = <AcceptanceStep order={order} />;
   return (
-    <div style={{ borderTop: '1px solid #eef1f4', paddingTop: 12 }}>
+    <div style={{ borderTop: '1px solid var(--app-border-soft)', paddingTop: 12 }}>
       <Typography.Text strong style={{ fontSize: 15 }}>
         Bước {step} · {title.label}
       </Typography.Text>

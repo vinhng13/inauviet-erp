@@ -21,33 +21,45 @@ import { CurrentUser, RequirePermission } from '../auth/decorators';
 import { WhCatalogService } from './catalog.service';
 import { DiesService } from './dies.service';
 import { DieImportService } from './import.service';
+import { PaperImportService } from './paper-import.service';
 import { StockService } from './stock.service';
+import { WhSnapshotService } from './snapshot.service';
+import { WarehousesService } from './warehouses.service';
 import {
   BatchDto,
   BatchInputDto,
-  CountCreateDto,
-  CountDto,
-  CountUpdateDto,
+  BatchQueryDto,
+  BatchReceiveDto,
+  BatchRejectDto,
+  DieJournalQueryDto,
+  DieJournalRowDto,
   DieActionDto,
-  DieCountCreateDto,
-  DieCountDto,
-  DieCountMarkDto,
   DieDto,
   DieInputDto,
   DieListDto,
   DieQueryDto,
   ImportReportDto,
+  PaperImportReportDto,
+  KeeperDto,
   LocationDto,
   LocationInputDto,
   WhMaterialDto,
   WhMaterialInputDto,
-  MonthDto,
-  MonthLockDto,
   PartnerDto,
   PartnerInputDto,
   SlipDto,
   SlipInputDto,
   SlipQueryDto,
+  SnapshotRunDto,
+  StockAsOfDto,
+  StockAsOfQueryDto,
+  StockQueryDto,
+  StockReportDto,
+  StockReportQueryDto,
+  StockUpdateDto,
+  TransferInputDto,
+  WarehouseDto,
+  WarehouseInputDto,
   StockCardDto,
   StockItemDto,
   SymbolDto,
@@ -68,13 +80,58 @@ export class WarehouseController {
     private readonly stock: StockService,
     private readonly dies: DiesService,
     private readonly importer: DieImportService,
+    private readonly paperImporter: PaperImportService,
+    private readonly warehouses: WarehousesService,
+    private readonly snapshots: WhSnapshotService,
   ) {}
 
   @RequirePermission('warehouse.view')
   @Get('overview')
-  async overview(): Promise<WarehouseOverviewDto> {
-    const [items, slips, parts] = await Promise.all([this.stock.items(), this.stock.slips({}), this.dies.overviewParts()]);
-    return { lowStock: items.filter((i) => i.low), recentSlips: slips.slice(0, 8), ...parts };
+  async overview(@CurrentUser() user: AuthUser): Promise<WarehouseOverviewDto> {
+    const [warehouses, items, slips, pending, parts] = await Promise.all([
+      this.warehouses.list(user, false),
+      this.stock.items(),
+      this.stock.slips({}, user),
+      this.stock.slips({ status: 'PENDING' }, user),
+      this.dies.overviewParts(user),
+    ]);
+    return {
+      warehouses,
+      lowStock: items.filter((i) => i.low),
+      toConfirm: pending.filter((s) => s.canConfirm),
+      inTransit: pending.filter((s) => s.kind === 'TRANSFER_IN' && s.counterpart?.status === 'CONFIRMED'),
+      recentSlips: slips.filter((s) => s.status === 'CONFIRMED').slice(0, 8),
+      ...parts,
+    };
+  }
+
+  // ───────────── Kho ─────────────
+
+  @RequirePermission('warehouse.view')
+  @Get('warehouses')
+  warehouseList(@CurrentUser() user: AuthUser): Promise<WarehouseDto[]> {
+    return this.warehouses.list(user);
+  }
+
+  /** Người dùng để chọn làm thủ kho */
+  @RequirePermission('warehouse.manage')
+  @Get('people')
+  people(): Promise<KeeperDto[]> {
+    return this.warehouses.people();
+  }
+
+  @RequirePermission('warehouse.manage')
+  @Post('warehouses')
+  @HttpCode(204)
+  createWarehouse(@Body() dto: WarehouseInputDto): Promise<void> {
+    return this.warehouses.save(null, dto);
+  }
+
+  @RequirePermission('warehouse.manage')
+  @Put('warehouses/:id')
+  @HttpCode(204)
+  updateWarehouse(@Param('id', ParseUUIDPipe) id: string, @Body() dto: WarehouseInputDto): Promise<void> {
+    return this.warehouses.save(id, dto);
   }
 
   // ───────────── Danh mục ─────────────
@@ -152,34 +209,20 @@ export class WarehouseController {
     return this.catalog.saveMaterial(id, dto);
   }
 
-  @RequirePermission('warehouse.view')
-  @Get('month-locks')
-  monthLocks(): Promise<MonthLockDto[]> {
-    return this.catalog.monthLocks();
-  }
-
-  /** Chốt tồn tháng: phiếu trong tháng không lập / huỷ được nữa */
-  @RequirePermission('warehouse.manage')
-  @Post('month-locks')
-  @HttpCode(204)
-  lockMonth(@Body() dto: MonthDto, @CurrentUser() user: AuthUser): Promise<void> {
-    return this.catalog.lockMonth(dto.month, user);
-  }
-
-  @RequirePermission('warehouse.manage')
-  @Delete('month-locks/:month')
-  @HttpCode(204)
-  unlockMonth(@Param('month') month: string): Promise<void> {
-    return this.catalog.unlockMonth(month);
-  }
-
   // ───────────── Tồn kho và phiếu ─────────────
 
   @RequirePermission('warehouse.view')
   @Get('stock')
-  @ApiQuery({ name: 'all', required: false, type: Boolean })
-  items(@Query('all') all?: string): Promise<StockItemDto[]> {
-    return this.stock.items(all === 'true');
+  items(@Query() q: StockQueryDto): Promise<StockItemDto[]> {
+    return this.stock.items(q.warehouseId, q.all === 'true');
+  }
+
+  /** Mức tối thiểu / ngừng dùng của một dòng tồn (một quy cách tại một kho) */
+  @RequirePermission('warehouse.manage')
+  @Put('stock/:id')
+  @HttpCode(204)
+  updateStock(@Param('id', ParseUUIDPipe) id: string, @Body() dto: StockUpdateDto): Promise<void> {
+    return this.stock.updateStock(id, dto);
   }
 
   @RequirePermission('warehouse.view')
@@ -188,22 +231,69 @@ export class WarehouseController {
     return this.stock.card(id);
   }
 
+  /** Nhập – xuất – tồn theo khoảng ngày */
+  @RequirePermission('warehouse.view')
+  @Get('reports/stock')
+  report(@Query() q: StockReportQueryDto): Promise<StockReportDto> {
+    return this.stock.report(q);
+  }
+
+  /** Tồn cuối một ngày: bản chụp nếu có, kèm số tính lại từ phiếu */
+  @RequirePermission('warehouse.view')
+  @Get('reports/as-of')
+  asOf(@Query() q: StockAsOfQueryDto): Promise<StockAsOfDto> {
+    return this.stock.asOf(q);
+  }
+
+  /** Chụp tồn cuối ngày cho các ngày đã qua còn thiếu (bình thường chạy tự động mỗi giờ) */
+  @RequirePermission('warehouse.manage')
+  @Post('snapshots/run')
+  runSnapshots(): Promise<SnapshotRunDto> {
+    return this.snapshots.run();
+  }
+
   @RequirePermission('warehouse.view')
   @Get('slips')
-  slips(@Query() q: SlipQueryDto): Promise<SlipDto[]> {
-    return this.stock.slips(q);
+  slips(@Query() q: SlipQueryDto, @CurrentUser() user: AuthUser): Promise<SlipDto[]> {
+    return this.stock.slips(q, user);
   }
 
   @RequirePermission('warehouse.view')
   @Get('slips/:id')
-  slip(@Param('id', ParseUUIDPipe) id: string): Promise<SlipDto> {
-    return this.stock.slip(id);
+  slip(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthUser): Promise<SlipDto> {
+    return this.stock.slip(id, user);
   }
 
+  /** Lập phiếu (chờ thủ kho xác nhận; thủ kho lập thì confirm=true để xác nhận luôn) */
   @RequirePermission('warehouse.slip')
   @Post('slips')
   createSlip(@Body() dto: SlipInputDto, @CurrentUser() user: AuthUser): Promise<SlipDto> {
     return this.stock.createSlip(dto, user);
+  }
+
+  /** Phiếu chuyển kho A → B: thủ kho A xác nhận xuất, rồi thủ kho B xác nhận nhận */
+  @RequirePermission('warehouse.slip')
+  @Post('transfers')
+  createTransfer(@Body() dto: TransferInputDto, @CurrentUser() user: AuthUser): Promise<SlipDto> {
+    return this.stock.createTransfer(dto, user);
+  }
+
+  @RequirePermission('warehouse.slip')
+  @Post('slips/:id/confirm')
+  confirmSlip(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthUser): Promise<SlipDto> {
+    return this.stock.confirmSlip(id, user);
+  }
+
+  @RequirePermission('warehouse.slip')
+  @Post('slips/:id/reject')
+  rejectSlip(@Param('id', ParseUUIDPipe) id: string, @Body() dto: VoidDto, @CurrentUser() user: AuthUser): Promise<SlipDto> {
+    return this.stock.rejectSlip(id, dto.reason, user);
+  }
+
+  @RequirePermission('warehouse.slip')
+  @Post('slips/:id/cancel')
+  cancelSlip(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthUser): Promise<SlipDto> {
+    return this.stock.cancelSlip(id, user);
   }
 
   @RequirePermission('warehouse.slip')
@@ -213,44 +303,6 @@ export class WarehouseController {
   }
 
   // ───────────── Kiểm kê vật tư ─────────────
-
-  @RequirePermission('warehouse.view')
-  @Get('counts')
-  counts(): Promise<CountDto[]> {
-    return this.stock.counts();
-  }
-
-  @RequirePermission('warehouse.view')
-  @Get('counts/:id')
-  count(@Param('id', ParseUUIDPipe) id: string): Promise<CountDto> {
-    return this.stock.count(id);
-  }
-
-  @RequirePermission('warehouse.count')
-  @Post('counts')
-  createCount(@Body() dto: CountCreateDto, @CurrentUser() user: AuthUser): Promise<CountDto> {
-    return this.stock.createCount(dto, user);
-  }
-
-  @RequirePermission('warehouse.count')
-  @Put('counts/:id')
-  updateCount(@Param('id', ParseUUIDPipe) id: string, @Body() dto: CountUpdateDto): Promise<CountDto> {
-    return this.stock.updateCount(id, dto);
-  }
-
-  /** Duyệt: tạo phiếu điều chỉnh chênh lệch (cần quyền quản lý kho) */
-  @RequirePermission('warehouse.manage')
-  @Post('counts/:id/approve')
-  approveCount(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthUser): Promise<CountDto> {
-    return this.stock.approveCount(id, user);
-  }
-
-  @RequirePermission('warehouse.count')
-  @Post('counts/:id/cancel')
-  @HttpCode(204)
-  cancelCount(@Param('id', ParseUUIDPipe) id: string): Promise<void> {
-    return this.stock.cancelCount(id);
-  }
 
   // ───────────── Khuôn ─────────────
 
@@ -262,8 +314,8 @@ export class WarehouseController {
 
   @RequirePermission('warehouse.view')
   @Get('dies/:id')
-  die(@Param('id', ParseUUIDPipe) id: string): Promise<DieDto> {
-    return this.dies.get(id);
+  die(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthUser): Promise<DieDto> {
+    return this.dies.get(id, user);
   }
 
   /** Mã khuôn cấp tự động theo ký hiệu. Khuôn gần trùng kích thước bị chặn (WH_DIE_SIMILAR_EXISTS) trừ khi force */
@@ -316,55 +368,72 @@ export class WarehouseController {
     return this.importer.run(file?.buffer, dryRun !== 'false', user, this.dies.today());
   }
 
-  // ───────────── Giao nhận nhiều khuôn ─────────────
+  /** Nhập bảng tồn giấy Excel vào Kho giấy (danh mục + phiếu kiểm kê nháp). dryRun=true chỉ xem trước */
+  @RequirePermission('warehouse.manage')
+  @Post('materials/import-paper')
+  @ApiConsumes('multipart/form-data')
+  @ApiBody(fileBody)
+  @ApiQuery({ name: 'dryRun', required: false, type: Boolean })
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 20 * 1024 * 1024 } }))
+  importPaper(@UploadedFile() file: Upload | undefined, @Query('dryRun') dryRun: string | undefined, @CurrentUser() user: AuthUser): Promise<PaperImportReportDto> {
+    return this.paperImporter.run(file?.buffer, dryRun !== 'false', user, this.dies.today());
+  }
+
+  // ───────────── Giao nhận khuôn ─────────────
 
   @RequirePermission('warehouse.view')
   @Get('batches')
-  batches(): Promise<BatchDto[]> {
-    return this.dies.batches();
+  batches(@Query() q: BatchQueryDto, @CurrentUser() user: AuthUser): Promise<BatchDto[]> {
+    return this.dies.batches(q, user);
   }
 
   @RequirePermission('warehouse.view')
   @Get('batches/:id')
-  batch(@Param('id', ParseUUIDPipe) id: string): Promise<BatchDto> {
-    return this.dies.batch(id);
+  batch(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthUser): Promise<BatchDto> {
+    return this.dies.batch(id, user);
   }
 
+  /** Lập phiếu giao nhận: từ kho / xưởng tới kho / xưởng (bắt buộc nơi đến) */
   @RequirePermission('warehouse.dies')
   @Post('batches')
   createBatch(@Body() dto: BatchInputDto, @CurrentUser() user: AuthUser): Promise<BatchDto> {
     return this.dies.createBatch(dto, user);
   }
 
+  /** Thủ kho kho đi xác nhận xuất */
+  @RequirePermission('warehouse.dies')
+  @Post('batches/:id/send')
+  sendBatch(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthUser): Promise<BatchDto> {
+    return this.dies.send(id, user);
+  }
+
+  /** Thủ kho kho nhận xác nhận đã nhận */
+  @RequirePermission('warehouse.dies')
+  @Post('batches/:id/receive')
+  receiveBatch(@Param('id', ParseUUIDPipe) id: string, @Body() dto: BatchReceiveDto, @CurrentUser() user: AuthUser): Promise<BatchDto> {
+    return this.dies.receive(id, dto, user);
+  }
+
+  @RequirePermission('warehouse.dies')
+  @Post('batches/:id/reject')
+  @HttpCode(204)
+  async rejectBatch(@Param('id', ParseUUIDPipe) id: string, @Body() dto: BatchRejectDto, @CurrentUser() user: AuthUser): Promise<void> {
+    await this.dies.close(id, 'REJECTED', dto.reason, user);
+  }
+
+  @RequirePermission('warehouse.dies')
+  @Post('batches/:id/cancel')
+  @HttpCode(204)
+  async cancelBatch(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthUser): Promise<void> {
+    await this.dies.close(id, 'CANCELLED', null, user);
+  }
+
+  /** Nhật ký khuôn: mọi thao tác trong khoảng ngày */
+  @RequirePermission('warehouse.view')
+  @Get('die-journal')
+  dieJournal(@Query() q: DieJournalQueryDto): Promise<DieJournalRowDto[]> {
+    return this.dies.journal(q);
+  }
+
   // ───────────── Kiểm kê khuôn ─────────────
-
-  @RequirePermission('warehouse.view')
-  @Get('die-counts')
-  dieCounts(): Promise<DieCountDto[]> {
-    return this.dies.dieCounts();
-  }
-
-  @RequirePermission('warehouse.view')
-  @Get('die-counts/:id')
-  dieCount(@Param('id', ParseUUIDPipe) id: string): Promise<DieCountDto> {
-    return this.dies.dieCount(id);
-  }
-
-  @RequirePermission('warehouse.count')
-  @Post('die-counts')
-  createDieCount(@Body() dto: DieCountCreateDto, @CurrentUser() user: AuthUser): Promise<DieCountDto> {
-    return this.dies.createDieCount(dto, user);
-  }
-
-  @RequirePermission('warehouse.count')
-  @Post('die-counts/:id/marks')
-  markDieCount(@Param('id', ParseUUIDPipe) id: string, @Body() dto: DieCountMarkDto): Promise<DieCountDto> {
-    return this.dies.markDieCount(id, dto.die, dto.found);
-  }
-
-  @RequirePermission('warehouse.count')
-  @Post('die-counts/:id/finish')
-  finishDieCount(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthUser): Promise<DieCountDto> {
-    return this.dies.finishDieCount(id, user);
-  }
 }

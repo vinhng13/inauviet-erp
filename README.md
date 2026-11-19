@@ -80,6 +80,13 @@ Quên mật khẩu quản trị: `npm run user:reset-admin -w api -- admin`.
   npm run kho:import -- duong/dan/file.xlsx --write
   ```
   Cũng làm được trên giao diện: *Kho → Danh mục kho → Nhập bảng khuôn Excel*.
+- **Bảng tồn giấy** (Google Sheets "THEO DÕI GIẤY TỒN", tải về .xlsx): đặt vào `api/data/giay.xlsx`, rồi
+  ```bash
+  npm run kho:giay                   # xem trước
+  npm run kho:giay -- --write        # tạo vật tư, quy cách ở Kho giấy và một phiếu "Tồn đầu" chờ xác nhận
+  ```
+  Thủ kho Kho giấy vào *Kho → Tồn kho & phiếu → Chờ xác nhận*, xem lại phiếu và bấm **Xác nhận** thì số đó thành tồn.
+  Trên giao diện: *Kho → Danh mục kho → Nhập tồn giấy Excel*. Chạy lại không tạo trùng; quy cách đã có phiếu thì giữ tồn hiện tại.
 
 ## Tài khoản và phân quyền
 

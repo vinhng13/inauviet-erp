@@ -182,9 +182,18 @@ export class DieImportService {
 
     const existing = new Set((await this.prisma.whDie.findMany({ where: { code: { in: planned.map((p) => p.code) } }, select: { code: true } })).map((d) => d.code));
     const todo = planned.filter((p) => !existing.has(p.code));
+    // Kho khuôn: khuôn ở kho mặc định (kho đầu tiên); "ở đâu" trùng tên một kho khuôn (vd Xuân Đỉnh) thì vào kho đó
+    const dieKhos = await this.prisma.whWarehouse.findMany({ where: { kind: 'DIE', isActive: true }, orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }] });
+    if (!dieKhos.length) throw DomainError.badRequest('WH_NO_DIE_WAREHOUSE', 'Create a die warehouse first');
+    const khoByName = new Map<string, string>();
+    for (const k of dieKhos) {
+      khoByName.set(k.name.toLowerCase(), k.id);
+      khoByName.set(k.name.replace(/^kho\s+(khuôn\s+)?/i, '').toLowerCase(), k.id);
+    }
+    const homeKho = dieKhos[0];
     const partnerNames = (await this.prisma.whPartner.findMany({ select: { name: true } })).map((p) => p.name.toLowerCase());
-    const locationCodes = (await this.prisma.whLocation.findMany({ select: { code: true } })).map((l) => l.code.toLowerCase());
-    const partnersCreated = uniq([...todo.map((p) => p.maker), ...todo.map((p) => p.holder)]).filter((n) => !partnerNames.includes(n.toLowerCase()));
+    const locationCodes = (await this.prisma.whLocation.findMany({ where: { warehouseId: homeKho.id }, select: { code: true } })).map((l) => l.code.toLowerCase());
+    const partnersCreated = uniq([...todo.map((p) => p.maker), ...todo.map((p) => p.holder)]).filter((n) => !partnerNames.includes(n.toLowerCase()) && !khoByName.has(n.toLowerCase()));
     const locationsCreated = uniq(todo.map((p) => p.shelf)).filter((c) => !locationCodes.includes(c.toLowerCase()));
     const byStatus: Record<string, number> = {};
     for (const p of todo) byStatus[p.status] = (byStatus[p.status] ?? 0) + 1;
@@ -217,9 +226,9 @@ export class DieImportService {
           partners.set(name.toLowerCase(), p.id);
         }
         const locations = new Map<string, string>();
-        for (const l of await tx.whLocation.findMany()) locations.set(l.code.toLowerCase(), l.id);
+        for (const l of await tx.whLocation.findMany({ where: { warehouseId: homeKho.id } })) locations.set(l.code.toLowerCase(), l.id);
         for (const code of locationsCreated) {
-          const l = await tx.whLocation.create({ data: { code } });
+          const l = await tx.whLocation.create({ data: { code, warehouseId: homeKho.id } });
           locations.set(code.toLowerCase(), l.id);
         }
         const symbols = new Map((await tx.whDieSymbol.findMany()).map((s) => [s.code, s.lastNo]));
@@ -231,8 +240,11 @@ export class DieImportService {
         }
         const imported = dateField(today, 'today');
         for (const p of todo) {
-          const holderId = p.holder ? partners.get(p.holder.toLowerCase())! : null;
-          const locationId = p.shelf ? locations.get(p.shelf.toLowerCase())! : null;
+          const atKho = p.holder ? khoByName.get(p.holder.toLowerCase()) : undefined;
+          const holderId = p.holder && !atKho ? partners.get(p.holder.toLowerCase())! : null;
+          const locationId = p.shelf && !atKho ? locations.get(p.shelf.toLowerCase())! : null;
+          const warehouseId = atKho ?? homeKho.id;
+          const status = atKho && p.status === 'IN_USE' ? 'READY' : p.status;
           const fields = {
             productName: p.productName,
             lengthCm: p.size.lengthCm,
@@ -251,7 +263,8 @@ export class DieImportService {
               seq: p.seq,
               ...fields,
               makerId: p.maker ? partners.get(p.maker.toLowerCase())! : null,
-              status: p.status,
+              status,
+              warehouseId,
               holderId,
               locationId,
               expectedBackOn: p.expectedBackOn ? dateField(p.expectedBackOn, 'expectedBackOn') : null,
@@ -265,8 +278,8 @@ export class DieImportService {
               dieId: die.id,
               action: 'IMPORT',
               date: p.lastDate ? dateField(p.lastDate, 'date') : imported,
-              toStatus: p.status,
-              place: p.holder ?? (p.shelf ? `Kho · ${p.shelf}` : 'Kho Âu Việt'),
+              toStatus: status,
+              place: atKho ? dieKhos.find((k) => k.id === atKho)!.name : (p.holder ?? (p.shelf ? `${homeKho.name} · ${p.shelf}` : homeKho.name)),
               partnerId: holderId,
               locationId,
               expectedBackOn: p.expectedBackOn ? dateField(p.expectedBackOn, 'expectedBackOn') : null,

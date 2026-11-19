@@ -12,6 +12,7 @@
     "db:deploy": "prisma migrate deploy && prisma generate",
     "db:seed": "tsx prisma/seed.ts",
     "kho:import": "tsx prisma/import-dies.ts",
+    "kho:giay": "tsx prisma/import-paper.ts",
     "openapi": "nest build && node dist/openapi.js",
     "test": "jest --config jest.config.js",
     "test:e2e": "jest --config jest.e2e.config.js --runInBand",
