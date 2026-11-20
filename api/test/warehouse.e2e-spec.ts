@@ -328,16 +328,20 @@ describe('Warehouse', () => {
     const preview = (await upload(true).expect(201)).body;
     expect(preview).toMatchObject({ sheet: 'Tồn giấy(Mới kiểm kê)', rows: 8, materialsCreated: 6, specsCreated: 8, counted: 7, adjusted: 7, unchanged: 0, replacedSlips: [], slipCode: null, totalQty: 1753 });
     expect(preview.items.map((i: { group: string; name: string; size: string; qty: number | null }) => `${i.group}|${i.name}|${i.size}|${i.qty}`)).toEqual(expect.arrayContaining([
-      'Đề can|Đề can giấy đế trắng LH|21,5 x 31,5|255',
-      'Couche|C150|42 x 50|575',
-      'Giấy ngoại|Recycle Black card 300gsm-đen|78,7 x 109,2|62',
+      'DC|Đề can giấy đế trắng LH|21,5 x 31,5|255',
+      'C150|C150|42 x 50|575',
+      'GN|Recycle Black card 300gsm-đen|78,7 x 109,2|62',
       'Ivory|Ivory400|22,8 x 39,5|null',
     ]));
     expect(preview.issues.map((i: { message: string }) => i.message)).toEqual(expect.arrayContaining([expect.stringMatching(/^Khổ "khổ to"/), expect.stringMatching(/^Chưa có số tồn \(chưa đếm\)/)]));
     expect(await t.prisma.whMaterial.count({ where: { name: 'C150' } })).toBe(0);
 
+    // a material made by an earlier version (group renamed to "Couche") is reused and its group set back to the sheet's Mã VT
+    await t.prisma.whMaterial.create({ data: { group: 'Couche', name: 'C150', unit: 'tờ', hasSizes: true } });
     const done = (await upload(false).expect(201)).body;
     expect(done.slipCode).toMatch(/^DC-GIAY-/);
+    expect(await t.prisma.whMaterial.findMany({ where: { name: 'C150' }, select: { group: true } })).toEqual([{ group: 'C150' }]);
+    expect(await t.prisma.whMaterial.findFirst({ where: { name: 'Op140' }, select: { group: true } })).toEqual({ group: 'Op' });
     const slip = (await agent.get(`/api/v1/warehouse/slips?warehouseId=${giay.id}`).expect(200)).body.find((x: { code: string }) => x.code === done.slipCode);
     expect(slip).toMatchObject({ kind: 'ADJUST', status: 'PENDING', purpose: 'Tồn đầu' });
     expect(slip.lines.filter((l: { label: string }) => l.label.startsWith('Op140')).map((l: { qty: number }) => l.qty).sort((a: number, b: number) => a - b)).toEqual([75, 250]);

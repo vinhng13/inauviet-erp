@@ -14,14 +14,14 @@ const r3 = (v: number) => Math.round(v * 1000) / 1000;
 /** Ghi chú đầu phiếu điều chỉnh do lần nhập bảng tạo ra (để lần nhập sau nhận ra và thay thế khi còn chờ) */
 const NOTE_PREFIX = 'Theo bảng';
 
-/** Mã VT trong bảng → nhóm vật tư */
-function groupOf(code: string): string {
-  const c = code.trim();
-  if (/^dc$/i.test(c)) return 'Đề can';
-  if (/^gn$/i.test(c)) return 'Giấy ngoại';
-  if (/^c\d+$/i.test(c)) return 'Couche';
-  if (/^op$/i.test(c)) return 'Op';
-  return c || 'Giấy';
+/** Nhóm vật tư = Mã VT đúng như trong bảng (DC, GN, Op, C150, Ivory…); dòng trống mã thì nhóm "Giấy" */
+const groupOf = (code: string): string => code.trim() || 'Giấy';
+/** Tên nhóm các bản nhập trước dùng (đổi Mã VT thành chữ), để nhận lại vật tư đã tạo và đổi nhóm về đúng mã */
+function legacyGroup(code: string): string | null {
+  if (/^dc$/i.test(code)) return 'Đề can';
+  if (/^gn$/i.test(code)) return 'Giấy ngoại';
+  if (/^c\d+$/i.test(code)) return 'Couche';
+  return null;
 }
 
 interface Row {
@@ -119,7 +119,11 @@ export class PaperImportService {
     const kho = await this.prisma.whWarehouse.findUnique({ where: { code: warehouseCode } });
     if (!kho || kho.kind !== 'STOCK') throw DomainError.badRequest('WH_WAREHOUSE_NOT_FOUND', `Warehouse ${warehouseCode} not found`);
     const existing = await this.prisma.whMaterial.findMany({ include: { specs: true } });
-    const findMat = (p: Row) => existing.find((m) => fold(m.group) === fold(p.group) && fold(m.name) === fold(p.name));
+    const findMat = (p: Row) => {
+      const same = existing.filter((m) => fold(m.name) === fold(p.name));
+      const legacy = legacyGroup(p.group);
+      return same.find((m) => fold(m.group) === fold(p.group)) ?? (legacy ? same.find((m) => fold(m.group) === fold(legacy)) : undefined);
+    };
     const findSpec = (m: (typeof existing)[number] | undefined, p: Row) => m?.specs.find((s) => Number(s.widthCm) === p.w && Number(s.lengthCm) === p.l);
     const newMaterials = new Set(list.filter((p) => !findMat(p)).map((p) => `${fold(p.group)}|${fold(p.name)}`));
     const newSpecs = list.filter((p) => !findSpec(findMat(p), p)).length;
@@ -192,9 +196,14 @@ export class PaperImportService {
         const matIds = new Map<string, string>();
         for (const p of list) {
           const mk = `${fold(p.group)}|${fold(p.name)}`;
-          let materialId = matIds.get(mk) ?? findMat(p)?.id;
+          const found = findMat(p);
+          let materialId = matIds.get(mk) ?? found?.id;
           if (!materialId) {
             materialId = (await tx.whMaterial.create({ data: { group: p.group, name: p.name, unit: 'tờ', hasSizes: true } })).id;
+          } else if (found && found.id === materialId && found.group !== p.group) {
+            // Vật tư do bản nhập trước tạo với nhóm đã đổi tên: đưa nhóm về đúng Mã VT trong bảng
+            await tx.whMaterial.update({ where: { id: materialId }, data: { group: p.group } });
+            found.group = p.group;
           }
           matIds.set(mk, materialId);
           await tx.whWarehouseMaterial.upsert({ where: { warehouseId_materialId: { warehouseId: kho.id, materialId } }, create: { warehouseId: kho.id, materialId }, update: {} });
