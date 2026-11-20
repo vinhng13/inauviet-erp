@@ -8,6 +8,7 @@ import { OrderStatusTag, PaymentTag } from '../components/Tags';
 import { formatDate, formatQty, formatVnd } from '../lib/format';
 import { ORDER_STATUS } from '../lib/status';
 import { useCan } from '../lib/access';
+import { DEFAULT_PAGE_SIZE, serverPager } from '../lib/paging';
 
 /** Filters live in the URL so a filtered list can be bookmarked or sent. */
 export function OrdersPage() {
@@ -17,9 +18,10 @@ export function OrdersPage() {
   const q = params.get('q') ?? '';
   const status = (params.get('status') as Schemas['OrderStatus'] | null) ?? undefined;
   const page = Number(params.get('page') ?? 1);
+  const size = Number(params.get('size') ?? DEFAULT_PAGE_SIZE);
   const hasUnplanned = params.get('unplanned') === '1';
   const overdue = params.get('overdue') === '1';
-  const { data, isFetching } = useOrders({ q: q || undefined, status, page, pageSize: 20, hasUnplanned: hasUnplanned || undefined, overdue: overdue || undefined });
+  const { data, isFetching } = useOrders({ q: q || undefined, status, page, pageSize: size, hasUnplanned: hasUnplanned || undefined, overdue: overdue || undefined });
 
   const set = (key: string, value: string | undefined) => {
     const next = new URLSearchParams(params);
@@ -69,7 +71,13 @@ export function OrdersPage() {
         dataSource={data?.items}
         scroll={{ x: 1420 }}
         onRow={(o) => ({ onClick: () => navigate(`/orders/${o.id}`), style: { cursor: 'pointer' } })}
-        pagination={{ current: page, pageSize: 20, total: data?.total, showSizeChanger: false, onChange: (p) => set('page', String(p)) }}
+        pagination={serverPager(page, size, data?.total, (p, s) => {
+          const next = new URLSearchParams(params);
+          next.set('page', String(p));
+          if (s === DEFAULT_PAGE_SIZE) next.delete('size');
+          else next.set('size', String(s));
+          setParams(next);
+        })}
         columns={[
           { title: 'Mã đơn', dataIndex: 'code', width: 140, render: (v) => <Typography.Text strong style={{ whiteSpace: 'nowrap' }}>{v}</Typography.Text> },
           { title: 'Khách hàng', width: 180, render: (_, o) => <div>{o.customerName}<div style={{ fontSize: 12, opacity: 0.65 }}>{o.customerPhone}</div></div> },

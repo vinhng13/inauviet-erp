@@ -7,6 +7,7 @@ import { useWhOverview, type DieRow } from '../../api/warehouse';
 import { errorMessage } from '../../lib/errors';
 import { formatDate } from '../../lib/format';
 import { DieStatusTag, PageHead, qty, SLIP, STATUS, type DieStatus } from './common';
+import { pager } from '../../lib/paging';
 
 /** Tổng quan kho: vật tư dưới mức tối thiểu, khuôn đang ở xưởng, quá hạn, chờ kiểm, cần xác nhận */
 export function WarehouseOverviewPage() {
@@ -200,7 +201,7 @@ export function WarehouseOverviewPage() {
             <Table<DieRow>
               rowKey="id"
               size="small"
-              pagination={{ pageSize: 8, hideOnSinglePage: true }}
+              pagination={pager(data.overdue?.length)}
               dataSource={data.overdue}
               columns={dieColumns}
               locale={{ emptyText: 'Không có khuôn quá hẹn' }}
@@ -212,7 +213,7 @@ export function WarehouseOverviewPage() {
             <Table<DieRow>
               rowKey="id"
               size="small"
-              pagination={{ pageSize: 8, hideOnSinglePage: true }}
+              pagination={pager(data.checking?.length)}
               dataSource={data.checking}
               locale={{ emptyText: 'Không có khuôn chờ kiểm' }}
               columns={[...dieColumns.slice(0, 2), { title: 'Trạng thái', dataIndex: 'status', width: 110, render: (s: DieStatus) => <DieStatusTag status={s} /> }]}

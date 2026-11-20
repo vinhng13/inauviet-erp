@@ -7,6 +7,7 @@ import { DocsDownload } from '../components/PrintMenu';
 import { useCan } from '../lib/access';
 import { formatDate, formatVnd } from '../lib/format';
 import { QUOTE_STATUS } from '../lib/status';
+import { DEFAULT_PAGE_SIZE, serverPager } from '../lib/paging';
 
 type Status = Schemas['QuoteStatus'];
 const TABS: Array<Status | 'ALL'> = ['ALL', 'DRAFT', 'SENT', 'WON', 'LOST'];
@@ -19,7 +20,8 @@ export function QuotesPage() {
   const q = params.get('q') ?? '';
   const tab = (params.get('status') as Status | null) ?? 'ALL';
   const page = Number(params.get('page') ?? 1);
-  const { data, isFetching } = useQuotes({ q: q || undefined, status: tab === 'ALL' ? undefined : tab, page, pageSize: 20 });
+  const size = Number(params.get('size') ?? DEFAULT_PAGE_SIZE);
+  const { data, isFetching } = useQuotes({ q: q || undefined, status: tab === 'ALL' ? undefined : tab, page, pageSize: size });
   const counts = data?.counts;
   const all = counts ? counts.DRAFT + counts.SENT + counts.WON + counts.LOST : 0;
 
@@ -60,7 +62,13 @@ export function QuotesPage() {
         dataSource={data?.items}
         scroll={{ x: 900 }}
         onRow={(r) => ({ onClick: () => navigate(`/quotes/${r.id}`), style: { cursor: 'pointer' } })}
-        pagination={{ current: page, pageSize: 20, total: data?.total, showSizeChanger: false, onChange: (p) => set('page', String(p)) }}
+        pagination={serverPager(page, size, data?.total, (p, s) => {
+          const next = new URLSearchParams(params);
+          next.set('page', String(p));
+          if (s === DEFAULT_PAGE_SIZE) next.delete('size');
+          else next.set('size', String(s));
+          setParams(next);
+        })}
         columns={[
           { title: 'Mã báo giá', dataIndex: 'code', width: 140, render: (v: string) => <strong>{v}</strong> },
           { title: 'Khách hàng', key: 'customer', render: (_, r) => r.customer.name },

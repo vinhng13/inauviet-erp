@@ -209,7 +209,7 @@ export class WhCatalogService {
         }
       });
     } catch (e) {
-      if (unique(e)) throw DomainError.conflict('WH_MATERIAL_EXISTS', 'This material (or its code) already exists');
+      if (unique(e)) throw DomainError.conflict('WH_MATERIAL_EXISTS', 'This material already exists in this group');
       throw e;
     }
   }

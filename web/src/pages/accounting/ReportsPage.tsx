@@ -4,6 +4,7 @@ import { useGeneralLedger, usePnl } from '../../api/accounting';
 import type { Schemas } from '../../api/client';
 import { formatDate, formatVnd } from '../../lib/format';
 import { AccountingPage, Balance, money, type Period } from './common';
+import { pager } from '../../lib/paging';
 
 /** "Báo cáo": profit and loss by month, and the general ledger of one account */
 export function AccountingReportsPage() {
@@ -91,7 +92,7 @@ function Ledger({ period }: { period: Period }) {
         size="small"
         loading={isFetching}
         dataSource={data?.rows}
-        pagination={{ pageSize: 50, hideOnSinglePage: true }}
+        pagination={pager(data?.rows?.length)}
         scroll={{ x: 900 }}
         locale={{ emptyText: 'Không có phát sinh trong kỳ' }}
         columns={[

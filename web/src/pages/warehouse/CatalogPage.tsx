@@ -6,6 +6,7 @@ import { useLocations, usePartners, useSymbols, useWarehouseMutations, useWareho
 import { useCan } from '../../lib/access';
 import { errorMessage } from '../../lib/errors';
 import { cm, PageHead, PARTNER_KIND, qty, STATUS, type DieStatus } from './common';
+import { pager } from '../../lib/paging';
 
 /** Danh mục riêng của kho: kho và thủ kho, vật tư (quy cách, đơn vị tính), đối tác, vị trí kệ, ký hiệu khuôn, chốt tháng, nhập bảng khuôn Excel */
 export function WarehouseCatalogPage() {
@@ -138,11 +139,11 @@ function Materials() {
         size="small"
         loading={isFetching}
         dataSource={rows}
-        pagination={{ pageSize: 50, hideOnSinglePage: true }}
+        pagination={pager(rows?.length)}
         locale={{ emptyText: 'Chưa có vật tư. Ví dụ: nhóm GN, "Giấy ngoại IC 145", đơn vị tờ, khổ 18 x 50,5 và 27 x 23, đơn vị ram = 500 tờ.' }}
         columns={[
-          { title: 'Mã', dataIndex: 'code', width: 110 },
-          { title: 'Mã VT', dataIndex: 'group', width: 90 },
+          { title: 'Mã', dataIndex: 'code', width: 90 },
+          { title: 'Nhóm', dataIndex: 'group', width: 110 },
           { title: 'Vật tư', dataIndex: 'name', render: (v: string, m) => <span style={{ opacity: m.isActive ? 1 : 0.5 }}>{v}{!m.isActive && ' (ngừng dùng)'}</span> },
           { title: 'Đơn vị', key: 'u', width: 170, render: (_, m) => [m.unit, ...m.units.map((u) => `${u.name} = ${qty(u.factor)}${u.specLabel ? ` (${u.specLabel})` : ''}`)].join(' · ') },
           {
@@ -524,7 +525,7 @@ function ImportDies() {
             rowKey={(r) => `${r.row}-${r.message}`}
             size="small"
             dataSource={report.issues}
-            pagination={{ pageSize: 20, hideOnSinglePage: true }}
+            pagination={pager(report.issues?.length)}
             title={() => `${report.issues.length} điểm cần xem (khuôn cần xác nhận sẽ hiện ở bộ lọc "Cần xác nhận" sau khi nhập)`}
             columns={[
               { title: 'Dòng', dataIndex: 'row', width: 70 },
@@ -561,7 +562,7 @@ function ImportPaper() {
   return (
     <Flex vertical gap={12} style={{ maxWidth: 900 }}>
       <Typography.Paragraph type="secondary" style={{ margin: 0 }}>
-        Chọn bảng tồn giấy đang theo dõi (trên Google Sheets: Tệp → Tải xuống → Microsoft Excel). Phần mềm đọc sheet có cột Mã VT, Loại giấy, Khổ giấy, TỒN; tạo vật tư (đơn vị tờ, nhóm đúng Mã VT trong bảng) và quy cách theo khổ ở Kho giấy, rồi lập
+        Chọn bảng tồn giấy đang theo dõi (trên Google Sheets: Tệp → Tải xuống → Microsoft Excel). Phần mềm đọc sheet có cột Mã VT, Loại giấy, Khổ giấy, TỒN; tạo vật tư (đơn vị tờ, mã vật tư đúng Mã VT trong bảng) và quy cách theo khổ ở Kho giấy, rồi lập
         một phiếu điều chỉnh đưa tồn từng quy cách về đúng số trong bảng (lần đầu là phiếu "Tồn đầu"). Thủ kho Kho giấy vào Tồn kho & phiếu → Chờ xác nhận, xem lại và bấm Xác nhận thì tồn khớp bảng. Nhập lại bảng
         mới: phiếu theo bảng trước còn chờ sẽ được thay; đã xác nhận rồi thì phiếu mới chỉ ghi phần chênh. Dòng chưa đếm chỉ tạo quy cách, không đổi tồn.
       </Typography.Paragraph>
@@ -609,10 +610,11 @@ function ImportPaper() {
             rowKey="row"
             size="small"
             dataSource={report.items}
-            pagination={{ pageSize: 50, hideOnSinglePage: true }}
+            pagination={pager(report.items?.length)}
             columns={[
               { title: 'Dòng', dataIndex: 'row', width: 70 },
-              { title: 'Mã VT', dataIndex: 'group', width: 90 },
+              { title: 'Mã VT', dataIndex: 'code', width: 80 },
+              { title: 'Nhóm', dataIndex: 'group', width: 110 },
               { title: 'Loại giấy', dataIndex: 'name' },
               { title: 'Khổ', dataIndex: 'size', width: 120 },
               { title: 'Tồn (tờ)', dataIndex: 'qty', width: 100, align: 'right', render: (v: number | null) => (v === null ? <Typography.Text type="secondary">chưa đếm</Typography.Text> : v.toLocaleString('vi-VN')) },

@@ -9,6 +9,7 @@ import { useCan } from '../../lib/access';
 import { errorMessage } from '../../lib/errors';
 import { formatDate, formatVnd, vndInputProps } from '../../lib/format';
 import { AccountingPage, COST_ACCOUNTS, money, monthLabel, PeriodClosedNote, VAT_OPTIONS, type Period } from './common';
+import { pager } from '../../lib/paging';
 
 type Account = 'all' | '111' | '112';
 
@@ -76,7 +77,7 @@ function CashBook({ period }: { period: Period }) {
         size="small"
         loading={isFetching}
         dataSource={data?.rows}
-        pagination={{ pageSize: 50, hideOnSinglePage: true }}
+        pagination={pager(data?.rows?.length)}
         scroll={{ x: 900 }}
         locale={{ emptyText: `Chưa có thu chi trong kỳ ${monthLabel(period.month)}` }}
         columns={[

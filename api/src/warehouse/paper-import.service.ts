@@ -14,18 +14,18 @@ const r3 = (v: number) => Math.round(v * 1000) / 1000;
 /** Ghi chú đầu phiếu điều chỉnh do lần nhập bảng tạo ra (để lần nhập sau nhận ra và thay thế khi còn chờ) */
 const NOTE_PREFIX = 'Theo bảng';
 
-/** Nhóm vật tư = Mã VT đúng như trong bảng (DC, GN, Op, C150, Ivory…); dòng trống mã thì nhóm "Giấy" */
-const groupOf = (code: string): string => code.trim() || 'Giấy';
-/** Tên nhóm các bản nhập trước dùng (đổi Mã VT thành chữ), để nhận lại vật tư đã tạo và đổi nhóm về đúng mã */
-function legacyGroup(code: string): string | null {
+/** Nhóm vật tư theo Mã VT trong bảng (mã vẫn giữ nguyên ở cột Mã của vật tư) */
+function groupOf(code: string): string {
   if (/^dc$/i.test(code)) return 'Đề can';
   if (/^gn$/i.test(code)) return 'Giấy ngoại';
   if (/^c\d+$/i.test(code)) return 'Couche';
-  return null;
+  return code || 'Giấy';
 }
 
 interface Row {
   row: number;
+  /** Mã VT đúng như trong bảng */
+  code: string;
   group: string;
   name: string;
   w: number;
@@ -103,7 +103,8 @@ export class PaperImportService {
       const note = cNote >= 0 ? str(r[cNote]) : '';
       if (qty === null)
         issues.push({ row, code: `${name} ${fmtCm(size[0])} × ${fmtCm(size[1])}`, message: `Chưa có số tồn${note ? ` (${note})` : ''}: tạo quy cách, không ghi tồn` });
-      const group = groupOf(cGroup >= 0 ? str(r[cGroup]) : '');
+      const code = cGroup >= 0 ? str(r[cGroup]) : '';
+      const group = groupOf(code);
       const key = `${fold(group)}|${fold(name)}|${size[0]}x${size[1]}`;
       const prev = planned.get(key);
       if (prev) {
@@ -111,7 +112,7 @@ export class PaperImportService {
         prev.qty = prev.qty === null && qty === null ? null : r3((prev.qty ?? 0) + (qty ?? 0));
         continue;
       }
-      planned.set(key, { row, group, name, w: size[0], l: size[1], qty, note });
+      planned.set(key, { row, code, group, name, w: size[0], l: size[1], qty, note });
     }
     const list = [...planned.values()];
     if (!list.length) throw DomainError.badRequest('WH_IMPORT_EMPTY', 'No paper rows found');
@@ -121,8 +122,8 @@ export class PaperImportService {
     const existing = await this.prisma.whMaterial.findMany({ include: { specs: true } });
     const findMat = (p: Row) => {
       const same = existing.filter((m) => fold(m.name) === fold(p.name));
-      const legacy = legacyGroup(p.group);
-      return same.find((m) => fold(m.group) === fold(p.group)) ?? (legacy ? same.find((m) => fold(m.group) === fold(legacy)) : undefined);
+      // bản nhập trước có thể đã để nhóm = Mã VT (DC, C150…)
+      return same.find((m) => fold(m.group) === fold(p.group)) ?? (p.code ? same.find((m) => fold(m.group) === fold(p.code)) : undefined);
     };
     const findSpec = (m: (typeof existing)[number] | undefined, p: Row) => m?.specs.find((s) => Number(s.widthCm) === p.w && Number(s.lengthCm) === p.l);
     const newMaterials = new Set(list.filter((p) => !findMat(p)).map((p) => `${fold(p.group)}|${fold(p.name)}`));
@@ -139,7 +140,17 @@ export class PaperImportService {
       replacedSlips: [],
       slipCode: null,
       totalQty: r3(list.reduce((a, p) => a + (p.qty ?? 0), 0)),
-      items: list.map((p) => ({ row: p.row, group: p.group, name: p.name, size: `${fmtCm(p.w)} x ${fmtCm(p.l)}`, qty: p.qty, note: p.note || null, onHand: null, delta: null })),
+      items: list.map((p) => ({
+        row: p.row,
+        code: p.code || null,
+        group: p.group,
+        name: p.name,
+        size: `${fmtCm(p.w)} x ${fmtCm(p.l)}`,
+        qty: p.qty,
+        note: p.note || null,
+        onHand: null,
+        delta: null,
+      })),
       issues,
     };
 
@@ -199,11 +210,12 @@ export class PaperImportService {
           const found = findMat(p);
           let materialId = matIds.get(mk) ?? found?.id;
           if (!materialId) {
-            materialId = (await tx.whMaterial.create({ data: { group: p.group, name: p.name, unit: 'tờ', hasSizes: true } })).id;
-          } else if (found && found.id === materialId && found.group !== p.group) {
-            // Vật tư do bản nhập trước tạo với nhóm đã đổi tên: đưa nhóm về đúng Mã VT trong bảng
-            await tx.whMaterial.update({ where: { id: materialId }, data: { group: p.group } });
+            materialId = (await tx.whMaterial.create({ data: { code: p.code || null, group: p.group, name: p.name, unit: 'tờ', hasSizes: true } })).id;
+          } else if (found && found.id === materialId && (found.group !== p.group || (p.code && found.code !== p.code))) {
+            // Mã vật tư = Mã VT trong bảng; nhóm theo mã (sửa lại vật tư do bản nhập trước tạo)
+            await tx.whMaterial.update({ where: { id: materialId }, data: { group: p.group, ...(p.code ? { code: p.code } : {}) } });
             found.group = p.group;
+            if (p.code) found.code = p.code;
           }
           matIds.set(mk, materialId);
           await tx.whWarehouseMaterial.upsert({ where: { warehouseId_materialId: { warehouseId: kho.id, materialId } }, create: { warehouseId: kho.id, materialId }, update: {} });

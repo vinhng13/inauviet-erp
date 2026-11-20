@@ -923,7 +923,7 @@ model WhLocation {
 /// Vật tư (giấy, đề can, bạt, mực…). Giấy và đề can có nhiều khổ; mỗi khổ là một mã tồn riêng.
 model WhMaterial {
   id        String   @id @default(uuid()) @db.Uuid
-  code      String?  @unique // mã vật tư (không bắt buộc)
+  code      String? // mã vật tư = Mã VT trong bảng theo dõi (DC, GN, Op, C150…); nhiều vật tư có thể chung một mã
   group     String // nhóm: Giấy ngoại, Đề can, Op, Bạt, Mực…
   name      String
   unit      String // đơn vị cơ sở: tồn luôn lưu theo đơn vị này (tờ, m, lít, cái…)
@@ -937,6 +937,7 @@ model WhMaterial {
   warehouses WhWarehouseMaterial[]
 
   @@unique([group, name])
+  @@index([code])
 }
 
 /// Mã tồn = vật tư + khổ (rộng x dài, cm). Vật tư không theo khổ dùng 0 x 0.

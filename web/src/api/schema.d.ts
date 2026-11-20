@@ -4734,6 +4734,8 @@ export interface components {
         };
         PaperImportItemDto: {
             row: number;
+            /** @description Mã VT đúng như trong bảng */
+            code: string | null;
             group: string;
             name: string;
             size: string;
@@ -5162,7 +5164,7 @@ export interface operations {
             query?: {
                 /** @description 1-based page number */
                 page?: number;
-                /** @description Items per page (max 100) */
+                /** @description Items per page (max 200) */
                 pageSize?: number;
                 /** @description Free-text search */
                 q?: string;
@@ -5352,7 +5354,7 @@ export interface operations {
                 customerId?: string;
                 /** @description 1-based page number */
                 page?: number;
-                /** @description Items per page (max 100) */
+                /** @description Items per page (max 200) */
                 pageSize?: number;
                 /** @description Free-text search */
                 q?: string;
@@ -5593,7 +5595,7 @@ export interface operations {
                 overdue?: boolean;
                 /** @description 1-based page number */
                 page?: number;
-                /** @description Items per page (max 100) */
+                /** @description Items per page (max 200) */
                 pageSize?: number;
                 /** @description Free-text search */
                 q?: string;
@@ -6115,7 +6117,7 @@ export interface operations {
                 overdue?: boolean;
                 /** @description 1-based page number */
                 page?: number;
-                /** @description Items per page (max 100) */
+                /** @description Items per page (max 200) */
                 pageSize?: number;
                 /** @description Free-text search */
                 q?: string;
@@ -6294,7 +6296,7 @@ export interface operations {
                 includeVoided?: boolean;
                 /** @description 1-based page number */
                 page?: number;
-                /** @description Items per page (max 100) */
+                /** @description Items per page (max 200) */
                 pageSize?: number;
                 /** @description Free-text search */
                 q?: string;

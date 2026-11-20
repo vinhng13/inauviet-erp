@@ -8,6 +8,7 @@ import { useCan } from '../../lib/access';
 import { errorMessage } from '../../lib/errors';
 import { formatDate, formatDateTime } from '../../lib/format';
 import { BatchStatusTag, DieStatusTag, PageHead, placeKey, useDiePlaces, type DieStatus } from './common';
+import { pager } from '../../lib/paging';
 
 type Tab = 'mine' | 'open' | 'all';
 
@@ -64,7 +65,7 @@ export function BatchTable({ rows, loading, onOpen, emptyText }: { rows?: Batch[
       size="small"
       loading={loading}
       dataSource={rows}
-      pagination={{ pageSize: 30, hideOnSinglePage: true }}
+      pagination={pager(rows?.length)}
       locale={{ emptyText }}
       scroll={{ x: 1000 }}
       onRow={(b) => ({ onClick: () => onOpen(b.id), style: { cursor: 'pointer' } })}
@@ -312,7 +313,7 @@ export function BatchModal({ dies = [], mode = 'any', onClose }: { dies?: DieRow
           size="small"
           loading={!preset && candidates.isFetching}
           dataSource={pool}
-          pagination={{ pageSize: 8, hideOnSinglePage: true }}
+          pagination={pager(pool?.length)}
           rowSelection={{ selectedRowKeys: selected, onChange: (keys) => setSelected(keys as string[]) }}
           locale={{ emptyText: from ? `Không có khuôn nào ở ${places.name(from)}` : 'Chọn nơi đi' }}
           columns={[

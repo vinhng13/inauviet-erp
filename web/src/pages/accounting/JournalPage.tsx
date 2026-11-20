@@ -8,6 +8,7 @@ import { useCan } from '../../lib/access';
 import { errorMessage } from '../../lib/errors';
 import { formatDate, formatVnd, vndInputProps } from '../../lib/format';
 import { AccountingPage, AccountSelect, Balance, money, PeriodClosedNote, type Period } from './common';
+import { pager } from '../../lib/paging';
 
 type Entry = Schemas['JournalEntryDto'];
 
@@ -86,7 +87,7 @@ function Journal({ period, onEdit }: { period: Period; onEdit: (e: Entry) => voi
                   size="small"
                   loading={isFetching}
                   dataSource={entries}
-                  pagination={{ pageSize: 50, hideOnSinglePage: true }}
+                  pagination={pager(entries?.length)}
                   scroll={{ x: 1000 }}
                   expandable={{ expandRowByClick: true, expandedRowRender: (e) => <EntryLines entry={e} /> }}
                   columns={[

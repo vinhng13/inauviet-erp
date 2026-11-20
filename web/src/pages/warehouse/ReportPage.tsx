@@ -8,6 +8,7 @@ import { useCan } from '../../lib/access';
 import { errorMessage } from '../../lib/errors';
 import { formatDate, formatDateTime } from '../../lib/format';
 import { downloadCsv, lineQty, PageHead, qty, SLIP, SlipStatusTag, useWarehousePick, WarehousePicker, type SlipKind } from './common';
+import { pager } from '../../lib/paging';
 
 type Mode = 'nxt' | 'asof' | 'journal';
 
@@ -70,7 +71,7 @@ function InOutBalance({ warehouse }: { warehouse: Schemas['WarehouseDto'] }) {
         size="small"
         loading={isFetching}
         dataSource={rows}
-        pagination={{ pageSize: 100, hideOnSinglePage: true }}
+        pagination={pager(rows?.length)}
         locale={{ emptyText: 'Không có số liệu' }}
         columns={[
           { title: 'Nhóm', dataIndex: 'group', width: 110 },
@@ -133,7 +134,7 @@ function AsOf({ warehouse }: { warehouse: Schemas['WarehouseDto'] }) {
         size="small"
         loading={isFetching}
         dataSource={rows}
-        pagination={{ pageSize: 100, hideOnSinglePage: true }}
+        pagination={pager(rows?.length)}
         columns={[
           { title: 'Nhóm', dataIndex: 'group', width: 110 },
           { title: 'Vật tư / quy cách', dataIndex: 'label' },
@@ -177,7 +178,7 @@ function Journal({ warehouse }: { warehouse: Schemas['WarehouseDto'] }) {
         size="small"
         loading={isFetching}
         dataSource={data}
-        pagination={{ pageSize: 50, hideOnSinglePage: true }}
+        pagination={pager(data?.length)}
         locale={{ emptyText: 'Không có phiếu trong khoảng ngày này' }}
         rowClassName={(r) => (r.voidedAt || r.status === 'CANCELLED' || r.status === 'REJECTED' ? 'row-voided' : '')}
         columns={[

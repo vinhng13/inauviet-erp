@@ -4,6 +4,7 @@ import { useDebts } from '../../api/accounting';
 import type { Schemas } from '../../api/client';
 import { formatDate, formatVnd } from '../../lib/format';
 import { AccountingPage, money, monthLabel, type Period } from './common';
+import { pager } from '../../lib/paging';
 
 /** "Phải thu – phải trả": balances of 131 by customer and 331 by supplier at the end of the month */
 export function AccountingDebtsPage() {
@@ -35,7 +36,7 @@ function Debts({ period }: { period: Period }) {
           size="small"
           loading={isFetching}
           dataSource={data?.receivables}
-          pagination={{ pageSize: 30, hideOnSinglePage: true }}
+          pagination={pager(data?.receivables?.length)}
           scroll={{ x: 700 }}
           locale={{ emptyText: 'Không có công nợ phải thu' }}
           columns={[
@@ -52,7 +53,7 @@ function Debts({ period }: { period: Period }) {
           size="small"
           loading={isFetching}
           dataSource={data?.payables}
-          pagination={{ pageSize: 30, hideOnSinglePage: true }}
+          pagination={pager(data?.payables?.length)}
           scroll={{ x: 700 }}
           locale={{ emptyText: 'Không có công nợ phải trả' }}
           columns={[

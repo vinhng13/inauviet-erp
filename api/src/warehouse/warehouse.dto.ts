@@ -883,6 +883,8 @@ export class ImportIssueDto {
 
 export class PaperImportItemDto {
   row: number;
+  /** Mã VT đúng như trong bảng */
+  code: string | null;
   group: string;
   name: string;
   size: string;

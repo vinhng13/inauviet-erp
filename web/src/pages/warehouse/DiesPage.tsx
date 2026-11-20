@@ -32,6 +32,7 @@ import { errorMessage } from '../../lib/errors';
 import { formatDate, formatDateTime, formatVnd, vndInputProps } from '../../lib/format';
 import { BatchModal } from './BatchesPage';
 import { ACTION, BatchStatusTag, DieStatusTag, downloadCsv, KIND, ORIENT, OWNER, PageHead, STATUS, useDiePlaces, type DieAction, type DieStatus } from './common';
+import { pager } from '../../lib/paging';
 
 const FLAG_LABEL = { overdue: 'Quá hẹn chưa về', review: 'Cần xác nhận', out: 'Đang ở xưởng ngoài' } as const;
 
@@ -159,7 +160,7 @@ export function WarehouseDiesPage() {
         size="small"
         loading={isFetching}
         dataSource={data?.items}
-        pagination={{ pageSize: 50, showSizeChanger: false, hideOnSinglePage: true, showTotal: (n) => `${n} khuôn` }}
+        pagination={pager(data?.items?.length, { showTotal: (n) => `${n} khuôn` })}
         rowSelection={can('warehouse.dies') ? { selectedRowKeys: selected.map((d) => d.id), onChange: (_, rows) => setSelected(rows), getCheckboxProps: (d) => ({ disabled: !!d.pendingBatchId || d.status === 'DISPOSED' }) } : undefined}
         onRow={(r) => ({ onClick: () => set({ open: r.id }), style: { cursor: 'pointer' } })}
         locale={{ emptyText: sizeSearch ? 'Không có khuôn nào gần kích thước này — cần làm khuôn mới.' : 'Không có khuôn' }}

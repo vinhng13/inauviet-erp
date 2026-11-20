@@ -9,6 +9,7 @@ import { useCan } from '../../lib/access';
 import { errorMessage } from '../../lib/errors';
 import { formatDate, formatDateTime, formatVnd, vndInputProps } from '../../lib/format';
 import { downloadCsv, lineQty, PageHead, qty, SLIP, SlipStatusTag, useWarehousePick, WarehousePicker, type SlipKind } from './common';
+import { pager } from '../../lib/paging';
 
 type Warehouse = Schemas['WarehouseDto'];
 type Slip = Schemas['SlipDto'];
@@ -112,7 +113,7 @@ function StockTable({ warehouse }: { warehouse: Warehouse }) {
         size="small"
         loading={isFetching}
         dataSource={rows}
-        pagination={{ pageSize: 50, hideOnSinglePage: true }}
+        pagination={pager(rows?.length)}
         locale={{ emptyText: 'Kho này chưa có vật tư. Thêm ở Danh mục kho → Vật tư (chọn kho có vật tư).' }}
         onRow={(r) => ({ onClick: () => setCard(r), style: { cursor: 'pointer' } })}
         columns={[
@@ -191,7 +192,7 @@ function StockCard({ item, onClose }: { item: StockItem; onClose: () => void }) 
         size="small"
         loading={isFetching}
         dataSource={data?.rows}
-        pagination={{ pageSize: 50, hideOnSinglePage: true }}
+        pagination={pager(data?.rows?.length)}
         locale={{ emptyText: 'Chưa có phiếu nào được xác nhận' }}
         columns={[
           { title: 'Ngày', dataIndex: 'date', width: 100, render: formatDate },
@@ -239,7 +240,7 @@ function SlipList({ warehouse, pendingOnly, onOpen }: { warehouse: Warehouse; pe
         size="small"
         loading={isFetching}
         dataSource={data}
-        pagination={{ pageSize: 30, hideOnSinglePage: true }}
+        pagination={pager(data?.length)}
         locale={{ emptyText: pendingOnly ? 'Không có phiếu chờ xác nhận' : 'Không có phiếu' }}
         scroll={{ x: 1250 }}
         rowClassName={(r) => (r.voidedAt || r.status === 'CANCELLED' || r.status === 'REJECTED' ? 'row-voided' : '')}

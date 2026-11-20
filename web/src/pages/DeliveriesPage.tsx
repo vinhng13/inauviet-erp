@@ -11,6 +11,7 @@ import { DeliveryStatusTag } from '../components/Tags';
 import { formatDate, formatDateTime, formatQty, formatVnd, todayIso } from '../lib/format';
 import dayjs from 'dayjs';
 import { useCan } from '../lib/access';
+import { DEFAULT_PAGE_SIZE, serverPager } from '../lib/paging';
 
 type View = 'today' | 'upcoming' | 'overdue' | 'delivered' | 'accept' | 'accepted';
 type Row = Schemas['DeliveryListItemDto'];
@@ -21,6 +22,7 @@ export function DeliveriesPage() {
   const view = (params.get('view') as View | null) ?? 'today';
   const [q, setQ] = useState('');
   const [page, setPage] = useState(1);
+  const [size, setSize] = useState<number>(DEFAULT_PAGE_SIZE);
   const [delivering, setDelivering] = useState<Row | null>(null);
   const today = todayIso();
   const can = useCan();
@@ -34,7 +36,7 @@ export function DeliveriesPage() {
           ? { overdue: true }
           : { status: 'DELIVERED' as const };
   const orderView = view === 'accept' || view === 'accepted';
-  const { data, isFetching } = useDeliveries({ ...query, q: q || undefined, page, pageSize: 30 });
+  const { data, isFetching } = useDeliveries({ ...query, q: q || undefined, page, pageSize: size });
 
   return (
     <Flex vertical gap={16}>
@@ -69,7 +71,7 @@ export function DeliveriesPage() {
         dataSource={data?.items}
         scroll={{ x: 960 }}
         locale={{ emptyText: view === 'today' ? 'Hôm nay không có chuyến nào' : 'Không có chuyến nào' }}
-        pagination={{ current: page, pageSize: 30, total: data?.total, showSizeChanger: false, onChange: setPage }}
+        pagination={serverPager(page, size, data?.total, (p, s) => (setPage(p), setSize(s)))}
         columns={[
           { title: 'Chuyến', dataIndex: 'code', width: 140, render: (v) => <Typography.Text strong>{v}</Typography.Text> },
           { title: view === 'delivered' ? 'Đã giao' : 'Ngày dự kiến', width: 140, render: (_, d) => (d.status === 'DELIVERED' ? formatDateTime(d.deliveredAt) : formatDate(d.plannedDate)) },

@@ -7,6 +7,7 @@ import { useDieJournal, useWhPeople, type DieJournalQuery } from '../../api/ware
 import { useCan } from '../../lib/access';
 import { formatDate } from '../../lib/format';
 import { downloadCsv, PageHead, useDiePlaces } from './common';
+import { pager } from '../../lib/paging';
 
 type Row = Schemas['DieJournalRowDto'];
 
@@ -108,7 +109,7 @@ export function WarehouseDieJournalPage() {
         size="small"
         loading={isFetching}
         dataSource={data}
-        pagination={{ pageSize: 100, hideOnSinglePage: true, showTotal: (n) => `${n} thao tác` }}
+        pagination={pager(data?.length, { showTotal: (n) => `${n} thao tác` })}
         locale={{ emptyText: 'Không có thao tác nào trong khoảng ngày này' }}
         scroll={{ x: 1000 }}
         columns={[

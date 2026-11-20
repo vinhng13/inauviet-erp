@@ -437,10 +437,10 @@
             "name": "pageSize",
             "required": false,
             "in": "query",
-            "description": "Items per page (max 100)",
+            "description": "Items per page (max 200)",
             "schema": {
               "minimum": 1,
-              "maximum": 100,
+              "maximum": 200,
               "default": 20,
               "type": "number"
             }
@@ -753,10 +753,10 @@
             "name": "pageSize",
             "required": false,
             "in": "query",
-            "description": "Items per page (max 100)",
+            "description": "Items per page (max 200)",
             "schema": {
               "minimum": 1,
-              "maximum": 100,
+              "maximum": 200,
               "default": 20,
               "type": "number"
             }
@@ -1181,10 +1181,10 @@
             "name": "pageSize",
             "required": false,
             "in": "query",
-            "description": "Items per page (max 100)",
+            "description": "Items per page (max 200)",
             "schema": {
               "minimum": 1,
-              "maximum": 100,
+              "maximum": 200,
               "default": 20,
               "type": "number"
             }
@@ -2041,10 +2041,10 @@
             "name": "pageSize",
             "required": false,
             "in": "query",
-            "description": "Items per page (max 100)",
+            "description": "Items per page (max 200)",
             "schema": {
               "minimum": 1,
-              "maximum": 100,
+              "maximum": 200,
               "default": 20,
               "type": "number"
             }
@@ -2368,10 +2368,10 @@
             "name": "pageSize",
             "required": false,
             "in": "query",
-            "description": "Items per page (max 100)",
+            "description": "Items per page (max 200)",
             "schema": {
               "minimum": 1,
-              "maximum": 100,
+              "maximum": 200,
               "default": 20,
               "type": "number"
             }
@@ -14853,6 +14853,11 @@
           "row": {
             "type": "number"
           },
+          "code": {
+            "type": "string",
+            "nullable": true,
+            "description": "Mã VT đúng như trong bảng"
+          },
           "group": {
             "type": "string"
           },
@@ -14883,6 +14888,7 @@
         },
         "required": [
           "row",
+          "code",
           "group",
           "name",
           "size",

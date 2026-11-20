@@ -6,13 +6,15 @@ import type { Schemas } from '../api/client';
 import { useCustomers } from '../api/hooks';
 import { CustomerFormModal } from '../components/CustomerSelect';
 import { useCan } from '../lib/access';
+import { DEFAULT_PAGE_SIZE, serverPager } from '../lib/paging';
 
 export function CustomersPage() {
   const navigate = useNavigate();
   const [q, setQ] = useState('');
   const [page, setPage] = useState(1);
+  const [size, setSize] = useState<number>(DEFAULT_PAGE_SIZE);
   const [creating, setCreating] = useState(false);
-  const { data, isFetching } = useCustomers({ q: q || undefined, page, pageSize: 20 });
+  const { data, isFetching } = useCustomers({ q: q || undefined, page, pageSize: size });
   const can = useCan();
 
   return (
@@ -34,7 +36,7 @@ export function CustomersPage() {
         dataSource={data?.items}
         scroll={{ x: 760 }}
         onRow={(c) => ({ onClick: () => navigate(`/customers/${c.id}`), style: { cursor: 'pointer' } })}
-        pagination={{ current: page, pageSize: 20, total: data?.total, showSizeChanger: false, onChange: setPage }}
+        pagination={serverPager(page, size, data?.total, (p, s) => (setPage(p), setSize(s)))}
         columns={[
           { title: 'Mã', dataIndex: 'code', width: 100 },
           { title: 'Tên', dataIndex: 'name' },

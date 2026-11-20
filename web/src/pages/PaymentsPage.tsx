@@ -11,6 +11,7 @@ import { OrderStatusTag } from '../components/Tags';
 import { useCan } from '../lib/access';
 import { formatDate, formatDateTime, formatVnd } from '../lib/format';
 import { PAYMENT_METHOD } from '../lib/status';
+import { DEFAULT_PAGE_SIZE, pager, serverPager } from '../lib/paging';
 
 type View = 'debt' | 'receipts';
 
@@ -82,7 +83,7 @@ function DebtTable({ data, loading }: { data: Schemas['ReceivableListDto'] | und
         rowKey="orderId"
         loading={loading}
         dataSource={rows}
-        pagination={{ pageSize: 30, hideOnSinglePage: true }}
+        pagination={pager(rows?.length)}
         scroll={{ x: 960 }}
         locale={{ emptyText: 'Không có đơn nào còn nợ' }}
         columns={[
@@ -137,6 +138,7 @@ function Receipts({ q }: { q: string }) {
   const [method, setMethod] = useState<Schemas['PaymentMethod'] | undefined>();
   const [voided, setVoided] = useState(false);
   const [page, setPage] = useState(1);
+  const [size, setSize] = useState<number>(DEFAULT_PAGE_SIZE);
   const { data, isFetching } = usePayments({
     q: q || undefined,
     from: range?.[0].format('YYYY-MM-DD'),
@@ -144,7 +146,7 @@ function Receipts({ q }: { q: string }) {
     method,
     includeVoided: voided || undefined,
     page,
-    pageSize: 30,
+    pageSize: size,
   });
   return (
     <Flex vertical gap={12}>
@@ -173,7 +175,7 @@ function Receipts({ q }: { q: string }) {
         dataSource={data?.items}
         scroll={{ x: 900 }}
         rowClassName={(p) => (p.voidedAt ? 'row-voided' : '')}
-        pagination={{ current: page, pageSize: 30, total: data?.total, showSizeChanger: false, onChange: setPage }}
+        pagination={serverPager(page, size, data?.total, (p, s) => (setPage(p), setSize(s)))}
         locale={{ emptyText: 'Không có khoản thu nào' }}
         columns={[
           { title: 'Ngày', dataIndex: 'paidOn', width: 120, render: formatDate },

@@ -10,6 +10,7 @@ import { useCan } from '../../lib/access';
 import { errorMessage } from '../../lib/errors';
 import { formatDate, formatQty, formatVnd, vndInputProps } from '../../lib/format';
 import { AccountingPage, money, monthLabel, PAY_METHOD, PeriodClosedNote, VAT_OPTIONS, type Period, type VatRate } from './common';
+import { pager } from '../../lib/paging';
 
 type Modal = 'receipt' | 'issue' | null;
 
@@ -109,7 +110,7 @@ function Stock({ period }: { period: Period }) {
                 rowKey="id"
                 size="small"
                 dataSource={data?.receipts}
-                pagination={{ pageSize: 30, hideOnSinglePage: true }}
+                pagination={pager(data?.receipts?.length)}
                 scroll={{ x: 960 }}
                 locale={{ emptyText: 'Chưa có phiếu nhập' }}
                 columns={[
@@ -143,7 +144,7 @@ function Stock({ period }: { period: Period }) {
                 rowKey="id"
                 size="small"
                 dataSource={data?.issues}
-                pagination={{ pageSize: 30, hideOnSinglePage: true }}
+                pagination={pager(data?.issues?.length)}
                 scroll={{ x: 900 }}
                 locale={{ emptyText: 'Chưa có phiếu xuất' }}
                 columns={[
