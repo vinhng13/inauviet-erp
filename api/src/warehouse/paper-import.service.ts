@@ -11,6 +11,8 @@ import { readXlsx, type Cell } from './xlsx-reader';
 const str = (c: Cell | undefined): string => (c === null || c === undefined ? '' : String(c).trim().replace(/\s+/g, ' '));
 const fold = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[đĐ]/g, 'd').toLowerCase().replace(/\s+/g, ' ').trim();
 const r3 = (v: number) => Math.round(v * 1000) / 1000;
+/** Ghi chú đầu phiếu điều chỉnh do lần nhập bảng tạo ra (để lần nhập sau nhận ra và thay thế khi còn chờ) */
+const NOTE_PREFIX = 'Theo bảng';
 
 /** Mã VT trong bảng → nhóm vật tư */
 function groupOf(code: string): string {
@@ -34,8 +36,10 @@ interface Row {
 
 /**
  * Nhập bảng tồn giấy đang theo dõi trên Excel / Google Sheets (sheet "Tồn giấy…": Mã VT, Loại giấy, Khổ giấy, TỒN).
- * Tạo vật tư (đơn vị tờ), quy cách theo khổ, gắn vào Kho giấy, rồi lập một phiếu điều chỉnh "Tồn đầu" (chờ xác nhận)
- * với số tồn trong bảng; thủ kho xác nhận mới thành tồn. Chạy lại không tạo trùng; quy cách đã có phiếu thì giữ tồn hiện tại.
+ * Tạo vật tư (đơn vị tờ), quy cách theo khổ, gắn vào Kho giấy, rồi lập một phiếu điều chỉnh (chờ xác nhận) đưa tồn từng
+ * quy cách về đúng số trong bảng: dòng = số trong bảng − tồn đã xác nhận. Lần đầu là phiếu "Tồn đầu". Chạy lại với bảng mới:
+ * phiếu theo bảng trước còn chờ thì bị thay thế; đã xác nhận rồi thì phiếu mới chỉ ghi phần chênh. Dòng chưa có số tồn
+ * (chưa đếm) chỉ tạo quy cách, không đổi tồn; quy cách có tồn trên phần mềm mà không có trong bảng thì giữ nguyên.
  */
 @Injectable()
 export class PaperImportService {
@@ -97,7 +101,8 @@ export class PaperImportService {
       const qtyCell = r[cQty];
       const qty = typeof qtyCell === 'number' ? qtyCell : str(qtyCell) && !Number.isNaN(Number(str(qtyCell).replace(',', '.'))) ? Number(str(qtyCell).replace(',', '.')) : null;
       const note = cNote >= 0 ? str(r[cNote]) : '';
-      if (qty === null) issues.push({ row, code: `${name} ${fmtCm(size[0])} × ${fmtCm(size[1])}`, message: `Chưa có số tồn${note ? ` (${note})` : ''}: tạo quy cách, không ghi tồn` });
+      if (qty === null)
+        issues.push({ row, code: `${name} ${fmtCm(size[0])} × ${fmtCm(size[1])}`, message: `Chưa có số tồn${note ? ` (${note})` : ''}: tạo quy cách, không ghi tồn` });
       const group = groupOf(cGroup >= 0 ? str(r[cGroup]) : '');
       const key = `${fold(group)}|${fold(name)}|${size[0]}x${size[1]}`;
       const prev = planned.get(key);
@@ -124,18 +129,62 @@ export class PaperImportService {
       rows: list.length,
       materialsCreated: newMaterials.size,
       specsCreated: newSpecs,
-      counted: 0,
-      keptExisting: 0,
+      counted: list.filter((p) => p.qty !== null).length,
+      adjusted: 0,
+      unchanged: 0,
+      replacedSlips: [],
       slipCode: null,
-      totalQty: 0,
-      items: list.map((p) => ({ row: p.row, group: p.group, name: p.name, size: `${fmtCm(p.w)} x ${fmtCm(p.l)}`, qty: p.qty, note: p.note || null })),
+      totalQty: r3(list.reduce((a, p) => a + (p.qty ?? 0), 0)),
+      items: list.map((p) => ({ row: p.row, group: p.group, name: p.name, size: `${fmtCm(p.w)} x ${fmtCm(p.l)}`, qty: p.qty, note: p.note || null, onHand: null, delta: null })),
       issues,
     };
-    if (dryRun) {
-      report.counted = list.filter((p) => p.qty !== null).length;
-      report.totalQty = r3(list.reduce((a, p) => a + (p.qty ?? 0), 0));
-      return report;
+
+    // Phiếu "theo bảng" của lần nhập trước còn chờ xác nhận: lần nhập này thay thế (huỷ phiếu cũ, lập phiếu mới theo số mới)
+    const oldSlips = await this.prisma.whSlip.findMany({
+      where: { warehouseId: kho.id, kind: 'ADJUST', status: 'PENDING', voidedAt: null, note: { startsWith: NOTE_PREFIX } },
+      select: { id: true, code: true },
+    });
+    report.replacedSlips = oldSlips.map((x) => x.code);
+    // Tồn đã xác nhận hiện tại của từng quy cách trong kho giấy
+    const stocks = await this.prisma.whStock.findMany({ where: { warehouseId: kho.id }, include: { spec: { include: { material: true } } } });
+    const onHandOf = (p: Row) => {
+      const m = findMat(p);
+      const sp = findSpec(m, p);
+      const st = sp && stocks.find((x) => x.specId === sp.id);
+      return st ? Number(st.qty) : 0;
+    };
+    // Phiếu khác (nhập / xuất / chuyển) đang chờ xác nhận ở kho giấy: số trong bảng là số thực tế, cần xem lại các phiếu này
+    const otherPending = await this.prisma.whSlipLine.findMany({
+      where: { slip: { warehouseId: kho.id, status: 'PENDING', voidedAt: null, id: { notIn: oldSlips.map((x) => x.id) } } },
+      select: { specId: true, slip: { select: { code: true } } },
+    });
+    const sheetKeys = new Set<string>();
+    list.forEach((p, i) => {
+      const item = report.items[i]!;
+      const sp = findSpec(findMat(p), p);
+      if (sp) sheetKeys.add(sp.id);
+      item.onHand = onHandOf(p);
+      if (p.qty === null) return;
+      item.delta = r3(p.qty - item.onHand);
+      if (item.delta === 0) report.unchanged++;
+      else report.adjusted++;
+      const pend = sp ? [...new Set(otherPending.filter((l) => l.specId === sp.id).map((l) => l.slip.code))] : [];
+      if (pend.length)
+        issues.push({
+          row: p.row,
+          code: `${p.name} ${fmtCm(p.w)} × ${fmtCm(p.l)}`,
+          message: `Đang có phiếu chờ xác nhận ${pend.join(', ')}: tồn sẽ lệch bảng nếu xác nhận phiếu đó, nên xem lại`,
+        });
+    });
+    for (const st of stocks) {
+      if (sheetKeys.has(st.specId) || Number(st.qty) === 0) continue;
+      issues.push({
+        row: null,
+        code: `${st.spec.material.name} ${fmtCm(Number(st.spec.widthCm))} × ${fmtCm(Number(st.spec.lengthCm))}`,
+        message: `Có tồn ${Number(st.qty)} trên phần mềm nhưng không có trong bảng: giữ nguyên`,
+      });
     }
+    if (dryRun) return report;
 
     await this.prisma.$transaction(
       async (tx) => {
@@ -154,32 +203,31 @@ export class PaperImportService {
             create: { materialId, widthCm: p.w, lengthCm: p.l },
             update: { isActive: true },
           });
-          await tx.whStock.upsert({ where: { warehouseId_specId: { warehouseId: kho.id, specId: spec.id } }, create: { warehouseId: kho.id, specId: spec.id }, update: { isActive: true } });
+          await tx.whStock.upsert({
+            where: { warehouseId_specId: { warehouseId: kho.id, specId: spec.id } },
+            create: { warehouseId: kho.id, specId: spec.id },
+            update: { isActive: true },
+          });
           specOf.set(p, spec.id);
         }
-        // Quy cách đã có phiếu (đã xác nhận hoặc đang chờ) ở kho này: giữ tồn trên phần mềm, không ghi đè bằng số trong bảng
-        const used = new Set(
-          (
-            await tx.whSlipLine.findMany({
-              where: { specId: { in: [...specOf.values()] }, slip: { warehouseId: kho.id, status: { in: ['PENDING', 'CONFIRMED'] }, voidedAt: null } },
-              select: { specId: true },
-              distinct: ['specId'],
-            })
-          ).map((l) => l.specId),
-        );
-        const counted = new Map<string, number>();
-        for (const p of list) {
-          if (p.qty === null) continue;
-          const specId = specOf.get(p)!;
-          if (used.has(specId)) {
-            report.keptExisting++;
-            issues.push({ row: p.row, code: `${p.name} ${fmtCm(p.w)} × ${fmtCm(p.l)}`, message: 'Quy cách đã có phiếu trên phần mềm: giữ tồn hiện tại, không ghi số trong bảng' });
-            continue;
-          }
-          counted.set(specId, p.qty);
+        if (oldSlips.length) {
+          const cancelled = await tx.whSlip.updateMany({
+            where: { id: { in: oldSlips.map((x) => x.id) }, status: 'PENDING' },
+            data: { status: 'CANCELLED', rejectReason: 'Thay bằng lần nhập bảng tồn giấy mới' },
+          });
+          if (cancelled.count !== oldSlips.length) throw DomainError.conflict('WH_IMPORT_RACE', 'A previous import slip changed while importing; try again');
         }
-        const lines = [...counted].filter(([, q]) => q > 0).map(([specId, qty]) => ({ specId, qty }));
+        // Dòng điều chỉnh = số trong bảng − tồn đã xác nhận (đọc lại trong giao dịch)
+        const current = new Map((await tx.whStock.findMany({ where: { warehouseId: kho.id, specId: { in: [...specOf.values()] } } })).map((x) => [x.specId, Number(x.qty)]));
+        const lines = list
+          .filter((p) => p.qty !== null)
+          .map((p) => ({ specId: specOf.get(p)!, qty: r3(p.qty! - (current.get(specOf.get(p)!) ?? 0)) }))
+          .filter((l) => l.qty !== 0);
         if (!lines.length) return;
+        // Chưa quy cách nào có phiếu đã xác nhận ở kho này: đây là tồn đầu; còn lại là điều chỉnh
+        const anyConfirmed = await tx.whSlipLine.count({
+          where: { specId: { in: lines.map((l) => l.specId) }, slip: { warehouseId: kho.id, status: 'CONFIRMED', voidedAt: null } },
+        });
         const date = dateField(today, 'today');
         const slip = await tx.whSlip.create({
           data: {
@@ -188,15 +236,13 @@ export class PaperImportService {
             kind: 'ADJUST',
             status: 'PENDING',
             date,
-            purpose: 'Tồn đầu',
-            note: `Theo bảng "${sheetName}". Thủ kho xem lại rồi xác nhận.`,
+            purpose: anyConfirmed ? 'Điều chỉnh theo bảng tồn giấy' : 'Tồn đầu',
+            note: `${NOTE_PREFIX} "${sheetName}": đưa tồn về đúng số trong bảng. Thủ kho xem lại rồi xác nhận.`,
             createdById: actor.id,
             lines: { create: lines },
           },
         });
         report.slipCode = slip.code;
-        report.counted = counted.size;
-        report.totalQty = r3([...counted.values()].reduce((a, v) => a + v, 0));
       },
       { timeout: 60_000 },
     );

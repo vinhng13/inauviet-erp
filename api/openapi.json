@@ -14782,7 +14782,9 @@
             "nullable": true
           },
           "row": {
-            "type": "number"
+            "type": "number",
+            "nullable": true,
+            "description": "Dòng trong bảng; null khi không gắn với dòng nào"
           },
           "message": {
             "type": "string"
@@ -14867,6 +14869,16 @@
           "note": {
             "type": "string",
             "nullable": true
+          },
+          "onHand": {
+            "type": "number",
+            "nullable": true,
+            "description": "Tồn đã xác nhận trên phần mềm trước khi nhập"
+          },
+          "delta": {
+            "type": "number",
+            "nullable": true,
+            "description": "Chênh lệch sẽ ghi lên phiếu điều chỉnh (số trong bảng − tồn hiện tại); null khi dòng chưa có số"
           }
         },
         "required": [
@@ -14875,7 +14887,9 @@
           "name",
           "size",
           "qty",
-          "note"
+          "note",
+          "onHand",
+          "delta"
         ]
       },
       "PaperImportReportDto": {
@@ -14896,16 +14910,27 @@
           },
           "counted": {
             "type": "number",
-            "description": "Số quy cách có số tồn đưa vào phiếu tồn đầu"
+            "description": "Số quy cách có số tồn trong bảng"
           },
-          "keptExisting": {
+          "adjusted": {
             "type": "number",
-            "description": "Quy cách đã có phiếu trên phần mềm, giữ tồn hiện tại"
+            "description": "Quy cách có số trong bảng khác tồn đã xác nhận (có dòng trên phiếu điều chỉnh)"
+          },
+          "unchanged": {
+            "type": "number",
+            "description": "Quy cách có số trong bảng bằng tồn hiện tại"
+          },
+          "replacedSlips": {
+            "description": "Phiếu theo bảng của lần nhập trước, còn chờ xác nhận, được thay bằng lần này (xem trước: sẽ bị thay)",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           },
           "slipCode": {
             "type": "string",
             "nullable": true,
-            "description": "Phiếu điều chỉnh \"Tồn đầu\" đã lập, chờ xác nhận (null khi xem trước hoặc không có gì để ghi)"
+            "description": "Phiếu điều chỉnh đã lập, chờ xác nhận (null khi xem trước hoặc tồn đã đúng bảng)"
           },
           "totalQty": {
             "type": "number"
@@ -14929,7 +14954,9 @@
           "materialsCreated",
           "specsCreated",
           "counted",
-          "keptExisting",
+          "adjusted",
+          "unchanged",
+          "replacedSlips",
           "slipCode",
           "totalQty",
           "items",

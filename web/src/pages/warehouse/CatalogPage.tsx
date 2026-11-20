@@ -538,7 +538,7 @@ function ImportDies() {
   );
 }
 
-/** Nhập bảng tồn giấy (Google Sheets "THEO DÕI GIẤY TỒN" tải về dạng .xlsx): danh mục + phiếu tồn đầu chờ xác nhận */
+/** Nhập bảng tồn giấy (Google Sheets "THEO DÕI GIẤY TỒN" tải về dạng .xlsx): danh mục + phiếu điều chỉnh đưa tồn về đúng bảng, chờ xác nhận */
 function ImportPaper() {
   const { message } = App.useApp();
   const { importPaper } = useWarehouseMutations();
@@ -553,7 +553,7 @@ function ImportPaper() {
         onSuccess: (r) => {
           setReport(r);
           setDry(dryRun);
-          if (!dryRun) message.success(r.slipCode ? `Đã nhập; phiếu tồn đầu ${r.slipCode} chờ thủ kho xác nhận` : 'Đã nhập danh mục');
+          if (!dryRun) message.success(r.slipCode ? `Đã nhập; phiếu ${r.slipCode} chờ thủ kho xác nhận` : 'Tồn đã đúng bảng, không cần phiếu');
         },
         onError: (e) => message.error(errorMessage(e)),
       },
@@ -562,7 +562,8 @@ function ImportPaper() {
     <Flex vertical gap={12} style={{ maxWidth: 900 }}>
       <Typography.Paragraph type="secondary" style={{ margin: 0 }}>
         Chọn bảng tồn giấy đang theo dõi (trên Google Sheets: Tệp → Tải xuống → Microsoft Excel). Phần mềm đọc sheet có cột Mã VT, Loại giấy, Khổ giấy, TỒN; tạo vật tư (đơn vị tờ) và quy cách theo khổ ở Kho giấy, rồi lập
-        một phiếu điều chỉnh "Tồn đầu" với số tồn trong bảng. Thủ kho Kho giấy vào Tồn kho & phiếu → Chờ xác nhận, xem lại và bấm Xác nhận thì số đó thành tồn. Chạy lại không tạo trùng; quy cách đã có phiếu thì giữ tồn hiện tại.
+        một phiếu điều chỉnh đưa tồn từng quy cách về đúng số trong bảng (lần đầu là phiếu "Tồn đầu"). Thủ kho Kho giấy vào Tồn kho & phiếu → Chờ xác nhận, xem lại và bấm Xác nhận thì tồn khớp bảng. Nhập lại bảng
+        mới: phiếu theo bảng trước còn chờ sẽ được thay; đã xác nhận rồi thì phiếu mới chỉ ghi phần chênh. Dòng chưa đếm chỉ tạo quy cách, không đổi tồn.
       </Typography.Paragraph>
       <Upload.Dragger
         accept=".xlsx"
@@ -579,7 +580,7 @@ function ImportPaper() {
       </Upload.Dragger>
       <Space>
         <Button disabled={!file} loading={importPaper.isPending && importPaper.variables?.dryRun} onClick={() => run(true)}>Xem trước</Button>
-        <Popconfirm title="Nhập danh mục giấy và lập phiếu tồn đầu?" okText="Nhập" cancelText="Không" disabled={!report || !dry} onConfirm={() => run(false)}>
+        <Popconfirm title="Nhập danh mục giấy và lập phiếu điều chỉnh theo bảng?" okText="Nhập" cancelText="Không" disabled={!report || !dry} onConfirm={() => run(false)}>
           <Button type="primary" disabled={!report || !dry} loading={importPaper.isPending && importPaper.variables?.dryRun === false}>Nhập</Button>
         </Popconfirm>
       </Space>
@@ -587,8 +588,8 @@ function ImportPaper() {
         <Flex vertical gap={12}>
           <Alert
             type={dry ? 'info' : 'success'}
-            title={dry ? `Xem trước sheet "${report.sheet}" — chưa ghi gì` : report.slipCode ? `Đã nhập. Phiếu tồn đầu ${report.slipCode} chờ thủ kho Kho giấy xác nhận (Tồn kho & phiếu → Chờ xác nhận).` : 'Đã nhập danh mục'}
-            description={`${report.rows} loại giấy × khổ; ${report.materialsCreated} vật tư mới, ${report.specsCreated} quy cách mới; ${report.counted} quy cách có số tồn, tổng ${report.totalQty.toLocaleString('vi-VN')} tờ${report.keptExisting ? `; ${report.keptExisting} quy cách đã có phiếu, giữ tồn hiện tại` : ''}.`}
+            title={dry ? `Xem trước sheet "${report.sheet}" — chưa ghi gì` : report.slipCode ? `Đã nhập. Phiếu ${report.slipCode} chờ thủ kho Kho giấy xác nhận (Tồn kho & phiếu → Chờ xác nhận).` : 'Đã nhập danh mục; tồn đã đúng bảng'}
+            description={`${report.rows} loại giấy × khổ; ${report.materialsCreated} vật tư mới, ${report.specsCreated} quy cách mới; ${report.counted} quy cách có số tồn, tổng ${report.totalQty.toLocaleString('vi-VN')} tờ; ${report.adjusted} quy cách cần điều chỉnh, ${report.unchanged} đã đúng${report.replacedSlips.length ? `; ${dry ? 'sẽ thay' : 'đã thay'} phiếu chờ ${report.replacedSlips.join(', ')}` : ''}.`}
           />
           {report.issues.length > 0 && (
             <Table<Schemas['ImportIssueDto']>
@@ -615,6 +616,14 @@ function ImportPaper() {
               { title: 'Loại giấy', dataIndex: 'name' },
               { title: 'Khổ', dataIndex: 'size', width: 120 },
               { title: 'Tồn (tờ)', dataIndex: 'qty', width: 100, align: 'right', render: (v: number | null) => (v === null ? <Typography.Text type="secondary">chưa đếm</Typography.Text> : v.toLocaleString('vi-VN')) },
+              { title: 'Đang có', dataIndex: 'onHand', width: 90, align: 'right', render: (v: number | null) => (v ?? 0).toLocaleString('vi-VN') },
+              {
+                title: 'Chênh',
+                dataIndex: 'delta',
+                width: 90,
+                align: 'right',
+                render: (v: number | null) => (v === null || v === 0 ? '' : <Typography.Text type={v < 0 ? 'danger' : 'success'}>{v > 0 ? `+${v.toLocaleString('vi-VN')}` : v.toLocaleString('vi-VN')}</Typography.Text>),
+              },
               { title: 'Ghi chú', dataIndex: 'note', width: 200 },
             ]}
           />

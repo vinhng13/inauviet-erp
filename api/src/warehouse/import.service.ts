@@ -212,7 +212,7 @@ export class DieImportService {
       partnersCreated,
       locationsCreated,
       byStatus,
-      issues: issues.sort((a, b) => a.row - b.row),
+      issues: issues.sort((a, b) => (a.row ?? 0) - (b.row ?? 0)),
     };
     if (dryRun || !todo.length) return report;
 

@@ -8,7 +8,7 @@
 
 **Changes in v0.13 (20 Nov 2026)**
 - Removed stock counts (Kiểm kê vật tư), die counts (Kiểm kê khuôn) and month locks (Chốt tồn tháng): menu, pages, endpoints and the `warehouse.count` permission are gone. The tables `WhCount*`, `WhDieCount*`, `WhMonthLock` stay for history but nothing reads or writes them, and no slip is blocked by a month lock any more. Adjustment slips (DC-) can now be voided like other slips. Sections 15.x that describe counts and locks are historical.
-- The paper stock import creates a PENDING adjustment slip "Tồn đầu" instead of a draft count; the storekeeper confirms it like any slip.
+- The paper stock import creates a PENDING adjustment slip whose lines are sheet − confirmed stock ("Tồn đầu" the first time, "Điều chỉnh theo bảng tồn giấy" after), so confirming it makes stock equal the sheet. Re-importing cancels the previous import slip if it is still pending.
 
 **Changes in v0.12 (dies across warehouses, confirmed transfers, 20 Nov 2026)**
 - Dies belong to a die warehouse (`WhDie.warehouseId`): Kho khuôn Âu Việt (KHUON) and Kho Xuân Đỉnh (XUANDINH, formerly a "workshop"). Shelves belong to a warehouse. Every move between places is a transfer (`WhDieBatch`, GN-…) with a required destination and storekeeper confirmation; see 15.6. New menu **Nhật ký khuôn**.

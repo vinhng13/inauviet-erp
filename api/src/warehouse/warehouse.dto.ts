@@ -876,7 +876,8 @@ export class WarehouseOverviewDto {
 
 export class ImportIssueDto {
   code: string | null;
-  row: number;
+  /** Dòng trong bảng; null khi không gắn với dòng nào */
+  row: number | null;
   message: string;
 }
 
@@ -887,6 +888,10 @@ export class PaperImportItemDto {
   size: string;
   qty: number | null;
   note: string | null;
+  /** Tồn đã xác nhận trên phần mềm trước khi nhập */
+  onHand: number | null;
+  /** Chênh lệch sẽ ghi lên phiếu điều chỉnh (số trong bảng − tồn hiện tại); null khi dòng chưa có số */
+  delta: number | null;
 }
 
 /** Nhập bảng tồn giấy: danh mục tạo thêm, phiếu điều chỉnh tồn đầu chờ thủ kho xác nhận */
@@ -896,11 +901,15 @@ export class PaperImportReportDto {
   rows: number;
   materialsCreated: number;
   specsCreated: number;
-  /** Số quy cách có số tồn đưa vào phiếu tồn đầu */
+  /** Số quy cách có số tồn trong bảng */
   counted: number;
-  /** Quy cách đã có phiếu trên phần mềm, giữ tồn hiện tại */
-  keptExisting: number;
-  /** Phiếu điều chỉnh "Tồn đầu" đã lập, chờ xác nhận (null khi xem trước hoặc không có gì để ghi) */
+  /** Quy cách có số trong bảng khác tồn đã xác nhận (có dòng trên phiếu điều chỉnh) */
+  adjusted: number;
+  /** Quy cách có số trong bảng bằng tồn hiện tại */
+  unchanged: number;
+  /** Phiếu theo bảng của lần nhập trước, còn chờ xác nhận, được thay bằng lần này (xem trước: sẽ bị thay) */
+  replacedSlips: string[];
+  /** Phiếu điều chỉnh đã lập, chờ xác nhận (null khi xem trước hoặc tồn đã đúng bảng) */
   slipCode: string | null;
   totalQty: number;
   items: PaperImportItemDto[];

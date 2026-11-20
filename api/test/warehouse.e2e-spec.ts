@@ -320,13 +320,13 @@ describe('Warehouse', () => {
     expect(d.needsReview).toBe(false);
   });
 
-  it('imports the paper stock sheet as catalog plus an opening-stock slip the storekeeper confirms', async () => {
+  it('imports the paper stock sheet: catalog plus a slip that brings stock to the sheet, re-imports replace or top up', async () => {
     const agent = request.agent(t.app.getHttpServer());
     await agent.post('/api/v1/auth/login').send({ username: ADMIN, password: PASSWORD }).expect(200);
     const file = readFileSync(join(__dirname, 'fixtures', 'giay-mau.xlsx'));
     const upload = (dryRun: boolean) => agent.post(`/api/v1/warehouse/materials/import-paper?dryRun=${dryRun}`).attach('file', file, 'giay.xlsx');
     const preview = (await upload(true).expect(201)).body;
-    expect(preview).toMatchObject({ sheet: 'Tồn giấy(Mới kiểm kê)', rows: 8, materialsCreated: 6, specsCreated: 8, counted: 7, slipCode: null, totalQty: 1753 });
+    expect(preview).toMatchObject({ sheet: 'Tồn giấy(Mới kiểm kê)', rows: 8, materialsCreated: 6, specsCreated: 8, counted: 7, adjusted: 7, unchanged: 0, replacedSlips: [], slipCode: null, totalQty: 1753 });
     expect(preview.items.map((i: { group: string; name: string; size: string; qty: number | null }) => `${i.group}|${i.name}|${i.size}|${i.qty}`)).toEqual(expect.arrayContaining([
       'Đề can|Đề can giấy đế trắng LH|21,5 x 31,5|255',
       'Couche|C150|42 x 50|575',
@@ -341,14 +341,30 @@ describe('Warehouse', () => {
     const slip = (await agent.get(`/api/v1/warehouse/slips?warehouseId=${giay.id}`).expect(200)).body.find((x: { code: string }) => x.code === done.slipCode);
     expect(slip).toMatchObject({ kind: 'ADJUST', status: 'PENDING', purpose: 'Tồn đầu' });
     expect(slip.lines.filter((l: { label: string }) => l.label.startsWith('Op140')).map((l: { qty: number }) => l.qty).sort((a: number, b: number) => a - b)).toEqual([75, 250]);
-    // a second import while it waits adds nothing
-    expect((await upload(false).expect(201)).body).toMatchObject({ materialsCreated: 0, specsCreated: 0, counted: 0, keptExisting: 7, slipCode: null });
-    await agent.post(`/api/v1/warehouse/slips/${slip.id}/confirm`).expect(201);
-    const stock = (await agent.get(`/api/v1/warehouse/stock?warehouseId=${giay.id}`).expect(200)).body;
-    expect(stock.find((s: { label: string }) => s.label === 'C150 · 42 x 50').qty).toBe(575);
+    // importing again while it waits replaces it with a fresh slip
+    const second = (await upload(false).expect(201)).body;
+    expect(second).toMatchObject({ materialsCreated: 0, specsCreated: 0, adjusted: 7, replacedSlips: [done.slipCode] });
+    expect(second.slipCode).not.toBe(done.slipCode);
+    const slips = (await agent.get(`/api/v1/warehouse/slips?warehouseId=${giay.id}`).expect(200)).body;
+    expect(slips.find((x: { code: string }) => x.code === done.slipCode).status).toBe('CANCELLED');
+    const fresh = slips.find((x: { code: string }) => x.code === second.slipCode);
+    await agent.post(`/api/v1/warehouse/slips/${fresh.id}/confirm`).expect(201);
+    const stockOf = async (label: string) => (await agent.get(`/api/v1/warehouse/stock?warehouseId=${giay.id}`).expect(200)).body.find((s: { label: string }) => s.label === label).qty;
+    expect(await stockOf('C150 · 42 x 50')).toBe(575);
 
-    const again = (await upload(false).expect(201)).body;
-    expect(again).toMatchObject({ materialsCreated: 0, specsCreated: 0, counted: 0, keptExisting: 7, slipCode: null });
+    // stock matches the sheet: nothing to write
+    expect((await upload(false).expect(201)).body).toMatchObject({ adjusted: 0, unchanged: 7, replacedSlips: [], slipCode: null });
+    // stock drifted after confirmation: the new slip only carries the difference
+    const st = await t.prisma.whStock.findFirstOrThrow({ where: { warehouseId: giay.id, spec: { material: { name: 'C150' }, widthCm: 42, lengthCm: 50 } } });
+    await t.prisma.whStock.update({ where: { id: st.id }, data: { qty: 500 } });
+    const topUp = (await upload(false).expect(201)).body;
+    expect(topUp).toMatchObject({ adjusted: 1, unchanged: 6 });
+    expect(topUp.items.find((i: { name: string; size: string }) => i.name === 'C150' && i.size === '42 x 50')).toMatchObject({ onHand: 500, qty: 575, delta: 75 });
+    const fix = (await agent.get(`/api/v1/warehouse/slips?warehouseId=${giay.id}`).expect(200)).body.find((x: { code: string }) => x.code === topUp.slipCode);
+    expect(fix).toMatchObject({ purpose: 'Điều chỉnh theo bảng tồn giấy' });
+    expect(fix.lines.map((l: { qty: number }) => l.qty)).toEqual([75]);
+    await agent.post(`/api/v1/warehouse/slips/${fix.id}/confirm`).expect(201);
+    expect(await stockOf('C150 · 42 x 50')).toBe(575);
   });
 
   it('imports the Excel die list: preview first, then write; running it again adds nothing', async () => {

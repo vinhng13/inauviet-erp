@@ -4716,7 +4716,8 @@ export interface components {
         };
         ImportIssueDto: {
             code: string | null;
-            row: number;
+            /** @description Dòng trong bảng; null khi không gắn với dòng nào */
+            row: number | null;
             message: string;
         };
         ImportReportDto: {
@@ -4738,6 +4739,10 @@ export interface components {
             size: string;
             qty: number | null;
             note: string | null;
+            /** @description Tồn đã xác nhận trên phần mềm trước khi nhập */
+            onHand: number | null;
+            /** @description Chênh lệch sẽ ghi lên phiếu điều chỉnh (số trong bảng − tồn hiện tại); null khi dòng chưa có số */
+            delta: number | null;
         };
         PaperImportReportDto: {
             sheet: string;
@@ -4745,11 +4750,15 @@ export interface components {
             rows: number;
             materialsCreated: number;
             specsCreated: number;
-            /** @description Số quy cách có số tồn đưa vào phiếu tồn đầu */
+            /** @description Số quy cách có số tồn trong bảng */
             counted: number;
-            /** @description Quy cách đã có phiếu trên phần mềm, giữ tồn hiện tại */
-            keptExisting: number;
-            /** @description Phiếu điều chỉnh "Tồn đầu" đã lập, chờ xác nhận (null khi xem trước hoặc không có gì để ghi) */
+            /** @description Quy cách có số trong bảng khác tồn đã xác nhận (có dòng trên phiếu điều chỉnh) */
+            adjusted: number;
+            /** @description Quy cách có số trong bảng bằng tồn hiện tại */
+            unchanged: number;
+            /** @description Phiếu theo bảng của lần nhập trước, còn chờ xác nhận, được thay bằng lần này (xem trước: sẽ bị thay) */
+            replacedSlips: string[];
+            /** @description Phiếu điều chỉnh đã lập, chờ xác nhận (null khi xem trước hoặc tồn đã đúng bảng) */
             slipCode: string | null;
             totalQty: number;
             items: components["schemas"]["PaperImportItemDto"][];
