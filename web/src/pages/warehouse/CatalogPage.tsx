@@ -560,7 +560,7 @@ function ImportPaper() {
       },
     );
   return (
-    <Flex vertical gap={12} style={{ maxWidth: 900 }}>
+    <Flex vertical gap={12} style={{ maxWidth: 1100 }}>
       <Typography.Paragraph type="secondary" style={{ margin: 0 }}>
         Chọn bảng tồn giấy đang theo dõi (trên Google Sheets: Tệp → Tải xuống → Microsoft Excel). Phần mềm đọc sheet có cột Mã VT, Loại giấy, Khổ giấy, TỒN; tạo vật tư (đơn vị tờ, mã vật tư đúng Mã VT trong bảng) và quy cách theo khổ ở Kho giấy, rồi lập
         một phiếu điều chỉnh đưa tồn từng quy cách về đúng số trong bảng (lần đầu là phiếu "Tồn đầu"). Thủ kho Kho giấy vào Tồn kho & phiếu → Chờ xác nhận, xem lại và bấm Xác nhận thì tồn khớp bảng. Nhập lại bảng
@@ -610,12 +610,13 @@ function ImportPaper() {
             rowKey="row"
             size="small"
             dataSource={report.items}
+            scroll={{ x: 1000 }}
             pagination={pager(report.items?.length)}
             columns={[
               { title: 'Dòng', dataIndex: 'row', width: 70 },
               { title: 'Mã VT', dataIndex: 'code', width: 80 },
               { title: 'Nhóm', dataIndex: 'group', width: 110 },
-              { title: 'Loại giấy', dataIndex: 'name' },
+              { title: 'Loại giấy', dataIndex: 'name', width: 280 },
               { title: 'Khổ', dataIndex: 'size', width: 120 },
               { title: 'Tồn (tờ)', dataIndex: 'qty', width: 100, align: 'right', render: (v: number | null) => (v === null ? <Typography.Text type="secondary">chưa đếm</Typography.Text> : v.toLocaleString('vi-VN')) },
               { title: 'Đang có', dataIndex: 'onHand', width: 90, align: 'right', render: (v: number | null) => (v ?? 0).toLocaleString('vi-VN') },
@@ -626,7 +627,7 @@ function ImportPaper() {
                 align: 'right',
                 render: (v: number | null) => (v === null || v === 0 ? '' : <Typography.Text type={v < 0 ? 'danger' : 'success'}>{v > 0 ? `+${v.toLocaleString('vi-VN')}` : v.toLocaleString('vi-VN')}</Typography.Text>),
               },
-              { title: 'Ghi chú', dataIndex: 'note', width: 200 },
+              { title: 'Ghi chú', dataIndex: 'note' },
             ]}
           />
         </Flex>

@@ -180,3 +180,8 @@ h3.ant-typography {
     font-size: 22px;
   }
 }
+
+/* Biểu tượng Lucide trong menu thả xuống: cách chữ như biểu tượng antd */
+.ant-dropdown-menu-item > svg.anticon:first-child {
+  margin-inline-end: 8px;
+}
