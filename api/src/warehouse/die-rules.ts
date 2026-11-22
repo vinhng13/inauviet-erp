@@ -1,11 +1,12 @@
 import type { WhDieAction, WhDieStatus } from '../generated/prisma/enums';
 
 /**
- * Thao tác tại chỗ: khuôn không đổi nơi nên không cần phiếu. Đổi nơi (kho ↔ xưởng, kho ↔ kho, xưởng ↔ xưởng)
- * phải lập phiếu giao nhận và được thủ kho xác nhận.
+ * Quy trình khuôn: tạo khuôn mới (Đang làm khuôn) → kiểm tra (Đạt / Không đạt) → bế khuôn (Đang bế, chuyển tới xưởng bế).
+ * Ngoài ra: chuyển kho (kho A → kho B, hoặc về kho). Thao tác tại chỗ: kiểm tra đạt (PASS), không đạt / báo lỗi (DEFECT),
+ * đổi kệ, thanh lý. Mọi thao tác có hiệu lực ngay, ai có quyền quản lý khuôn cũng làm được.
  */
-export type MoveAction = 'KEEP' | 'PASS' | 'DEFECT' | 'DISPOSE' | 'MOVE' | 'REUSE';
-export const MOVE_ACTIONS: MoveAction[] = ['KEEP', 'PASS', 'DEFECT', 'DISPOSE', 'MOVE', 'REUSE'];
+export type MoveAction = 'PASS' | 'DEFECT' | 'DISPOSE' | 'MOVE';
+export const MOVE_ACTIONS: MoveAction[] = ['PASS', 'DEFECT', 'DISPOSE', 'MOVE'];
 
 interface Transition {
   from: WhDieStatus[];
@@ -15,10 +16,8 @@ interface Transition {
 }
 
 export const TRANSITIONS: Record<MoveAction, Transition> = {
-  KEEP: { from: ['IN_USE'], to: 'READY', at: 'PARTNER' }, // bế xong, xưởng giữ lại khuôn
-  REUSE: { from: ['READY', 'IN_USE'], to: 'IN_USE', at: 'PARTNER' }, // bế lệnh mới tại xưởng đang giữ khuôn
-  PASS: { from: ['CHECKING', 'DEFECT'], to: 'READY', at: 'KHO' }, // kiểm đạt, lên kệ
-  DEFECT: { from: ['CHECKING', 'READY', 'IN_USE', 'REPAIRING'], to: 'DEFECT', at: 'ANY' }, // lỗi (hoặc hỏng)
+  PASS: { from: ['MAKING', 'REPAIRING', 'CHECKING', 'DEFECT'], to: 'READY', at: 'ANY' }, // kiểm tra: đạt
+  DEFECT: { from: ['MAKING', 'REPAIRING', 'CHECKING', 'READY', 'IN_USE'], to: 'DEFECT', at: 'ANY' }, // kiểm tra: không đạt / báo lỗi
   DISPOSE: { from: ['READY', 'DEFECT', 'BROKEN', 'CHECKING'], to: 'DISPOSED', at: 'KHO' },
   MOVE: { from: ['READY', 'CHECKING', 'DEFECT'], to: 'SAME', at: 'KHO' }, // đổi kệ trong kho
 };
@@ -31,16 +30,32 @@ export function allowedActions(status: WhDieStatus, atPartner: boolean, pending:
   });
 }
 
+/** Chỉ khuôn đã kiểm đạt (hoặc đang bế ở xưởng khác) mới đi bế được */
+export const CAN_GO_CUT: WhDieStatus[] = ['READY', 'IN_USE'];
+
+/**
+ * Trạng thái khuôn sau khi chuyển, theo nơi đến:
+ * - tới xưởng bế: đang bế;
+ * - tới kho: khuôn đang bế về kho thì sẵn sàng, còn lại giữ nguyên;
+ * - tới nơi làm khuôn: đang làm vẫn đang làm, còn lại là đi sửa.
+ */
+export function statusAfterMove(cur: WhDieStatus, o: { toKho: boolean; toMaker: boolean }): WhDieStatus {
+  if (o.toKho) return cur === 'IN_USE' ? 'READY' : cur;
+  if (o.toMaker) return cur === 'MAKING' ? 'MAKING' : 'REPAIRING';
+  return 'IN_USE';
+}
+
 export const STATUS_LABEL: Record<WhDieStatus, string> = {
-  READY: 'Sẵn sàng',
+  READY: 'Đạt, sẵn sàng',
   IN_USE: 'Đang bế',
   CHECKING: 'Chờ kiểm',
   REPAIRING: 'Đang sửa',
-  DEFECT: 'Lỗi',
+  DEFECT: 'Không đạt',
   BROKEN: 'Hỏng',
   DISPOSED: 'Thanh lý',
   TRANSIT: 'Đang chuyển',
   INCOMING: 'Khuôn mới, chờ nhận',
+  MAKING: 'Đang làm khuôn',
 };
 
 export const ACTION_LABEL: Record<WhDieAction, string> = {
@@ -48,8 +63,8 @@ export const ACTION_LABEL: Record<WhDieAction, string> = {
   ISSUE: 'Xuất khuôn',
   KEEP: 'Bế xong, xưởng giữ',
   RETURN: 'Trả về, chờ kiểm',
-  PASS: 'Kiểm đạt, lên kệ',
-  DEFECT: 'Báo lỗi',
+  PASS: 'Kiểm tra: đạt',
+  DEFECT: 'Kiểm tra: không đạt / báo lỗi',
   SEND_REPAIR: 'Chuyển sửa',
   BACK_REPAIR: 'Trả từ sửa',
   DISPOSE: 'Thanh lý',
@@ -62,15 +77,9 @@ export const ACTION_LABEL: Record<WhDieAction, string> = {
   REJECT: 'Phiếu bị từ chối / huỷ',
   REUSE: 'Bế lệnh mới tại xưởng',
   COUNT: 'Kiểm kê',
+  TRANSFER: 'Chuyển khuôn',
 };
 
-/**
- * Ai xác nhận phiếu giao nhận: phía nào là kho thì thủ kho kho đó xác nhận (xuất khi đi, nhận khi đến).
- * Xưởng → xưởng không qua kho nào: thủ kho kho quản lý khuôn xác nhận thay, coi như bước xuất.
- */
-export function batchStates(fromIsKho: boolean, toIsKho: boolean): { out: 'PENDING' | 'NONE'; in: 'PENDING' | 'NONE' } {
-  return { out: fromIsKho || !toIsKho ? 'PENDING' : 'NONE', in: toIsKho ? 'PENDING' : 'NONE' };
-}
 
 /** "24x24x12.5", "24 x 24" → các chiều (cm); chữ khác → null */
 export function sizeQuery(q: string): number[] | null {
@@ -163,4 +172,13 @@ export function parseSheetSize(raw: string): [number, number] | null {
 /** 21.5 → "21,5" */
 export function fmtCm(v: number): string {
   return String(Math.round(v * 100) / 100).replace('.', ',');
+}
+
+/** Nhãn một dòng lịch sử: lần chuyển khuôn gọi theo nơi đến (bế khuôn, chuyển kho, gửi sửa) */
+export function moveLabel(action: WhDieAction, toStatus: WhDieStatus | null, toKho: boolean): string {
+  if (action !== 'TRANSFER') return ACTION_LABEL[action];
+  if (toKho) return 'Chuyển kho';
+  if (toStatus === 'IN_USE') return 'Bế khuôn';
+  if (toStatus === 'REPAIRING') return 'Gửi sửa';
+  return ACTION_LABEL[action];
 }

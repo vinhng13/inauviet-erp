@@ -1,5 +1,5 @@
 import { CheckOutlined, DownloadOutlined, EditOutlined, ExportOutlined, ImportOutlined, MinusCircleOutlined, PlusOutlined, RollbackOutlined, SwapOutlined } from '@ant-design/icons';
-import { Alert, App, Badge, Button, Checkbox, DatePicker, Descriptions, Drawer, Flex, Form, Input, InputNumber, Modal, Segmented, Select, Space, Table, Tabs, Tag, Typography } from 'antd';
+import { Alert, App, Badge, Button, DatePicker, Descriptions, Drawer, Flex, Form, Input, InputNumber, Modal, Segmented, Select, Space, Table, Tabs, Tag, Typography } from 'antd';
 import dayjs, { type Dayjs } from 'dayjs';
 import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router';
@@ -7,9 +7,10 @@ import type { Schemas } from '../../api/client';
 import { usePartners, useSlip, useSlips, useStockCard, useStockItems, useWarehouseMutations, useWarehouses, type StockItem } from '../../api/warehouse';
 import { useCan } from '../../lib/access';
 import { errorMessage } from '../../lib/errors';
-import { formatDate, formatDateTime, formatVnd, vndInputProps } from '../../lib/format';
+import { formatDate, formatDateTime } from '../../lib/format';
 import { downloadCsv, lineQty, PageHead, qty, SLIP, SlipStatusTag, useWarehousePick, WarehousePicker, type SlipKind } from './common';
 import { pager } from '../../lib/paging';
+import { CreatableSelect, isNew, newName } from '../../components/CreatableSelect';
 
 type Warehouse = Schemas['WarehouseDto'];
 type Slip = Schemas['SlipDto'];
@@ -34,7 +35,7 @@ export function WarehouseStockPage() {
   return (
     <Flex vertical gap={16}>
       <PageHead
-        title="Tồn kho & phiếu"
+        title="Kho vật tư"
         extra={
           can('warehouse.slip') && warehouse && (
             <Space wrap>
@@ -47,12 +48,6 @@ export function WarehouseStockPage() {
         }
       >
         <WarehousePicker value={warehouse} list={list} onChange={pick} />
-        {warehouse && (
-          <Typography.Text type="secondary">
-            Thủ kho: {warehouse.keepers.length ? warehouse.keepers.map((k) => k.fullName).join(', ') : 'chưa chỉ định (ai có quyền lập phiếu cũng xác nhận được)'}
-            {warehouse.address && ` · ${warehouse.address}`}
-          </Typography.Text>
-        )}
       </PageHead>
       {warehouse && (
         <Tabs
@@ -64,12 +59,12 @@ export function WarehouseStockPage() {
               key: 'pending',
               label: (
                 <Badge count={warehouse.pending} size="small" offset={[10, 0]}>
-                  Chờ xác nhận
+                  Phiếu chờ xác nhận
                 </Badge>
               ),
               children: <SlipList warehouse={warehouse} pendingOnly onOpen={setOpenSlip} />,
             },
-            { key: 'slips', label: 'Phiếu kho', children: <SlipList warehouse={warehouse} onOpen={setOpenSlip} /> },
+            { key: 'slips', label: 'Tra cứu lịch sử', children: <SlipList warehouse={warehouse} onOpen={setOpenSlip} /> },
           ]}
         />
       )}
@@ -149,7 +144,6 @@ function StockTable({ warehouse }: { warehouse: Warehouse }) {
               </span>
             ),
           },
-          { title: 'Giá trị tham khảo', dataIndex: 'valueVnd', width: 140, align: 'right', render: (v?: number | null) => (v ? formatVnd(v) : '') },
           { key: 'flag', width: 120, render: (_, r) => (r.low ? <Tag color="red">Dưới tối thiểu</Tag> : null) },
         ]}
       />
@@ -251,7 +245,7 @@ function SlipList({ warehouse, pendingOnly, onOpen }: { warehouse: Warehouse; pe
           { title: 'Loại', dataIndex: 'kind', width: 110, render: (k: SlipKind) => <Tag color={SLIP[k].color}>{SLIP[k].label}</Tag> },
           { title: 'Trạng thái', key: 'st', width: 140, render: (_, r) => <SlipStatusTag slip={r} /> },
           { title: 'Vật tư', key: 'l', ellipsis: true, render: (_, r) => r.lines.map((l) => `${l.label}: ${lineQty(l)}`).join('; ') },
-          { title: 'NCC / người nhận / kho bên kia', key: 'p', width: 200, render: (_, r) => [r.partnerName, r.receiver, r.counterpart?.warehouseName].filter(Boolean).join(' · ') },
+          { title: 'Nơi lấy hàng / người nhận / kho bên kia', key: 'p', width: 200, render: (_, r) => [r.partnerName, r.receiver, r.counterpart?.warehouseName].filter(Boolean).join(' · ') },
           { title: 'Mục đích / lệnh', key: 'r', width: 170, render: (_, r) => [r.purpose, r.reference].filter(Boolean).join(' · ') },
           { title: 'Người lập', dataIndex: 'createdBy', width: 120 },
           {
@@ -343,7 +337,7 @@ function SlipDrawer({ id, onClose, onOpen }: { id: string; onClose: () => void; 
               ...(s.counterpart
                 ? [{ label: s.kind === 'TRANSFER_OUT' ? 'Chuyển đến' : 'Chuyển từ', children: <a onClick={() => onOpen(s.counterpart!.id)}>{s.counterpart.warehouseName} · {s.counterpart.code}</a> }]
                 : []),
-              ...(s.partnerName ? [{ label: 'Nhà cung cấp', children: s.partnerName }] : []),
+              ...(s.partnerName ? [{ label: 'Nơi lấy hàng nhập kho', children: s.partnerName }] : []),
               ...(s.receiver ? [{ label: s.kind === 'RETURN' ? 'Người trả' : 'Người nhận', children: s.receiver }] : []),
               ...(s.purpose ? [{ label: 'Mục đích', children: s.purpose }] : []),
               ...(s.reference ? [{ label: 'Lệnh / chứng từ', children: s.reference }] : []),
@@ -358,7 +352,6 @@ function SlipDrawer({ id, onClose, onOpen }: { id: string; onClose: () => void; 
             columns={[
               { title: 'Vật tư / quy cách', dataIndex: 'label' },
               { title: 'Số lượng', key: 'q', width: 220, align: 'right', render: (_, l) => lineQty(l) },
-              { title: 'Đơn giá', dataIndex: 'unitPriceVnd', width: 130, align: 'right', render: (v?: number | null) => (v ? formatVnd(v) : '') },
             ]}
           />
         </Flex>
@@ -367,9 +360,9 @@ function SlipDrawer({ id, onClose, onOpen }: { id: string; onClose: () => void; 
   );
 }
 
-type LineValue = { specId?: string; unitId?: string | null; qty?: number; unitPriceVnd?: number | null };
+type LineValue = { specId?: string; unitId?: string | null; qty?: number };
 
-function LinesEditor({ items, withPrice, lines }: { items: StockItem[]; withPrice: boolean; lines: LineValue[] }) {
+function LinesEditor({ items, lines }: { items: StockItem[]; lines: LineValue[] }) {
   const bySpec = new Map(items.map((i) => [i.specId, i]));
   const options = items.map((i) => ({ value: i.specId, label: `${i.materialCode ? `${i.materialCode} · ` : ''}${i.label} (tồn ${qty(i.qty)} ${i.unit})` }));
   return (
@@ -396,11 +389,6 @@ function LinesEditor({ items, withPrice, lines }: { items: StockItem[]; withPric
                     placeholder={it?.unit ?? 'Đơn vị'}
                   />
                 </Form.Item>
-                {withPrice && (
-                  <Form.Item name={[f.name, 'unitPriceVnd']} style={{ width: 150, marginBottom: 8 }}>
-                    <InputNumber {...vndInputProps} style={{ width: '100%' }} placeholder="Đơn giá / đơn vị" />
-                  </Form.Item>
-                )}
                 <Button type="text" icon={<MinusCircleOutlined />} onClick={() => remove(f.name)} disabled={fields.length === 1} aria-label="Bỏ dòng" />
               </Flex>
             );
@@ -412,10 +400,10 @@ function LinesEditor({ items, withPrice, lines }: { items: StockItem[]; withPric
   );
 }
 
-const toLines = (lines: LineValue[], withPrice: boolean) =>
-  lines.filter((l) => l.specId && l.qty).map((l) => ({ specId: l.specId!, unitId: l.unitId || null, qty: l.qty!, unitPriceVnd: withPrice ? (l.unitPriceVnd ?? null) : null }));
+/** Kho chỉ ghi số lượng và đơn vị tính, không ghi đơn giá */
+const toLines = (lines: LineValue[]) => lines.filter((l) => l.specId && l.qty).map((l) => ({ specId: l.specId!, unitId: l.unitId || null, qty: l.qty! }));
 
-type SlipForm = { date: Dayjs; partnerId?: string; receiver?: string; purpose?: string; reference?: string; note?: string; lines: LineValue[]; confirm: boolean };
+type SlipForm = { date: Dayjs; partnerId?: string; receiver?: string; purpose?: string; reference?: string; note?: string; lines: LineValue[] };
 
 function SlipModal({ kind, warehouse, onClose, onCreated }: { kind: NewKind; warehouse: Warehouse; onClose: () => void; onCreated: (id: string) => void }) {
   const { message } = App.useApp();
@@ -430,13 +418,15 @@ function SlipModal({ kind, warehouse, onClose, onCreated }: { kind: NewKind; war
         warehouseId: warehouse.id,
         kind,
         date: v.date.format('YYYY-MM-DD'),
-        partnerId: v.partnerId ?? null,
+        partnerId: v.partnerId && !isNew(v.partnerId) ? v.partnerId : null,
+        partnerName: newName(v.partnerId) || null,
         receiver: v.receiver || null,
         purpose: v.purpose || null,
         reference: v.reference || null,
         note: v.note || null,
-        confirm: v.confirm,
-        lines: toLines(v.lines, kind === 'RECEIPT'),
+        // thủ kho lập thì xác nhận luôn, người khác lập thì chờ thủ kho
+        confirm: warehouse.canConfirm,
+        lines: toLines(v.lines),
       },
       {
         onSuccess: (s) => {
@@ -449,14 +439,14 @@ function SlipModal({ kind, warehouse, onClose, onCreated }: { kind: NewKind; war
     );
   return (
     <Modal open width={900} title={`${NEW_TITLE[kind]} · ${warehouse.name}`} okText="Lưu phiếu" cancelText="Đóng" onCancel={onClose} onOk={() => form.submit()} confirmLoading={createSlip.isPending} destroyOnHidden>
-      <Form<SlipForm> form={form} layout="vertical" onFinish={submit} initialValues={{ date: dayjs(), lines: [{ unitId: '' }], confirm: warehouse.canConfirm }}>
+      <Form<SlipForm> form={form} layout="vertical" onFinish={submit} initialValues={{ date: dayjs(), lines: [{ unitId: '' }] }}>
         <Flex wrap gap={12}>
           <Form.Item name="date" label="Ngày" rules={[{ required: true }]}>
             <DatePicker format="DD/MM/YYYY" allowClear={false} />
           </Form.Item>
           {kind === 'RECEIPT' && (
-            <Form.Item name="partnerId" label="Nhà cung cấp" style={{ minWidth: 240 }}>
-              <Select allowClear showSearch optionFilterProp="label" options={(partners.data ?? []).filter((p) => p.isActive).map((p) => ({ value: p.id, label: p.name }))} />
+            <Form.Item name="partnerId" label="Nơi lấy hàng nhập kho" style={{ minWidth: 260 }} tooltip="Chọn nơi đã có, hoặc gõ tên mới rồi chọn “Thêm”: phần mềm tự thêm vào danh mục đối tác">
+              <CreatableSelect allowClear placeholder="Chọn hoặc gõ tên mới" options={(partners.data ?? []).filter((p) => p.isActive).map((p) => ({ value: p.id, label: p.name }))} />
             </Form.Item>
           )}
           {kind !== 'RECEIPT' && (
@@ -473,23 +463,16 @@ function SlipModal({ kind, warehouse, onClose, onCreated }: { kind: NewKind; war
             <Input style={{ width: 170 }} />
           </Form.Item>
         </Flex>
-        <LinesEditor items={items.data ?? []} withPrice={kind === 'RECEIPT'} lines={lines} />
+        <LinesEditor items={items.data ?? []} lines={lines} />
         <Form.Item name="note" label="Ghi chú" style={{ marginTop: 12 }}>
           <Input.TextArea rows={2} />
         </Form.Item>
-        {warehouse.canConfirm ? (
-          <Form.Item name="confirm" valuePropName="checked" style={{ marginBottom: 0 }}>
-            <Checkbox>Tôi là thủ kho, xác nhận luôn (tồn thay đổi ngay)</Checkbox>
-          </Form.Item>
-        ) : (
-          <Typography.Text type="secondary">Phiếu sẽ chờ thủ kho {warehouse.keepers.map((k) => k.fullName).join(', ')} xác nhận; tồn chỉ thay đổi khi được xác nhận.</Typography.Text>
-        )}
       </Form>
     </Modal>
   );
 }
 
-type TransferForm = { date: Dayjs; toWarehouseId?: string; receiver?: string; reference?: string; note?: string; lines: LineValue[]; confirm: boolean };
+type TransferForm = { date: Dayjs; toWarehouseId?: string; receiver?: string; reference?: string; note?: string; lines: LineValue[] };
 
 function TransferModal({ warehouse, onClose, onCreated }: { warehouse: Warehouse; onClose: () => void; onCreated: (id: string) => void }) {
   const { message } = App.useApp();
@@ -507,8 +490,8 @@ function TransferModal({ warehouse, onClose, onCreated }: { warehouse: Warehouse
         receiver: v.receiver || null,
         reference: v.reference || null,
         note: v.note || null,
-        confirm: v.confirm,
-        lines: toLines(v.lines, false),
+        confirm: warehouse.canConfirm,
+        lines: toLines(v.lines),
       },
       {
         onSuccess: (s) => {
@@ -524,7 +507,7 @@ function TransferModal({ warehouse, onClose, onCreated }: { warehouse: Warehouse
       <Typography.Paragraph type="secondary">
         Thủ kho {warehouse.name} xác nhận xuất thì hàng rời kho này; thủ kho kho nhận xác nhận đã nhận thì hàng vào kho đó. Kho nhận chưa có vật tư sẽ được thêm vào.
       </Typography.Paragraph>
-      <Form<TransferForm> form={form} layout="vertical" onFinish={submit} initialValues={{ date: dayjs(), lines: [{ unitId: '' }], confirm: warehouse.canConfirm }}>
+      <Form<TransferForm> form={form} layout="vertical" onFinish={submit} initialValues={{ date: dayjs(), lines: [{ unitId: '' }] }}>
         <Flex wrap gap={12}>
           <Form.Item name="date" label="Ngày" rules={[{ required: true }]}>
             <DatePicker format="DD/MM/YYYY" allowClear={false} />
@@ -539,15 +522,10 @@ function TransferModal({ warehouse, onClose, onCreated }: { warehouse: Warehouse
             <Input style={{ width: 170 }} />
           </Form.Item>
         </Flex>
-        <LinesEditor items={items.data ?? []} withPrice={false} lines={lines} />
+        <LinesEditor items={items.data ?? []} lines={lines} />
         <Form.Item name="note" label="Ghi chú" style={{ marginTop: 12 }}>
           <Input.TextArea rows={2} />
         </Form.Item>
-        {warehouse.canConfirm && (
-          <Form.Item name="confirm" valuePropName="checked" style={{ marginBottom: 0 }}>
-            <Checkbox>Tôi là thủ kho {warehouse.name}, xác nhận xuất luôn</Checkbox>
-          </Form.Item>
-        )}
       </Form>
     </Modal>
   );

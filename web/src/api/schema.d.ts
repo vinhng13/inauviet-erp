@@ -4229,7 +4229,7 @@ export interface components {
         /** @enum {string} */
         WhOrientation: "PORTRAIT" | "LANDSCAPE";
         /** @enum {string} */
-        WhDieStatus: "READY" | "IN_USE" | "CHECKING" | "REPAIRING" | "DEFECT" | "BROKEN" | "DISPOSED" | "TRANSIT" | "INCOMING";
+        WhDieStatus: "READY" | "IN_USE" | "CHECKING" | "REPAIRING" | "DEFECT" | "BROKEN" | "DISPOSED" | "TRANSIT" | "INCOMING" | "MAKING";
         DieRowDto: {
             kind: components["schemas"]["WhDieKind"];
             orientation: components["schemas"]["WhOrientation"] | null;
@@ -4550,8 +4550,13 @@ export interface components {
             warehouseId: string;
             /** @enum {string} */
             kind: "RECEIPT" | "ISSUE" | "RETURN";
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description Nơi lấy hàng nhập kho (phiếu nhập)
+             */
             partnerId?: string | null;
+            /** @description Nơi lấy hàng gõ tên mới (chưa có trong danh mục): tự thêm vào danh mục đối tác */
+            partnerName?: string | null;
             receiver?: string | null;
             purpose?: string | null;
             /** @description Số lệnh / đơn tham chiếu, gõ tay */
@@ -4588,7 +4593,7 @@ export interface components {
         /** @enum {string} */
         WhDieOwner: "AU_VIET" | "CUSTOMER" | "PARTNER";
         /** @enum {string} */
-        WhDieAction: "CREATE" | "ISSUE" | "KEEP" | "RETURN" | "PASS" | "DEFECT" | "SEND_REPAIR" | "BACK_REPAIR" | "DISPOSE" | "MOVE" | "EDIT" | "IMPORT" | "REQUEST" | "SEND" | "RECEIVE" | "REJECT" | "REUSE" | "COUNT";
+        WhDieAction: "CREATE" | "ISSUE" | "KEEP" | "RETURN" | "PASS" | "DEFECT" | "SEND_REPAIR" | "BACK_REPAIR" | "DISPOSE" | "MOVE" | "EDIT" | "IMPORT" | "REQUEST" | "SEND" | "RECEIVE" | "REJECT" | "REUSE" | "COUNT" | "TRANSFER";
         DieMoveDto: {
             action: components["schemas"]["WhDieAction"];
             toStatus: components["schemas"]["WhDieStatus"] | null;
@@ -4611,7 +4616,7 @@ export interface components {
             orientation: components["schemas"]["WhOrientation"] | null;
             status: components["schemas"]["WhDieStatus"];
             owner: components["schemas"]["WhDieOwner"];
-            allowedActions: ("KEEP" | "PASS" | "DEFECT" | "DISPOSE" | "MOVE" | "REUSE")[];
+            allowedActions: ("PASS" | "DEFECT" | "DISPOSE" | "MOVE")[];
             makerId: string | null;
             makerName: string | null;
             sizeText: string | null;
@@ -4665,6 +4670,8 @@ export interface components {
             ups?: number | null;
             /** Format: uuid */
             makerId?: string | null;
+            /** @description Nơi làm khuôn gõ tên mới: tự thêm vào danh mục */
+            makerName?: string | null;
             /** @enum {string} */
             owner?: "CUSTOMER" | "PARTNER" | "AU_VIET";
             costVnd?: number | null;
@@ -4676,11 +4683,15 @@ export interface components {
             toWarehouseId?: string | null;
             /** Format: uuid */
             toPartnerId?: string | null;
+            /** @description Xưởng gõ tên mới: tự thêm vào danh mục (xưởng bế) */
+            toPartnerName?: string | null;
             /**
              * Format: uuid
              * @description Kệ cất khi nhận (kho)
              */
             toLocationId?: string | null;
+            /** @description Kệ gõ mã mới: tự thêm vào kho nhận */
+            toLocationCode?: string | null;
             /** @description Lệnh bế khi giao thẳng tới xưởng */
             reference?: string | null;
             /** @description Thủ kho xác nhận luôn (đã nhận / đã giao) */
@@ -4702,12 +4713,14 @@ export interface components {
              */
             expectedBackOn?: string | null;
             /** @enum {string} */
-            action: "KEEP" | "PASS" | "DEFECT" | "DISPOSE" | "MOVE" | "REUSE";
+            action: "PASS" | "DEFECT" | "DISPOSE" | "MOVE";
             /**
              * Format: uuid
              * @description Kệ trong kho (kiểm đạt, đổi kệ)
              */
             locationId?: string | null;
+            /** @description Kệ gõ mã mới: tự thêm vào kho giữ khuôn */
+            locationCode?: string | null;
             /** @description Lệnh bế (bắt buộc khi bế lệnh mới tại xưởng) */
             reference?: string | null;
             note?: string | null;
@@ -4797,8 +4810,17 @@ export interface components {
             toWarehouseId?: string | null;
             /** Format: uuid */
             toPartnerId?: string | null;
+            /** @description Nơi đến gõ tên mới: tự thêm vào danh mục (mặc định xưởng bế) */
+            toPartnerName?: string | null;
+            /**
+             * @description Loại đối tác khi thêm mới theo tên: gửi sửa thì nơi làm khuôn
+             * @enum {string|null}
+             */
+            toPartnerKind?: "DIE_SHOP" | "DIE_MAKER" | null;
             /** Format: uuid */
             toLocationId?: string | null;
+            /** @description Kệ gõ mã mới: tự thêm vào kho nhận */
+            toLocationCode?: string | null;
             dieIds: string[];
             /** @description Khuôn có sẵn trong kho đi nhưng chưa có mã: cấp mã khi lập phiếu */
             newDies?: components["schemas"]["NewDieLineDto"][];
@@ -4813,6 +4835,8 @@ export interface components {
              * @description Kệ cất khuôn
              */
             locationId?: string | null;
+            /** @description Kệ gõ mã mới: tự thêm vào kho nhận */
+            locationCode?: string | null;
         };
         BatchRejectDto: {
             reason: string;
@@ -8291,7 +8315,7 @@ export interface operations {
         parameters: {
             query?: {
                 q?: string;
-                status?: "DEFECT" | "READY" | "IN_USE" | "CHECKING" | "REPAIRING" | "BROKEN" | "DISPOSED" | "TRANSIT" | "INCOMING";
+                status?: "DEFECT" | "READY" | "IN_USE" | "CHECKING" | "REPAIRING" | "BROKEN" | "DISPOSED" | "TRANSIT" | "INCOMING" | "MAKING";
                 symbol?: string;
                 /** @description "k:<id kho>", "x:<id xưởng>" hoặc "transit" (đang chuyển / khuôn mới chờ nhận) */
                 place?: string;
@@ -8499,6 +8523,8 @@ export interface operations {
             query?: {
                 /** @description mine = chờ người đang xem xác nhận; open = còn chờ; all */
                 tab?: "mine" | "open" | "all";
+                /** @description Nơi đi hoặc đến: k:<kho> hoặc x:<đối tác> */
+                place?: string;
             };
             header?: never;
             path?: never;
@@ -8653,7 +8679,7 @@ export interface operations {
             query: {
                 from: string;
                 to: string;
-                action?: "ISSUE" | "KEEP" | "PASS" | "DEFECT" | "DISPOSE" | "MOVE" | "REUSE" | "CREATE" | "RETURN" | "SEND_REPAIR" | "BACK_REPAIR" | "EDIT" | "IMPORT" | "REQUEST" | "SEND" | "RECEIVE" | "REJECT" | "COUNT";
+                action?: "ISSUE" | "PASS" | "DEFECT" | "DISPOSE" | "MOVE" | "CREATE" | "KEEP" | "RETURN" | "SEND_REPAIR" | "BACK_REPAIR" | "EDIT" | "IMPORT" | "REQUEST" | "SEND" | "RECEIVE" | "REJECT" | "REUSE" | "COUNT" | "TRANSFER";
                 /** @description Tên kho hoặc xưởng (khớp nơi đi hoặc nơi đến) */
                 place?: string;
                 userId?: string;

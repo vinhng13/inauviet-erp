@@ -142,6 +142,9 @@ const MESSAGES: Record<string, string> = {
   WH_DIE_DEST_REQUIRED: 'Chọn nơi nhận khuôn: một kho hoặc một xưởng bế.',
   WH_DIE_PENDING: 'Khuôn đang nằm trong một phiếu giao nhận chờ xác nhận.',
   WH_DIE_NOT_HERE: 'Khuôn không ở nơi đi của phiếu.',
+  WH_DIE_NOT_PASSED: 'Khuôn chưa kiểm tra đạt nên chưa bế được. Mở khuôn, bấm Kiểm tra: Đạt trước.',
+  WH_DIE_MAKER_REQUIRED: 'Chọn nơi làm khuôn (hoặc gõ tên mới).',
+  WH_NAME_TOO_LONG: 'Tên quá dài.',
   WH_BATCH_FROM_REQUIRED: 'Chọn nơi đi của khuôn.',
   WH_BATCH_TO_REQUIRED: 'Chọn nơi đến: một kho hoặc một xưởng. Mọi phiếu đều phải có nơi đến.',
   WH_BATCH_SAME_PLACE: 'Nơi đến phải khác nơi đi.',
@@ -196,6 +199,7 @@ export function errorMessage(err: unknown): string {
       return `${base} ${d.item}: còn ${d.onHand}, cần ${d.requested}.`;
     }
     if ((err.code === 'WH_DIE_ACTION_NOT_ALLOWED' || err.code === 'WH_DIE_PENDING') && err.body.details?.code) return `${base} (${err.body.details.code as string})`;
+    if (err.code === 'WH_DIE_NOT_PASSED' && err.body.details?.code) return `Khuôn ${err.body.details.code as string} chưa kiểm tra đạt nên chưa bế được. Mở khuôn, bấm Kiểm tra: Đạt trước.`;
     if (err.code === 'WH_DIE_NOT_HERE' && err.body.details?.code) return `${base} ${err.body.details.code as string} đang ở ${err.body.details.place as string}.`;
     if (err.code === 'STOCK_SHORT' && err.body.details?.onHand !== undefined) return `${base} ${err.message.replace(/^Not enough (.*) in stock \((.*)\)$/, '$1: còn $2')}`;
     if (err.code === 'OPENINGS_UNBALANCED' && typeof err.body.details?.differenceVnd === 'number') return `${base} Lệch ${new Intl.NumberFormat('vi-VN').format(Math.abs(err.body.details.differenceVnd as number))} đ.`;

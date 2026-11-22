@@ -1,6 +1,5 @@
-import { WarningOutlined } from '@ant-design/icons';
 import { Alert, Card, Col, Empty, Flex, List, Row, Spin, Table, Tag, Typography } from 'antd';
-import { AlarmClock, ClipboardCheck, Factory, Layers } from 'lucide-react';
+import { ClipboardCheck, Factory, Hammer, Layers } from 'lucide-react';
 import { Link, useNavigate } from 'react-router';
 import { StatCard } from '../../components/StatCard';
 import { useWhOverview, type DieRow } from '../../api/warehouse';
@@ -9,7 +8,7 @@ import { formatDate } from '../../lib/format';
 import { DieStatusTag, PageHead, qty, SLIP, STATUS, type DieStatus } from './common';
 import { pager } from '../../lib/paging';
 
-/** Tổng quan kho: vật tư dưới mức tối thiểu, khuôn đang ở xưởng, quá hạn, chờ kiểm, cần xác nhận */
+/** Tổng quan kho: vật tư dưới mức tối thiểu, khuôn đang ở đâu, đang làm, chờ kiểm, cần xác nhận */
 export function WarehouseOverviewPage() {
   const { data, isLoading, error } = useWhOverview();
   const navigate = useNavigate();
@@ -58,7 +57,7 @@ export function WarehouseOverviewPage() {
                     renderItem={(b) => (
                       <List.Item
                         extra={
-                          <Link style={{ marginInlineStart: 12 }} to={`/warehouse/batches?open=${b.id}`}>
+                          <Link style={{ marginInlineStart: 12 }} to={`/warehouse/dies?view=moves&open=${b.id}`}>
                             Mở
                           </Link>
                         }
@@ -98,7 +97,7 @@ export function WarehouseOverviewPage() {
                     renderItem={(b) => (
                       <List.Item
                         extra={
-                          <Link style={{ marginInlineStart: 12 }} to={`/warehouse/batches?open=${b.id}`}>
+                          <Link style={{ marginInlineStart: 12 }} to={`/warehouse/dies?view=moves&open=${b.id}`}>
                             Mở
                           </Link>
                         }
@@ -139,24 +138,24 @@ export function WarehouseOverviewPage() {
           <StatCard tone="indigo" title="Khuôn đang quản lý" value={data.diesTotal} icon={<Layers size={18} />} onClick={() => navigate('/warehouse/dies')} />
         </Col>
         <Col xs={12} md={6}>
-          <StatCard
-            tone="cyan"
-            title="Đang ở xưởng ngoài"
-            value={data.atPartners.reduce((s, p) => s + p.inUse + p.kept, 0)}
-            icon={<Factory size={18} />}
-            onClick={() => navigate('/warehouse/dies?flag=out')}
-          />
+          <StatCard tone="cyan" title="Đang bế" value={data.diesByStatus.IN_USE ?? 0} icon={<Factory size={18} />} onClick={() => navigate('/warehouse/dies?status=IN_USE')} />
         </Col>
         <Col xs={12} md={6}>
-          <StatCard tone="orange" title="Quá hẹn chưa về" value={data.overdue.length} icon={<AlarmClock size={18} />} onClick={() => navigate('/warehouse/dies?flag=overdue')} />
+          <StatCard
+            tone="orange"
+            title="Đang làm khuôn / đang sửa"
+            value={(data.diesByStatus.MAKING ?? 0) + (data.diesByStatus.REPAIRING ?? 0)}
+            icon={<Hammer size={18} />}
+            onClick={() => navigate('/warehouse/dies?status=MAKING')}
+          />
         </Col>
         <Col xs={12} md={6}>
           <StatCard
             tone="emerald"
-            title="Cần xác nhận thông tin"
-            value={data.needsReview}
+            title="Không đạt"
+            value={data.diesByStatus.DEFECT ?? 0}
             icon={<ClipboardCheck size={18} />}
-            onClick={() => navigate('/warehouse/dies?flag=review')}
+            onClick={() => navigate('/warehouse/dies?status=DEFECT')}
           />
         </Col>
       </Row>
@@ -173,38 +172,17 @@ export function WarehouseOverviewPage() {
       </Flex>
       <Row gutter={[16, 16]}>
         <Col xs={24} lg={12}>
-          <Card size="small" title="Khuôn theo xưởng">
+          <Card size="small" title="Khuôn đang ở ngoài (xưởng bế, nơi làm khuôn)">
             <Table
               rowKey="holderId"
               size="small"
               pagination={false}
               dataSource={data.atPartners}
-              locale={{ emptyText: 'Không có khuôn nào ở xưởng ngoài' }}
+              locale={{ emptyText: 'Không có khuôn nào ở ngoài' }}
               columns={[
-                { title: 'Xưởng', dataIndex: 'name', render: (v: string, r) => <Link to={`/warehouse/dies?place=${r.holderId}`}>{v}</Link> },
-                { title: 'Đang bế', dataIndex: 'inUse', align: 'right', width: 90 },
-                { title: 'Gửi giữ', dataIndex: 'kept', align: 'right', width: 90 },
-                { title: 'Quá hẹn', dataIndex: 'overdue', align: 'right', width: 90, render: (v: number) => (v ? <Typography.Text type="danger">{v}</Typography.Text> : 0) },
+                { title: 'Nơi', dataIndex: 'name', render: (v: string, r) => <Link to={`/warehouse/dies?place=x:${r.holderId}`}>{v}</Link> },
+                { title: 'Số khuôn', key: 'n', align: 'right', width: 100, render: (_, r) => r.inUse + r.kept },
               ]}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} lg={12}>
-          <Card
-            size="small"
-            title={
-              <span>
-                <WarningOutlined style={{ color: '#cf1322' }} /> Quá hẹn chưa về
-              </span>
-            }
-          >
-            <Table<DieRow>
-              rowKey="id"
-              size="small"
-              pagination={pager(data.overdue?.length)}
-              dataSource={data.overdue}
-              columns={dieColumns}
-              locale={{ emptyText: 'Không có khuôn quá hẹn' }}
             />
           </Card>
         </Col>

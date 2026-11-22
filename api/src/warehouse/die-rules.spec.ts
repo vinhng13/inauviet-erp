@@ -1,22 +1,23 @@
-import { allowedActions, batchStates, fmtCm, parseDieNotes, parseSheetSize, parseSize, sizeMatches, sizeQuery, TRANSITIONS } from './die-rules';
+import { allowedActions, fmtCm, parseDieNotes, parseSheetSize, parseSize, sizeMatches, sizeQuery, statusAfterMove, TRANSITIONS } from './die-rules';
 import { excelDate } from './xlsx-reader';
 
 describe('die rules', () => {
   it('only allows in-place actions that fit the status and where the die is', () => {
+    expect(allowedActions('MAKING', true, false)).toEqual(['PASS', 'DEFECT']); // kiểm tra tại nơi làm khuôn
+    expect(allowedActions('DEFECT', true, false)).toEqual(['PASS']); // làm lại xong, kiểm tra lại
     expect(allowedActions('READY', false, false)).toEqual(['DEFECT', 'DISPOSE', 'MOVE']);
-    expect(allowedActions('READY', true, false)).toEqual(['DEFECT', 'REUSE']);
-    expect(allowedActions('IN_USE', true, false)).toEqual(['KEEP', 'DEFECT', 'REUSE']);
-    expect(allowedActions('CHECKING', false, false)).toEqual(['PASS', 'DEFECT', 'DISPOSE', 'MOVE']);
+    expect(allowedActions('IN_USE', true, false)).toEqual(['DEFECT']);
     expect(allowedActions('READY', false, true)).toEqual([]);
     expect(allowedActions('DISPOSED', false, false)).toEqual([]);
-    expect(TRANSITIONS.REUSE.to).toBe('IN_USE');
+    expect(TRANSITIONS.PASS.to).toBe('READY');
   });
 
-  it('decides who confirms a transfer', () => {
-    expect(batchStates(true, false)).toEqual({ out: 'PENDING', in: 'NONE' }); // kho → xưởng
-    expect(batchStates(false, true)).toEqual({ out: 'NONE', in: 'PENDING' }); // xưởng → kho
-    expect(batchStates(true, true)).toEqual({ out: 'PENDING', in: 'PENDING' }); // kho → kho
-    expect(batchStates(false, false)).toEqual({ out: 'PENDING', in: 'NONE' }); // xưởng → xưởng
+  it('sets the status from where a die is moved to', () => {
+    expect(statusAfterMove('READY', { toKho: false, toMaker: false })).toBe('IN_USE'); // bế khuôn
+    expect(statusAfterMove('IN_USE', { toKho: true, toMaker: false })).toBe('READY'); // bế xong về kho
+    expect(statusAfterMove('READY', { toKho: true, toMaker: false })).toBe('READY'); // kho → kho
+    expect(statusAfterMove('DEFECT', { toKho: false, toMaker: true })).toBe('REPAIRING'); // gửi sửa
+    expect(statusAfterMove('MAKING', { toKho: false, toMaker: true })).toBe('MAKING');
   });
 
   it('finds dies by size in any order within tolerance', () => {

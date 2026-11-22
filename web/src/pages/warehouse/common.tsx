@@ -1,4 +1,4 @@
-import { Badge, Flex, Segmented, Tag, Typography } from 'antd';
+import { Badge, Flex, Segmented, Tabs, Tag, Typography } from 'antd';
 import { useSearchParams } from 'react-router';
 import { usePartners, useWarehouses } from '../../api/warehouse';
 import type { ReactNode } from 'react';
@@ -9,32 +9,31 @@ export type DieAction = Schemas['DieActionDto']['action'];
 export type SlipKind = Schemas['WhSlipKind'];
 
 export const STATUS: Record<DieStatus, { label: string; color: string }> = {
-  READY: { label: 'Sẵn sàng', color: 'green' },
+  MAKING: { label: 'Đang làm khuôn', color: 'cyan' },
+  READY: { label: 'Đạt, sẵn sàng', color: 'green' },
   IN_USE: { label: 'Đang bế', color: 'blue' },
   CHECKING: { label: 'Chờ kiểm', color: 'gold' },
   REPAIRING: { label: 'Đang sửa', color: 'purple' },
-  DEFECT: { label: 'Lỗi', color: 'orange' },
+  DEFECT: { label: 'Không đạt', color: 'orange' },
   BROKEN: { label: 'Hỏng', color: 'red' },
   DISPOSED: { label: 'Đã thanh lý', color: 'default' },
   TRANSIT: { label: 'Đang chuyển', color: 'processing' },
   INCOMING: { label: 'Khuôn mới, chờ nhận', color: 'gold' },
 };
 
-/** Thao tác tại chỗ (khuôn không đổi nơi). Đổi nơi thì lập phiếu giao nhận. */
+/** Thao tác tại chỗ (khuôn không đổi nơi). Đổi nơi thì "Chuyển khuôn". */
 export const ACTION: Record<DieAction, { label: string; hint: string }> = {
-  REUSE: { label: 'Bế lệnh mới tại đây', hint: 'Khuôn đang ở xưởng, bế tiếp cho lệnh mới. Khuôn không di chuyển nên không cần phiếu.' },
-  KEEP: { label: 'Bế xong, xưởng giữ', hint: 'Bế xong, khuôn để lại ở xưởng cho lần sau' },
-  PASS: { label: 'Kiểm đạt, lên kệ', hint: 'Khuôn dùng tốt, cất vào kệ (thủ kho)' },
-  DEFECT: { label: 'Báo lỗi / hỏng', hint: 'Dao mẻ, cong, gãy...' },
-  DISPOSE: { label: 'Thanh lý', hint: 'Không dùng nữa (thủ kho)' },
-  MOVE: { label: 'Đổi kệ', hint: 'Cất sang kệ khác trong cùng kho (thủ kho)' },
+  PASS: { label: 'Kiểm tra: Đạt', hint: 'Khuôn đạt, sẵn sàng để bế' },
+  DEFECT: { label: 'Kiểm tra: Không đạt', hint: 'Khuôn không đạt (dao lệch, mẻ, cong...). Nơi làm khuôn làm lại / sửa rồi kiểm tra lại.' },
+  DISPOSE: { label: 'Thanh lý', hint: 'Không dùng nữa' },
+  MOVE: { label: 'Đổi kệ', hint: 'Cất sang kệ khác trong cùng kho' },
 };
 
 export type BatchStatus = Schemas['WhDieBatchStatus'];
 
-/** Trạng thái phiếu giao nhận khuôn */
+/** Trạng thái phiếu chuyển khuôn (phiếu cũ có thể còn chờ xác nhận) */
 export function BatchStatusTag({ batch }: { batch: Pick<Schemas['BatchDto'], 'status' | 'outState' | 'inState'> }) {
-  if (batch.status === 'DONE') return <Tag color="green">Hoàn tất</Tag>;
+  if (batch.status === 'DONE') return <Tag color="green">Đã chuyển</Tag>;
   if (batch.status === 'REJECTED') return <Tag color="red">Bị từ chối</Tag>;
   if (batch.status === 'CANCELLED') return <Tag>Đã huỷ</Tag>;
   if (batch.outState === 'PENDING') return <Tag color="gold">Chờ xác nhận xuất</Tag>;
@@ -56,6 +55,7 @@ export function useDiePlaces(): { options: Array<{ label: string; options: Array
   const name = (key?: string | null) => {
     if (!key) return '';
     const id = key.slice(2);
+    if (key.startsWith('n:')) return id.trim(); // xưởng mới gõ tên
     return key.startsWith('k:') ? (khos.find((k) => k.id === id)?.name ?? '') : ((partners.data ?? []).find((p) => p.id === id)?.name ?? '');
   };
   return { options, khos, partners: shops, name };
@@ -151,6 +151,45 @@ export function WarehousePicker({ value, list, onChange }: { value?: Schemas['Wa
 
 export function DieStatusTag({ status }: { status: DieStatus }) {
   return <Tag color={STATUS[status].color}>{STATUS[status].label}</Tag>;
+}
+
+/** Các thẻ của Kho khuôn: danh sách khuôn, bế khuôn & chuyển kho, nhật ký. Đổi thẻ thì bỏ các lọc của thẻ cũ. */
+export const DIE_VIEWS = [
+  { key: 'dies', label: 'Danh sách khuôn' },
+  { key: 'moves', label: 'Bế khuôn & chuyển kho' },
+  { key: 'journal', label: 'Nhật ký khuôn' },
+] as const;
+export type DieView = (typeof DIE_VIEWS)[number]['key'];
+
+/**
+ * Đầu trang Kho khuôn (như Kho vật tư): chọn nơi trước (Tất cả, từng kho, từng xưởng / nơi làm khuôn), rồi các thẻ.
+ * Nơi đã chọn áp dụng cho cả ba thẻ; đổi thẻ thì giữ nơi, bỏ các lọc khác của thẻ cũ.
+ */
+export function DieTabs({ view }: { view: DieView }) {
+  const [params, setParams] = useSearchParams();
+  const places = useDiePlaces();
+  const place = params.get('place') ?? '';
+  const go = (patch: { view?: string; place?: string }) => {
+    const next = new URLSearchParams();
+    const v = patch.view ?? view;
+    const pl = patch.place ?? place;
+    if (v !== 'dies') next.set('view', v);
+    if (pl) next.set('place', pl);
+    setParams(next);
+  };
+  const options = [
+    { value: '', label: 'Tất cả' },
+    ...places.khos.map((k) => ({ value: `k:${k.id}`, label: `${k.name} · ${k.dies}` })),
+    ...places.partners.filter((p) => p.diesHeld > 0 || `x:${p.id}` === place).map((p) => ({ value: `x:${p.id}`, label: `${p.name} · ${p.diesHeld}` })),
+  ];
+  return (
+    <>
+      <div style={{ overflowX: 'auto', maxWidth: '100%' }}>
+        <Segmented value={place} onChange={(v) => go({ place: String(v) })} options={options.map((o) => ({ value: o.value, label: <span style={{ padding: '0 4px' }}>{o.label}</span> }))} />
+      </div>
+      <Tabs activeKey={view} style={{ marginBottom: -8 }} onChange={(k) => go({ view: k })} items={DIE_VIEWS.map((v) => ({ key: v.key, label: v.label }))} />
+    </>
+  );
 }
 
 export function PageHead({ title, extra, children }: { title: string; extra?: ReactNode; children?: ReactNode }) {

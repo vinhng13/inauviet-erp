@@ -1,4 +1,4 @@
-import { CameraOutlined, CheckOutlined, DeploymentUnitOutlined, DownloadOutlined, EditOutlined, PlusOutlined, SwapOutlined, WarningOutlined } from '@ant-design/icons';
+import { CameraOutlined, CheckOutlined, DeploymentUnitOutlined, DownloadOutlined, EditOutlined, PlusOutlined, SwapOutlined } from '@ant-design/icons';
 import {
   Alert,
   App,
@@ -30,14 +30,25 @@ import { diePhotoUrl, useDie, useDies, useLocations, useSymbols, useWarehouseMut
 import { useCan } from '../../lib/access';
 import { errorMessage } from '../../lib/errors';
 import { formatDate, formatDateTime, formatVnd, vndInputProps } from '../../lib/format';
-import { BatchModal } from './BatchesPage';
-import { ACTION, BatchStatusTag, DieStatusTag, downloadCsv, KIND, ORIENT, OWNER, PageHead, STATUS, useDiePlaces, type DieAction, type DieStatus } from './common';
+import { BatchModal, WarehouseBatchesPage, type MoveMode } from './BatchesPage';
+import { WarehouseDieJournalPage } from './DieJournalPage';
+import { ACTION, BatchStatusTag, DieStatusTag, DieTabs, downloadCsv, KIND, ORIENT, OWNER, PageHead, STATUS, useDiePlaces, type DieAction, type DieStatus, type DieView } from './common';
 import { pager } from '../../lib/paging';
+import { CreatableSelect, isNew, newName } from '../../components/CreatableSelect';
 
-const FLAG_LABEL = { overdue: 'Quá hẹn chưa về', review: 'Cần xác nhận', out: 'Đang ở xưởng ngoài' } as const;
+const FLAG_LABEL = { review: 'Cần xác nhận', out: 'Đang ở ngoài (xưởng, nơi làm khuôn)' } as const;
 
 /** Danh mục khuôn: tìm theo mã, tên, khách, kích thước; mở hồ sơ để luân chuyển */
+/** Kho khuôn: một trang ba thẻ (như Kho vật tư): danh sách khuôn, bế khuôn & chuyển kho, nhật ký khuôn */
 export function WarehouseDiesPage() {
+  const [params] = useSearchParams();
+  const view = (params.get('view') as DieView | null) ?? 'dies';
+  if (view === 'moves') return <WarehouseBatchesPage />;
+  if (view === 'journal') return <WarehouseDieJournalPage />;
+  return <DieList />;
+}
+
+function DieList() {
   const can = useCan();
   const [params, setParams] = useSearchParams();
   const num = (k: string) => (params.get(k) ? Number(params.get(k)) : undefined);
@@ -63,43 +74,35 @@ export function WarehouseDiesPage() {
     });
   const { data, isFetching } = useDies(query);
   const symbols = useSymbols();
-  const places = useDiePlaces();
   const [editing, setEditing] = useState<Die | 'new' | null>(null);
   const [selected, setSelected] = useState<DieRow[]>([]);
-  const [batch, setBatch] = useState(false);
+  const [batch, setBatch] = useState<MoveMode | null>(null);
   const openId = params.get('open') ?? undefined;
   const sizeSearch = query.l !== undefined || query.w !== undefined || query.h !== undefined || /^\s*\d+([.,]\d+)?\s*[x×*]/i.test(query.q ?? '');
-  const chips = [
-    ...places.khos.map((k) => ({ key: `k:${k.id}`, label: `${k.name} · ${k.dies}` })),
-    ...places.partners.filter((p) => p.diesHeld > 0).map((p) => ({ key: `x:${p.id}`, label: `${p.name} · ${p.diesHeld}` })),
-    { key: 'transit', label: 'Đang chuyển / chờ nhận' },
-  ];
 
   return (
     <Flex vertical gap={12}>
       <PageHead
-        title="Khuôn"
+        title="Kho khuôn"
         extra={
           <Space wrap>
             {can('warehouse.dies') && (
-              <Button icon={<DeploymentUnitOutlined />} onClick={() => setBatch(true)}>
-                {selected.length ? `Lập phiếu giao nhận cho ${selected.length} khuôn` : 'Lập phiếu giao nhận'}
+              <Button icon={<DeploymentUnitOutlined />} onClick={() => setBatch('kho')}>
+                {selected.length ? `Tạo phiếu chuyển kho (${selected.length} khuôn)` : 'Tạo phiếu chuyển kho'}
               </Button>
             )}
             {can('warehouse.dies') && (
-              <Button type="primary" icon={<PlusOutlined />} onClick={() => setEditing('new')}>Khuôn mới</Button>
+              <Button icon={<DeploymentUnitOutlined />} onClick={() => setBatch('cut')}>
+                {selected.length ? `Bế ${selected.length} khuôn` : 'Bế khuôn'}
+              </Button>
+            )}
+            {can('warehouse.dies') && (
+              <Button type="primary" icon={<PlusOutlined />} onClick={() => setEditing('new')}>Tạo khuôn mới</Button>
             )}
           </Space>
-        }
-      />
-      <Flex wrap gap={6}>
-        <Tag.CheckableTag checked={!query.place} onChange={() => set({ place: null, open: null })}>Tất cả</Tag.CheckableTag>
-        {chips.map((c) => (
-          <Tag.CheckableTag key={c.key} checked={query.place === c.key} onChange={(on) => set({ place: on ? c.key : null, open: null })}>
-            {c.label}
-          </Tag.CheckableTag>
-        ))}
-      </Flex>
+        }      >
+        <DieTabs view="dies" />
+      </PageHead>
       <Flex wrap gap={8} align="center">
         <Input.Search
           id="dies-search"
@@ -126,7 +129,7 @@ export function WarehouseDiesPage() {
           style={{ width: 150 }}
           value={query.status}
           onChange={(v) => set({ status: v })}
-          options={(Object.keys(STATUS) as DieStatus[]).map((s) => ({ value: s, label: STATUS[s].label }))}
+          options={(Object.keys(STATUS) as DieStatus[]).filter((s) => s !== 'TRANSIT' && s !== 'INCOMING').map((s) => ({ value: s, label: STATUS[s].label }))}
         />
         <Select
           id="dies-flag"
@@ -137,18 +140,14 @@ export function WarehouseDiesPage() {
           onChange={(v) => set({ flag: v })}
           options={(Object.keys(FLAG_LABEL) as Array<keyof typeof FLAG_LABEL>).map((f) => ({ value: f, label: FLAG_LABEL[f] }))}
         />
-      </Flex>
-      <Flex wrap gap={8} align="center">
-        <Typography.Text type="secondary">Gõ kích thước thì tìm khuôn lệch trong ± 0,5 cm, không cần đúng thứ tự dài – rộng – cao.</Typography.Text>
         {(query.l !== undefined || query.w !== undefined || query.h !== undefined) && <Button size="small" onClick={() => set({ l: null, w: null, h: null, tol: null })}>Bỏ tìm kích thước</Button>}
         <Button
-          size="small"
           icon={<DownloadOutlined />}
           onClick={() =>
             downloadCsv(
               `khuon-${dayjs().format('YYYY-MM-DD')}.csv`,
-              ['Mã', 'Tên khuôn', 'Khách', 'Kích thước', 'Dọc/ngang', 'Số mảnh', 'Trạng thái', 'Ở đâu', 'Hẹn về', 'Cần xác nhận'],
-              (data?.items ?? []).map((d) => [d.code, d.productName, d.customerName, d.size, d.orientation ? ORIENT[d.orientation] : '', d.pieces, STATUS[d.status].label, d.place, d.expectedBackOn, d.reviewNote]),
+              ['Mã', 'Tên khuôn', 'Khách', 'Kích thước', 'Dọc/ngang', 'Số mảnh', 'Trạng thái', 'Ở đâu', 'Cần xác nhận'],
+              (data?.items ?? []).map((d) => [d.code, d.productName, d.customerName, d.size, d.orientation ? ORIENT[d.orientation] : '', d.pieces, STATUS[d.status].label, d.place, d.reviewNote]),
             )
           }
         >
@@ -184,14 +183,8 @@ export function WarehouseDiesPage() {
           },
           { title: 'Kích thước', dataIndex: 'size', width: 130, render: (v: string | null, r) => (v ? `${v}${r.orientation ? ` · ${ORIENT[r.orientation]}` : ''}` : '') },
           { title: 'Mảnh', dataIndex: 'pieces', width: 60, align: 'right' },
-          { title: 'Trạng thái', dataIndex: 'status', width: 150, render: (s: DieStatus, r) => <span><DieStatusTag status={s} />{r.pendingBatchId && s !== 'TRANSIT' && s !== 'INCOMING' && <Tag color="gold">Có phiếu chờ</Tag>}</span> },
-          { title: 'Ở đâu', dataIndex: 'place', width: 220 },
-          {
-            title: 'Hẹn về',
-            dataIndex: 'expectedBackOn',
-            width: 110,
-            render: (v: string | null, r) => (v ? <Typography.Text type={r.overdue ? 'danger' : undefined}>{r.overdue && <WarningOutlined />} {formatDate(v)}</Typography.Text> : ''),
-          },
+          { title: 'Trạng thái', dataIndex: 'status', width: 150, render: (s: DieStatus, r) => <span><DieStatusTag status={s} />{r.pendingBatchId && s !== 'TRANSIT' && s !== 'INCOMING' && <Tag color="gold">Phiếu cũ chờ</Tag>}</span> },
+          { title: 'Ở đâu', dataIndex: 'place', width: 240 },
         ]}
       />
       {openId && <DieDrawer id={openId} onClose={() => set({ open: null })} onEdit={setEditing} />}
@@ -199,8 +192,9 @@ export function WarehouseDiesPage() {
       {batch && (
         <BatchModal
           dies={selected}
+          mode={batch}
           onClose={(b) => {
-            setBatch(false);
+            setBatch(null);
             if (b) setSelected([]);
           }}
         />
@@ -215,18 +209,19 @@ function DieDrawer({ id, onClose, onEdit }: { id: string; onClose: () => void; o
   const { data: d, isLoading, dataUpdatedAt } = useDie(id);
   const { updateDie, diePhoto, sendBatch, receiveBatch } = useWarehouseMutations();
   const [action, setAction] = useState<DieAction | null>(null);
+  const places = useDiePlaces();
   const [move, setMove] = useState<MoveMode | null>(null);
   const pending = d?.pending ?? null;
-  const atPartner = !!d?.holderId;
-  const moves: Array<{ mode: MoveMode; label: string; primary?: boolean }> = !d || pending || !can('warehouse.dies')
+  const may = !!d && !pending && can('warehouse.dies');
+  const atMaker = !!d?.holderId && places.partners.some((p) => p.id === d.holderId && p.kind === 'DIE_MAKER');
+  // Bế khuôn: chỉ khuôn đã kiểm tra đạt (hoặc đang bế ở xưởng khác); chuyển kho; khuôn không đạt thì gửi sửa
+  const moves: Array<{ mode: MoveMode; label: string; primary?: boolean }> = !may || !d
     ? []
-    : atPartner
-      ? [{ mode: 'xx', label: 'Chuyển sang xưởng khác' }, { mode: 'home', label: 'Nhập về kho', primary: d.status === 'REPAIRING' || d.status === 'DEFECT' }]
-      : d.status === 'READY'
-        ? [{ mode: 'out', label: 'Xuất đi bế', primary: true }, { mode: 'kho', label: 'Chuyển kho' }]
-        : d.status === 'CHECKING' || d.status === 'DEFECT'
-          ? [{ mode: 'fix', label: 'Gửi đi sửa' }, { mode: 'kho', label: 'Chuyển kho' }]
-          : [];
+    : [
+        ...(d.status === 'READY' || d.status === 'IN_USE' ? [{ mode: 'cut' as const, label: d.status === 'IN_USE' ? 'Bế ở xưởng khác' : 'Bế khuôn', primary: d.status === 'READY' }] : []),
+        ...(!['DISPOSED', 'BROKEN', 'TRANSIT', 'INCOMING', 'MAKING'].includes(d.status) ? [{ mode: 'kho' as const, label: d.holderId ? 'Chuyển về kho' : 'Chuyển kho' }] : []),
+        ...(d.status === 'DEFECT' && !atMaker ? [{ mode: 'fix' as const, label: 'Gửi sửa' }] : []),
+      ];
   const confirmReview = () =>
     d &&
     updateDie.mutate(
@@ -261,7 +256,6 @@ function DieDrawer({ id, onClose, onEdit }: { id: string; onClose: () => void; o
                 { label: 'Khách', children: d.customerName ?? '—' },
                 { label: 'Nơi làm khuôn', children: d.makerName ?? '—' },
                 { label: 'Sở hữu', children: OWNER[d.owner] },
-                ...(d.expectedBackOn ? [{ label: 'Hẹn về', children: <Typography.Text type={d.overdue ? 'danger' : undefined}>{formatDate(d.expectedBackOn)}</Typography.Text> }] : []),
                 ...(d.costVnd !== undefined && d.costVnd !== null ? [{ label: 'Giá làm khuôn', children: formatVnd(d.costVnd) }] : []),
                 ...(d.note ? [{ label: 'Ghi chú', span: 2, children: d.note }] : []),
               ]}
@@ -288,7 +282,7 @@ function DieDrawer({ id, onClose, onEdit }: { id: string; onClose: () => void; o
               showIcon
               title={
                 <span>
-                  Phiếu <Link to={`/warehouse/batches?open=${pending.id}`}>{pending.code}</Link>: {pending.fromName} → {pending.toName} <BatchStatusTag batch={pending} />
+                  Phiếu <Link to={`/warehouse/dies?view=moves&open=${pending.id}`}>{pending.code}</Link>: {pending.fromName} → {pending.toName} <BatchStatusTag batch={pending} />
                 </span>
               }
               description={pending.canSend || pending.canReceive ? undefined : pending.waitingFor}
@@ -302,32 +296,20 @@ function DieDrawer({ id, onClose, onEdit }: { id: string; onClose: () => void; o
           )}
           {(moves.length > 0 || (can('warehouse.dies') && d.allowedActions.length > 0)) && (
             <Flex wrap gap={8}>
-              {d.allowedActions.includes('REUSE') && can('warehouse.dies') && (
-                <Tooltip title={ACTION.REUSE.hint}>
-                  <Button type="primary" onClick={() => setAction('REUSE')}>{ACTION.REUSE.label}</Button>
-                </Tooltip>
-              )}
-              {moves.map((m) => (
-                <Tooltip key={m.mode} title="Lập phiếu giao nhận; cần thủ kho xác nhận">
-                  <Button type={m.primary ? 'primary' : 'default'} icon={<SwapOutlined />} onClick={() => setMove(m.mode)}>{m.label}</Button>
-                </Tooltip>
-              ))}
               {can('warehouse.dies') &&
-                (d.allowedActions as DieAction[])
-                  .filter((a) => a !== 'REUSE')
-                  .map((a) => (
-                    <Tooltip key={a} title={ACTION[a].hint}>
-                      <Button type={a === 'PASS' ? 'primary' : 'default'} danger={a === 'DEFECT' || a === 'DISPOSE'} onClick={() => setAction(a)}>
-                        {ACTION[a].label}
-                      </Button>
-                    </Tooltip>
-                  ))}
+                (d.allowedActions as DieAction[]).map((a) => (
+                  <Tooltip key={a} title={ACTION[a].hint}>
+                    <Button type={a === 'PASS' ? 'primary' : 'default'} danger={a === 'DEFECT' || a === 'DISPOSE'} onClick={() => setAction(a)}>
+                      {actionLabel(a, d.status)}
+                    </Button>
+                  </Tooltip>
+                ))}
+              {moves.map((m) => (
+                <Button key={m.mode} type={m.primary ? 'primary' : 'default'} icon={<SwapOutlined />} onClick={() => setMove(m.mode)}>
+                  {m.label}
+                </Button>
+              ))}
             </Flex>
-          )}
-          {atPartner && !pending && (
-            <Typography.Text type="secondary">
-              Bế lệnh mới tại xưởng đang giữ khuôn: khuôn không di chuyển nên không cần phiếu. Chuyển sang xưởng khác hoặc nhập về kho thì lập phiếu giao nhận và cần thủ kho xác nhận.
-            </Typography.Text>
           )}
           {d.similar.length > 0 && (
             <Alert
@@ -339,13 +321,13 @@ function DieDrawer({ id, onClose, onEdit }: { id: string; onClose: () => void; o
             <Typography.Title level={5}>Lịch sử</Typography.Title>
             <Timeline
               items={d.moves.map((m) => ({
-                color: m.action === 'DEFECT' || m.action === 'REJECT' ? 'red' : m.action === 'SEND' || m.action === 'ISSUE' || m.action === 'REUSE' ? 'blue' : m.action === 'IMPORT' || m.action === 'EDIT' || m.action === 'REQUEST' ? 'gray' : 'green',
+                color: m.action === 'DEFECT' || m.action === 'REJECT' ? 'red' : m.action === 'TRANSFER' || m.action === 'SEND' || m.action === 'ISSUE' || m.action === 'REUSE' ? 'blue' : m.action === 'IMPORT' || m.action === 'EDIT' || m.action === 'REQUEST' ? 'gray' : 'green',
                 children: (
                   <div>
                     <strong>{formatDate(m.date)}</strong> · {m.actionLabel}
                     {m.toStatus && m.action !== 'EDIT' && <> → <DieStatusTag status={m.toStatus} /></>}
                     {m.place && <> · {m.fromPlace && m.fromPlace !== m.place ? `${m.fromPlace} → ` : ''}{m.place}</>}
-                    {m.batchCode && <Tag style={{ marginLeft: 6 }}><Link to={`/warehouse/batches?open=${m.batchId}`}>{m.batchCode}</Link></Tag>}
+                    {m.batchCode && <Tag style={{ marginLeft: 6 }}><Link to={`/warehouse/dies?view=moves&open=${m.batchId}`}>{m.batchCode}</Link></Tag>}
                     <div style={{ fontSize: 12, opacity: 0.75 }}>
                       {[m.reference && `Lệnh: ${m.reference}`, m.expectedBackOn && `hẹn về ${formatDate(m.expectedBackOn)}`, m.note, m.user && `${m.user}, ${formatDateTime(m.createdAt)}`].filter(Boolean).join(' · ')}
                     </div>
@@ -362,11 +344,13 @@ function DieDrawer({ id, onClose, onEdit }: { id: string; onClose: () => void; o
   );
 }
 
-type MoveMode = 'out' | 'kho' | 'fix' | 'xx' | 'home';
 
 type ActionForm = { date: Dayjs; locationId?: string; expectedBackOn?: Dayjs; reference?: string; note?: string; broken?: boolean };
 
 /** Thao tác tại chỗ: bế lệnh mới, xưởng giữ, kiểm đạt, đổi kệ, báo lỗi, thanh lý */
+/** Không đạt khi kiểm tra khuôn mới / khuôn sửa; với khuôn đang dùng thì là báo lỗi */
+const actionLabel = (a: DieAction, status: DieStatus) => (a === 'DEFECT' && (status === 'READY' || status === 'IN_USE') ? 'Báo lỗi / hỏng' : ACTION[a].label);
+
 function ActionModal({ die, action, onClose }: { die: Die; action: DieAction; onClose: () => void }) {
   const { message } = App.useApp();
   const [form] = Form.useForm<ActionForm>();
@@ -379,35 +363,26 @@ function ActionModal({ die, action, onClose }: { die: Die; action: DieAction; on
         id: die.id,
         action,
         date: v.date.format('YYYY-MM-DD'),
-        locationId: v.locationId ?? null,
+        locationId: v.locationId && !isNew(v.locationId) ? v.locationId : null,
+        locationCode: newName(v.locationId) || null,
         expectedBackOn: v.expectedBackOn?.format('YYYY-MM-DD') ?? null,
         reference: v.reference?.trim() || null,
         note: v.note || null,
         broken: v.broken,
       },
-      { onSuccess: () => (message.success(`${ACTION[action].label}: ${die.code}`), onClose()), onError: (e) => message.error(errorMessage(e)) },
+      { onSuccess: () => (message.success(`${actionLabel(action, die.status)}: ${die.code}`), onClose()), onError: (e) => message.error(errorMessage(e)) },
     );
   return (
-    <Modal open title={`${ACTION[action].label} · ${die.code}`} okText="Ghi nhận" cancelText="Đóng" onCancel={onClose} onOk={() => form.submit()} confirmLoading={dieAction.isPending} destroyOnHidden>
+    <Modal open title={`${actionLabel(action, die.status)} · ${die.code}`} okText="Ghi nhận" cancelText="Đóng" onCancel={onClose} onOk={() => form.submit()} confirmLoading={dieAction.isPending} destroyOnHidden>
       <Typography.Paragraph type="secondary">{ACTION[action].hint}</Typography.Paragraph>
       <Form<ActionForm> form={form} layout="vertical" onFinish={submit} initialValues={{ date: dayjs(), locationId: action === 'PASS' || action === 'MOVE' ? (die.locationId ?? undefined) : undefined }}>
         <Form.Item name="date" label="Ngày" rules={[{ required: true }]}>
           <DatePicker format="DD/MM/YYYY" allowClear={false} />
         </Form.Item>
-        {(action === 'PASS' || action === 'MOVE') && (
-          <Form.Item name="locationId" label={`Kệ trong ${die.warehouseName}`} rules={[{ required: true, message: 'Chọn kệ' }]}>
-            <Select showSearch optionFilterProp="label" options={shelves.map((l) => ({ value: l.id, label: l.code }))} notFoundContent="Kho này chưa có kệ. Thêm ở Danh mục kho → Vị trí kệ." />
+        {(action === 'MOVE' || (action === 'PASS' && !die.holderId)) && (
+          <Form.Item name="locationId" label={`Kệ trong ${die.warehouseName}`} rules={action === 'MOVE' ? [{ required: true, message: 'Chọn kệ' }] : []}>
+            <CreatableSelect placeholder="Chọn kệ hoặc gõ mã kệ mới" addLabel="Thêm kệ" options={shelves.map((l) => ({ value: l.id, label: l.code }))} />
           </Form.Item>
-        )}
-        {action === 'REUSE' && (
-          <>
-            <Form.Item name="reference" label="Lệnh sản xuất / đơn" rules={[{ required: true, whitespace: true, message: 'Ghi lệnh sản xuất' }]}>
-              <Input id="reuse-ref" placeholder="LSX-…" />
-            </Form.Item>
-            <Form.Item name="expectedBackOn" label="Hẹn ngày lấy lại">
-              <DatePicker format="DD/MM/YYYY" />
-            </Form.Item>
-          </>
         )}
         {action === 'DEFECT' && (
           <Form.Item name="broken" valuePropName="checked">
@@ -446,17 +421,20 @@ function DieFormModal({ die, onClose, onCreated }: { die: Die | null; onClose: (
   const [form] = Form.useForm<DieForm>();
   const symbols = useSymbols();
   const places = useDiePlaces();
-  const locations = useLocations();
   const { createDie, updateDie } = useWarehouseMutations();
-  const to = Form.useWatch('to', form);
-  const toKho = to?.startsWith('k:') ? places.khos.find((k) => k.id === to.slice(2)) : undefined;
-  const ctl = toKho ?? places.khos[0];
   const [similar, setSimilar] = useState<DieRow[] | null>(null);
   const symbol = Form.useWatch('symbolCode', form);
   const next = symbols.data?.find((s) => s.code === symbol);
   const save = (force = false) => {
-    const { to: dest, toLocationId, reference, confirm, ...v } = form.getFieldsValue(true) as DieForm;
-    const body = { ...v, customerName: v.customerName || null, sizeText: v.sizeText || null, note: v.note || null };
+    const { to: _to, toLocationId: _loc, reference: _ref, makerId, ...v } = form.getFieldsValue(true) as DieForm;
+    const body = {
+      ...v,
+      makerId: makerId && !isNew(makerId) ? makerId : null,
+      makerName: newName(makerId) || null,
+      customerName: v.customerName || null,
+      sizeText: v.sizeText || null,
+      note: v.note || null,
+    };
     if (die) {
       updateDie.mutate({ id: die.id, ...body }, { onSuccess: () => (message.success('Đã lưu'), onClose()), onError: (e) => message.error(errorMessage(e)) });
       return;
@@ -464,16 +442,11 @@ function DieFormModal({ die, onClose, onCreated }: { die: Die | null; onClose: (
     createDie.mutate(
       {
         ...body,
-        toWarehouseId: dest?.startsWith('k:') ? dest.slice(2) : null,
-        toPartnerId: dest?.startsWith('x:') ? dest.slice(2) : null,
-        toLocationId: dest?.startsWith('k:') ? (toLocationId ?? null) : null,
-        reference: dest?.startsWith('x:') ? reference?.trim() || null : null,
-        confirm: !!confirm,
         force,
       },
       {
         onSuccess: (d) => {
-          message.success(d.pending?.waitingFor ? `Đã tạo khuôn ${d.code}. ${d.pending.waitingFor}` : `Đã tạo khuôn ${d.code}, khuôn ở ${d.place}`);
+          message.success(`Đã tạo khuôn ${d.code}, khuôn ở ${d.place}`);
           onClose();
           onCreated(d);
         },
@@ -488,7 +461,7 @@ function DieFormModal({ die, onClose, onCreated }: { die: Die | null; onClose: (
     <Modal
       open
       width={760}
-      title={die ? `Sửa khuôn ${die.code}` : 'Khuôn mới'}
+      title={die ? `Sửa khuôn ${die.code}` : 'Tạo khuôn mới'}
       onCancel={onClose}
       footer={
         <Space>
@@ -535,49 +508,19 @@ function DieFormModal({ die, onClose, onCreated }: { die: Die | null; onClose: (
           </Form.Item>
         </Flex>
         <Flex wrap gap={12}>
-          <Form.Item name="makerId" label="Nơi làm khuôn">
-            <Select allowClear showSearch optionFilterProp="label" style={{ width: 220 }} options={places.partners.map((p) => ({ value: p.id, label: p.name }))} />
+          <Form.Item name="makerId" label="Nơi làm khuôn" rules={die ? [] : [{ required: true, message: 'Chọn nơi làm khuôn (hoặc gõ tên mới)' }]}>
+            <CreatableSelect id="die-maker" allowClear={!!die} placeholder="Chọn hoặc gõ tên mới" style={{ width: 240 }} options={places.partners.filter((p) => p.kind === 'DIE_MAKER').map((p) => ({ value: p.id, label: p.name }))} />
           </Form.Item>
           <Form.Item name="costVnd" label="Giá làm khuôn">
             <InputNumber {...vndInputProps} style={{ width: 160 }} />
           </Form.Item>
         </Flex>
         {!die && (
-          <Flex vertical gap={4} style={{ border: '1px solid rgba(128,128,128,.3)', borderRadius: 8, padding: '12px 12px 0', marginBottom: 12 }}>
-            <Typography.Text strong>Khuôn làm xong giao tới đâu?</Typography.Text>
-            <Flex wrap gap={12}>
-              <Form.Item name="to" label="Nơi nhận khuôn (bắt buộc)" rules={[{ required: true, message: 'Chọn kho hoặc xưởng bế nhận khuôn' }]} style={{ minWidth: 240 }}>
-                <Select
-                  id="die-to"
-                  showSearch
-                  optionFilterProp="label"
-                  placeholder="Chọn kho hoặc xưởng bế"
-                  options={places.options.filter((g) => g.label !== 'Nơi làm khuôn').map((g) => ({ ...g, label: g.label === 'Kho Âu Việt' ? 'Nhập kho Âu Việt' : 'Giao thẳng tới xưởng bế' }))}
-                  onChange={() => form.setFieldValue('toLocationId', undefined)}
-                />
-              </Form.Item>
-              {toKho && (
-                <Form.Item name="toLocationId" label="Cất ở kệ">
-                  <Select allowClear style={{ width: 160 }} options={(locations.data ?? []).filter((l) => l.isActive && l.warehouseId === toKho.id).map((l) => ({ value: l.id, label: l.code }))} />
-                </Form.Item>
-              )}
-              {to?.startsWith('x:') && (
-                <Form.Item name="reference" label="Lệnh / đơn (không bắt buộc)">
-                  <Input style={{ width: 170 }} />
-                </Form.Item>
-              )}
-            </Flex>
-            {to && (
-              <Typography.Text type="secondary" style={{ marginBottom: 8 }}>
-                {toKho ? `Khi khuôn về tới, thủ kho ${toKho.name} xác nhận đã nhận thì khuôn mới vào kho.` : `Thủ kho ${ctl?.name ?? 'kho khuôn'} xác nhận khuôn đã giao tới xưởng.`}
-              </Typography.Text>
-            )}
-            {to && ctl?.canConfirm && (
-              <Form.Item name="confirm" valuePropName="checked">
-                <Checkbox>Tôi là thủ kho {ctl.name}, {toKho ? 'khuôn đã về, xác nhận nhận luôn' : 'xác nhận đã giao luôn'}</Checkbox>
-              </Form.Item>
-            )}
-          </Flex>
+          <Alert
+            type="info"
+            style={{ marginBottom: 12 }}
+            title="Khuôn mới nằm ở nơi làm khuôn, trạng thái Đang làm khuôn. Làm xong: mở khuôn, bấm Kiểm tra (Đạt / Không đạt); đạt thì Bế khuôn hoặc Chuyển kho."
+          />
         )}
         <Form.Item name="note" label="Ghi chú"><Input.TextArea rows={2} /></Form.Item>
       </Form>

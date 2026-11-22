@@ -1,4 +1,4 @@
-import { ArrowLeftRight, ArrowRightLeft, BookOpen, Boxes, Calculator, CalendarDays, ChartColumn, CircleDollarSign, Database, FileCheck2, FileText, History, Landmark, LayoutDashboard, LayoutGrid, ListTree, MessageSquare, Palette, Percent, Plug, Scissors, Settings, ShieldCheck, Store, Truck, UserRound, Users, Wallet, Warehouse, Wrench, type LucideIcon } from 'lucide-react';
+import { ArrowLeftRight, BookOpen, Boxes, Calculator, CalendarDays, ChartColumn, CircleDollarSign, Database, FileCheck2, FileText, Landmark, LayoutDashboard, LayoutGrid, ListTree, MessageSquare, Palette, Percent, Plug, Scissors, Settings, ShieldCheck, Store, Truck, UserRound, Users, Wallet, Warehouse, Wrench, type LucideIcon } from 'lucide-react';
 
 import type { ReactNode } from 'react';
 import type { Permission } from './access';
@@ -73,10 +73,8 @@ export const MODULES: AppModule[] = [
     color: '#b5651d',
     nav: [
       { key: '/warehouse', icon: <I c={LayoutDashboard} />, label: 'Tổng quan kho', permission: 'warehouse.view' },
-      { key: '/warehouse/stock', icon: <I c={Database} />, label: 'Tồn kho & phiếu', permission: 'warehouse.view' },
-      { key: '/warehouse/dies', icon: <I c={Scissors} />, label: 'Khuôn', permission: 'warehouse.view' },
-      { key: '/warehouse/batches', icon: <I c={ArrowRightLeft} />, label: 'Giao nhận khuôn', permission: 'warehouse.view' },
-      { key: '/warehouse/die-journal', icon: <I c={History} />, label: 'Nhật ký khuôn', permission: 'warehouse.view' },
+      { key: '/warehouse/stock', icon: <I c={Database} />, label: 'Kho vật tư', permission: 'warehouse.view' },
+      { key: '/warehouse/dies', icon: <I c={Scissors} />, label: 'Kho khuôn', permission: 'warehouse.view' },
       { key: '/warehouse/reports', icon: <I c={ChartColumn} />, label: 'Báo cáo kho', permission: 'warehouse.view' },
       { key: '/warehouse/catalog', icon: <I c={ListTree} />, label: 'Danh mục kho', permission: 'warehouse.view' },
     ],

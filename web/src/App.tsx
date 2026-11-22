@@ -40,10 +40,9 @@ import { QuoteDetailPage } from './pages/QuoteDetailPage';
 import { QuoteEditorPage } from './pages/QuoteEditorPage';
 import { QuotesPage } from './pages/QuotesPage';
 import { RolesPage } from './pages/RolesPage';
-import { WarehouseBatchesPage } from './pages/warehouse/BatchesPage';
 import { WarehouseCatalogPage } from './pages/warehouse/CatalogPage';
-import { WarehouseDieJournalPage } from './pages/warehouse/DieJournalPage';
 import { WarehouseDiesPage } from './pages/warehouse/DiesPage';
+import { MergedInto } from './pages/warehouse/MergedInto';
 import { WarehouseOverviewPage } from './pages/warehouse/OverviewPage';
 import { WarehouseReportPage } from './pages/warehouse/ReportPage';
 import { WarehouseStockPage } from './pages/warehouse/StockPage';
@@ -288,19 +287,11 @@ export function App() {
                     />
                     <Route
                       path="/warehouse/batches"
-                      element={
-                        <Allow p="warehouse.view">
-                          <WarehouseBatchesPage />
-                        </Allow>
-                      }
+                      element={<MergedInto view="moves" />}
                     />
                     <Route
                       path="/warehouse/die-journal"
-                      element={
-                        <Allow p="warehouse.view">
-                          <WarehouseDieJournalPage />
-                        </Allow>
-                      }
+                      element={<MergedInto view="journal" />}
                     />
                     <Route
                       path="/warehouse/reports"

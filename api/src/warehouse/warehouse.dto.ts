@@ -317,8 +317,12 @@ export class SlipInputDto {
   kind: 'RECEIPT' | 'ISSUE' | 'RETURN';
   @DateOnly()
   date: string;
+  /** Nơi lấy hàng nhập kho (phiếu nhập) */
   @IsOptional() @ValidateIf((_, v) => v !== null) @IsUUID()
   partnerId?: string | null;
+  /** Nơi lấy hàng gõ tên mới (chưa có trong danh mục): tự thêm vào danh mục đối tác */
+  @IsOptional() @IsString() @MaxLength(120)
+  partnerName?: string | null;
   @IsOptional() @IsString() @MaxLength(120)
   receiver?: string | null;
   @IsOptional() @IsString() @MaxLength(200)
@@ -545,6 +549,9 @@ export class DieInputDto {
   ups?: number | null;
   @IsOptional() @ValidateIf((_, v) => v !== null) @IsUUID()
   makerId?: string | null;
+  /** Nơi làm khuôn gõ tên mới: tự thêm vào danh mục */
+  @IsOptional() @IsString() @MaxLength(120)
+  makerName?: string | null;
   @IsOptional() @IsEnum(WhDieOwner)
   owner?: WhDieOwner;
   @IsOptional() @ValidateIf((_, v) => v !== null) @IsInt() @Min(0)
@@ -556,9 +563,15 @@ export class DieInputDto {
   toWarehouseId?: string | null;
   @IsOptional() @ValidateIf((_, v) => v !== null) @IsUUID()
   toPartnerId?: string | null;
+  /** Xưởng gõ tên mới: tự thêm vào danh mục (xưởng bế) */
+  @IsOptional() @IsString() @MaxLength(120)
+  toPartnerName?: string | null;
   /** Kệ cất khi nhận (kho) */
   @IsOptional() @ValidateIf((_, v) => v !== null) @IsUUID()
   toLocationId?: string | null;
+  /** Kệ gõ mã mới: tự thêm vào kho nhận */
+  @IsOptional() @IsString() @MaxLength(40)
+  toLocationCode?: string | null;
   /** Lệnh bế khi giao thẳng tới xưởng */
   @IsOptional() @IsString() @MaxLength(60)
   reference?: string | null;
@@ -573,7 +586,7 @@ export class DieInputDto {
   reviewed?: boolean;
 }
 
-export const DIE_ACTIONS = ['KEEP', 'PASS', 'DEFECT', 'DISPOSE', 'MOVE', 'REUSE'] as const;
+export const DIE_ACTIONS = ['PASS', 'DEFECT', 'DISPOSE', 'MOVE'] as const;
 export type DieMoveAction = (typeof DIE_ACTIONS)[number];
 
 /** Thao tác tại chỗ (khuôn không đổi nơi). Đổi nơi thì lập phiếu giao nhận. */
@@ -585,6 +598,9 @@ export class DieActionDto {
   /** Kệ trong kho (kiểm đạt, đổi kệ) */
   @IsOptional() @ValidateIf((_, v) => v !== null) @IsUUID()
   locationId?: string | null;
+  /** Kệ gõ mã mới: tự thêm vào kho giữ khuôn */
+  @IsOptional() @IsString() @MaxLength(40)
+  locationCode?: string | null;
   @IsOptional() @ValidateIf((_, v) => v !== null) @DateOnly()
   expectedBackOn?: string | null;
   /** Lệnh bế (bắt buộc khi bế lệnh mới tại xưởng) */
@@ -725,8 +741,17 @@ export class BatchInputDto {
   toWarehouseId?: string | null;
   @IsOptional() @ValidateIf((_, v) => v !== null) @IsUUID()
   toPartnerId?: string | null;
+  /** Nơi đến gõ tên mới: tự thêm vào danh mục (mặc định xưởng bế) */
+  @IsOptional() @IsString() @MaxLength(120)
+  toPartnerName?: string | null;
+  /** Loại đối tác khi thêm mới theo tên: gửi sửa thì nơi làm khuôn */
+  @IsOptional() @IsIn(['DIE_SHOP', 'DIE_MAKER'])
+  toPartnerKind?: 'DIE_SHOP' | 'DIE_MAKER' | null;
   @IsOptional() @ValidateIf((_, v) => v !== null) @IsUUID()
   toLocationId?: string | null;
+  /** Kệ gõ mã mới: tự thêm vào kho nhận */
+  @IsOptional() @IsString() @MaxLength(40)
+  toLocationCode?: string | null;
   @IsArray() @IsUUID('all', { each: true })
   dieIds: string[];
   /** Khuôn có sẵn trong kho đi nhưng chưa có mã: cấp mã khi lập phiếu */
@@ -747,12 +772,18 @@ export class BatchQueryDto {
   /** mine = chờ người đang xem xác nhận; open = còn chờ; all */
   @IsOptional() @IsIn(['mine', 'open', 'all'])
   tab?: 'mine' | 'open' | 'all';
+  /** Nơi đi hoặc đến: k:<kho> hoặc x:<đối tác> */
+  @IsOptional() @IsString() @Matches(/^[kx]:[0-9a-f-]{36}$/)
+  place?: string;
 }
 
 export class BatchReceiveDto {
   /** Kệ cất khuôn */
   @IsOptional() @ValidateIf((_, v) => v !== null) @IsUUID()
   locationId?: string | null;
+  /** Kệ gõ mã mới: tự thêm vào kho nhận */
+  @IsOptional() @IsString() @MaxLength(40)
+  locationCode?: string | null;
 }
 
 export class BatchRejectDto {

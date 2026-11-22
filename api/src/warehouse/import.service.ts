@@ -267,7 +267,7 @@ export class DieImportService {
               warehouseId,
               holderId,
               locationId,
-              expectedBackOn: p.expectedBackOn ? dateField(p.expectedBackOn, 'expectedBackOn') : null,
+              // không theo dõi hạn trả; ngày dự kiến lấy lại trong bảng chỉ ghi vào lịch sử
               needsReview: p.review.length > 0,
               reviewNote: p.review.length ? p.review.join('; ') : null,
               searchText: dieSearchText({ code: p.code, ...fields }, sizeOf(p.size)),

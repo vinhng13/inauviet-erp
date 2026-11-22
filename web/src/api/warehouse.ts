@@ -44,8 +44,8 @@ export const useDies = (q: DieQuery, enabled = true) =>
 export const useDie = (id?: string) =>
   useQuery({ queryKey: wh.key('die', id), enabled: !!id, queryFn: () => unwrap(api.GET('/api/v1/warehouse/dies/{id}', { params: p(id!) })) });
 export type Batch = Schemas['BatchDto'];
-export const useBatches = (tab: 'mine' | 'open' | 'all') =>
-  useQuery({ queryKey: wh.key('batches', tab), placeholderData: keepPreviousData, queryFn: () => unwrap(api.GET('/api/v1/warehouse/batches', { params: { query: { tab } } })) });
+export const useBatches = (tab: 'mine' | 'open' | 'all', place?: string) =>
+  useQuery({ queryKey: wh.key('batches', tab, place), placeholderData: keepPreviousData, queryFn: () => unwrap(api.GET('/api/v1/warehouse/batches', { params: { query: { tab, place } } })) });
 export const useBatch = (id?: string) =>
   useQuery({ queryKey: wh.key('batch', id), enabled: !!id, queryFn: () => unwrap(api.GET('/api/v1/warehouse/batches/{id}', { params: p(id!) })) });
 export type DieJournalQuery = NonNullable<operations['Warehouse_dieJournal']['parameters']['query']>;
@@ -112,7 +112,8 @@ export function useWarehouseMutations() {
     createBatch: useMutation({ mutationFn: (body: Schemas['BatchInputDto']) => unwrap(api.POST('/api/v1/warehouse/batches', { body })), ...done }),
     sendBatch: useMutation({ mutationFn: (id: string) => unwrap(api.POST('/api/v1/warehouse/batches/{id}/send', { params: p(id) })), ...done }),
     receiveBatch: useMutation({
-      mutationFn: ({ id, locationId }: { id: string; locationId?: string | null }) => unwrap(api.POST('/api/v1/warehouse/batches/{id}/receive', { params: p(id), body: { locationId: locationId ?? null } })),
+      mutationFn: ({ id, locationId, locationCode }: { id: string; locationId?: string | null; locationCode?: string | null }) =>
+        unwrap(api.POST('/api/v1/warehouse/batches/{id}/receive', { params: p(id), body: { locationId: locationId ?? null, locationCode: locationCode ?? null } })),
       ...done,
     }),
     rejectBatch: useMutation({ mutationFn: ({ id, reason }: { id: string; reason: string }) => unwrap(api.POST('/api/v1/warehouse/batches/{id}/reject', { params: p(id), body: { reason } })), ...done }),

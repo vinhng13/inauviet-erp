@@ -5378,7 +5378,8 @@
                 "BROKEN",
                 "DISPOSED",
                 "TRANSIT",
-                "INCOMING"
+                "INCOMING",
+                "MAKING"
               ]
             }
           },
@@ -5764,6 +5765,16 @@
                 "all"
               ]
             }
+          },
+          {
+            "name": "place",
+            "required": false,
+            "in": "query",
+            "description": "Nơi đi hoặc đến: k:<kho> hoặc x:<đối tác>",
+            "schema": {
+              "pattern": "^[kx]:[0-9a-f-]{36}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -6006,13 +6017,12 @@
               "type": "string",
               "enum": [
                 "ISSUE",
-                "KEEP",
                 "PASS",
                 "DEFECT",
                 "DISPOSE",
                 "MOVE",
-                "REUSE",
                 "CREATE",
+                "KEEP",
                 "RETURN",
                 "SEND_REPAIR",
                 "BACK_REPAIR",
@@ -6022,7 +6032,9 @@
                 "SEND",
                 "RECEIVE",
                 "REJECT",
-                "COUNT"
+                "REUSE",
+                "COUNT",
+                "TRANSFER"
               ]
             }
           },
@@ -12899,7 +12911,8 @@
           "BROKEN",
           "DISPOSED",
           "TRANSIT",
-          "INCOMING"
+          "INCOMING",
+          "MAKING"
         ]
       },
       "DieRowDto": {
@@ -14148,7 +14161,14 @@
           "partnerId": {
             "type": "string",
             "nullable": true,
+            "description": "Nơi lấy hàng nhập kho (phiếu nhập)",
             "format": "uuid"
+          },
+          "partnerName": {
+            "type": "string",
+            "nullable": true,
+            "description": "Nơi lấy hàng gõ tên mới (chưa có trong danh mục): tự thêm vào danh mục đối tác",
+            "maxLength": 120
           },
           "receiver": {
             "type": "string",
@@ -14298,7 +14318,8 @@
           "RECEIVE",
           "REJECT",
           "REUSE",
-          "COUNT"
+          "COUNT",
+          "TRANSFER"
         ]
       },
       "DieMoveDto": {
@@ -14419,12 +14440,10 @@
             "items": {
               "type": "string",
               "enum": [
-                "KEEP",
                 "PASS",
                 "DEFECT",
                 "DISPOSE",
-                "MOVE",
-                "REUSE"
+                "MOVE"
               ]
             }
           },
@@ -14664,6 +14683,12 @@
             "nullable": true,
             "format": "uuid"
           },
+          "makerName": {
+            "type": "string",
+            "nullable": true,
+            "description": "Nơi làm khuôn gõ tên mới: tự thêm vào danh mục",
+            "maxLength": 120
+          },
           "owner": {
             "enum": [
               "CUSTOMER",
@@ -14693,11 +14718,23 @@
             "nullable": true,
             "format": "uuid"
           },
+          "toPartnerName": {
+            "type": "string",
+            "nullable": true,
+            "description": "Xưởng gõ tên mới: tự thêm vào danh mục (xưởng bế)",
+            "maxLength": 120
+          },
           "toLocationId": {
             "type": "string",
             "nullable": true,
             "description": "Kệ cất khi nhận (kho)",
             "format": "uuid"
+          },
+          "toLocationCode": {
+            "type": "string",
+            "nullable": true,
+            "description": "Kệ gõ mã mới: tự thêm vào kho nhận",
+            "maxLength": 40
           },
           "reference": {
             "type": "string",
@@ -14739,12 +14776,10 @@
           "action": {
             "type": "string",
             "enum": [
-              "KEEP",
               "PASS",
               "DEFECT",
               "DISPOSE",
-              "MOVE",
-              "REUSE"
+              "MOVE"
             ]
           },
           "locationId": {
@@ -14752,6 +14787,12 @@
             "nullable": true,
             "description": "Kệ trong kho (kiểm đạt, đổi kệ)",
             "format": "uuid"
+          },
+          "locationCode": {
+            "type": "string",
+            "nullable": true,
+            "description": "Kệ gõ mã mới: tự thêm vào kho giữ khuôn",
+            "maxLength": 40
           },
           "reference": {
             "type": "string",
@@ -15028,10 +15069,31 @@
             "nullable": true,
             "format": "uuid"
           },
+          "toPartnerName": {
+            "type": "string",
+            "nullable": true,
+            "description": "Nơi đến gõ tên mới: tự thêm vào danh mục (mặc định xưởng bế)",
+            "maxLength": 120
+          },
+          "toPartnerKind": {
+            "type": "string",
+            "nullable": true,
+            "description": "Loại đối tác khi thêm mới theo tên: gửi sửa thì nơi làm khuôn",
+            "enum": [
+              "DIE_SHOP",
+              "DIE_MAKER"
+            ]
+          },
           "toLocationId": {
             "type": "string",
             "nullable": true,
             "format": "uuid"
+          },
+          "toLocationCode": {
+            "type": "string",
+            "nullable": true,
+            "description": "Kệ gõ mã mới: tự thêm vào kho nhận",
+            "maxLength": 40
           },
           "dieIds": {
             "type": "array",
@@ -15075,6 +15137,12 @@
             "nullable": true,
             "description": "Kệ cất khuôn",
             "format": "uuid"
+          },
+          "locationCode": {
+            "type": "string",
+            "nullable": true,
+            "description": "Kệ gõ mã mới: tự thêm vào kho nhận",
+            "maxLength": 40
           }
         }
       },

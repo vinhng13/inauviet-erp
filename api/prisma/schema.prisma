@@ -1196,15 +1196,16 @@ enum WhDieKind {
 }
 
 enum WhDieStatus {
-  READY // sẵn sàng (ở kho hoặc gửi giữ ở xưởng)
-  IN_USE // đã xuất cho một lần bế
+  READY // sẵn sàng, ở kho
+  IN_USE // ở xưởng bế
   CHECKING // trả về, chờ kiểm
   REPAIRING // đang sửa
   DEFECT // lỗi
   BROKEN // hỏng
   DISPOSED // thanh lý
   TRANSIT // đã xuất khỏi kho, chờ kho nhận xác nhận
-  INCOMING // khuôn mới, chờ nhận
+  INCOMING // khuôn mới, chờ nhận (quy trình cũ)
+  MAKING // đang làm ở nơi làm khuôn
 }
 
 enum WhDieOwner {
@@ -1285,6 +1286,7 @@ enum WhDieAction {
   REJECT // phiếu bị từ chối / huỷ
   REUSE // bế lệnh mới tại xưởng đang giữ khuôn
   COUNT // kiểm kê
+  TRANSFER // chuyển khuôn (có hiệu lực ngay)
 }
 
 model WhDieMove {

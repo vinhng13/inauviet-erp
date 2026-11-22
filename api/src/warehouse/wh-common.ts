@@ -6,6 +6,7 @@ import type { AuthUser } from '../auth/auth.types';
 import type { Tx } from '../prisma/prisma.service';
 import { fmtCm } from './die-rules';
 import type { DieRowDto } from './warehouse.dto';
+import type { WhPartnerKind } from '../generated/prisma/client';
 
 export const n = (v: Prisma.Decimal | number | null | undefined): number => (v === null || v === undefined ? 0 : Number(v));
 export const nn = (v: Prisma.Decimal | number | null | undefined): number | null => (v === null || v === undefined ? null : Number(v));
@@ -116,4 +117,35 @@ export function dieRow(d: DieWithPlace, today: string): DieRowDto {
 
 export function dieSearchText(d: { code: string; productName: string; customerName?: string | null; sizeText?: string | null; note?: string | null }, size: string | null): string {
   return toSearchText(d.code, d.productName, d.customerName, size, d.sizeText, d.note);
+}
+
+const clean = (v?: string | null) => (v ?? '').normalize('NFC').trim().replace(/\s+/g, ' ');
+
+/**
+ * Ô chọn danh mục cho gõ tên mới: tìm đối tác theo tên (không phân biệt hoa thường, khoảng trắng); chưa có thì thêm.
+ * Đối tác đang ngừng dùng thì bật lại. Trả về id, hoặc `id` truyền vào khi không gõ tên.
+ */
+export async function partnerIdOrCreate(db: Tx, id: string | null | undefined, name: string | null | undefined, kind: WhPartnerKind): Promise<string | null> {
+  const n = clean(name);
+  if (id || !n) return id ?? null;
+  if (n.length > 120) throw DomainError.badRequest('WH_NAME_TOO_LONG', 'Name is too long (max 120)');
+  const found = await db.whPartner.findFirst({ where: { name: { equals: n, mode: 'insensitive' } } });
+  if (found) {
+    if (!found.isActive) await db.whPartner.update({ where: { id: found.id }, data: { isActive: true } });
+    return found.id;
+  }
+  return (await db.whPartner.create({ data: { name: n, kind } })).id;
+}
+
+/** Như trên cho kệ trong một kho khuôn: tìm theo mã kệ, chưa có thì thêm */
+export async function locationIdOrCreate(db: Tx, warehouseId: string | null | undefined, id: string | null | undefined, code: string | null | undefined): Promise<string | null> {
+  const c = clean(code);
+  if (id || !c || !warehouseId) return id ?? null;
+  if (c.length > 40) throw DomainError.badRequest('WH_NAME_TOO_LONG', 'Shelf code is too long (max 40)');
+  const found = await db.whLocation.findFirst({ where: { warehouseId, code: { equals: c, mode: 'insensitive' } } });
+  if (found) {
+    if (!found.isActive) await db.whLocation.update({ where: { id: found.id }, data: { isActive: true } });
+    return found.id;
+  }
+  return (await db.whLocation.create({ data: { warehouseId, code: c } })).id;
 }

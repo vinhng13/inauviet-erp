@@ -24,7 +24,7 @@ import type {
   TransferInputDto,
 } from './warehouse.dto';
 import { WarehousesService } from './warehouses.service';
-import { canConfirmIn, itemLabel, n, nn } from './wh-common';
+import { canConfirmIn, itemLabel, n, nn, partnerIdOrCreate } from './wh-common';
 
 const slipInclude = {
   warehouse: { include: { members: true } },
@@ -231,13 +231,14 @@ export class StockService {
     const id = await this.prisma.$transaction(async (tx) => {
       const w = await this.warehouses.stockWarehouse(tx, dto.warehouseId);
       const lines = await this.resolveLines(tx, w.id, dto.lines, dto.kind === 'RECEIPT');
+      const partnerId = dto.kind === 'RECEIPT' ? await partnerIdOrCreate(tx, dto.partnerId, dto.partnerName, 'SUPPLIER') : null;
       const slip = await tx.whSlip.create({
         data: {
           code: await this.numbering.nextWarehouse(tx, PREFIX[dto.kind], w.code, dateField(dto.date, 'date')),
           warehouseId: w.id,
           kind: dto.kind,
           date: dateField(dto.date, 'date'),
-          partnerId: dto.kind === 'RECEIPT' ? (dto.partnerId ?? null) : null,
+          partnerId,
           receiver: cleanText(dto.receiver),
           purpose: cleanText(dto.purpose),
           reference: cleanText(dto.reference),

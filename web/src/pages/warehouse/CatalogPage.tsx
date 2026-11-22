@@ -563,7 +563,7 @@ function ImportPaper() {
     <Flex vertical gap={12} style={{ maxWidth: 1100 }}>
       <Typography.Paragraph type="secondary" style={{ margin: 0 }}>
         Chọn bảng tồn giấy đang theo dõi (trên Google Sheets: Tệp → Tải xuống → Microsoft Excel). Phần mềm đọc sheet có cột Mã VT, Loại giấy, Khổ giấy, TỒN; tạo vật tư (đơn vị tờ, mã vật tư đúng Mã VT trong bảng) và quy cách theo khổ ở Kho giấy, rồi lập
-        một phiếu điều chỉnh đưa tồn từng quy cách về đúng số trong bảng (lần đầu là phiếu "Tồn đầu"). Thủ kho Kho giấy vào Tồn kho & phiếu → Chờ xác nhận, xem lại và bấm Xác nhận thì tồn khớp bảng. Nhập lại bảng
+        một phiếu điều chỉnh đưa tồn từng quy cách về đúng số trong bảng (lần đầu là phiếu "Tồn đầu"). Thủ kho Kho giấy vào Kho vật tư → Chờ xác nhận, xem lại và bấm Xác nhận thì tồn khớp bảng. Nhập lại bảng
         mới: phiếu theo bảng trước còn chờ sẽ được thay; đã xác nhận rồi thì phiếu mới chỉ ghi phần chênh. Dòng chưa đếm chỉ tạo quy cách, không đổi tồn.
       </Typography.Paragraph>
       <Upload.Dragger
@@ -589,7 +589,7 @@ function ImportPaper() {
         <Flex vertical gap={12}>
           <Alert
             type={dry ? 'info' : 'success'}
-            title={dry ? `Xem trước sheet "${report.sheet}" — chưa ghi gì` : report.slipCode ? `Đã nhập. Phiếu ${report.slipCode} chờ thủ kho Kho giấy xác nhận (Tồn kho & phiếu → Chờ xác nhận).` : 'Đã nhập danh mục; tồn đã đúng bảng'}
+            title={dry ? `Xem trước sheet "${report.sheet}" — chưa ghi gì` : report.slipCode ? `Đã nhập. Phiếu ${report.slipCode} chờ thủ kho Kho giấy xác nhận (Kho vật tư → Chờ xác nhận).` : 'Đã nhập danh mục; tồn đã đúng bảng'}
             description={`${report.rows} loại giấy × khổ; ${report.materialsCreated} vật tư mới, ${report.specsCreated} quy cách mới; ${report.counted} quy cách có số tồn, tổng ${report.totalQty.toLocaleString('vi-VN')} tờ; ${report.adjusted} quy cách cần điều chỉnh, ${report.unchanged} đã đúng${report.replacedSlips.length ? `; ${dry ? 'sẽ thay' : 'đã thay'} phiếu chờ ${report.replacedSlips.join(', ')}` : ''}.`}
           />
           {report.issues.length > 0 && (

@@ -187,8 +187,6 @@ export function Brand({ inline }: { inline?: boolean }) {
 function guideHref(path: string): string {
   const kho: Record<string, string> = {
     '/warehouse/dies': 'kho-khuon',
-    '/warehouse/batches': 'kho-giao-nhan',
-    '/warehouse/die-journal': 'kho-nhat-ky',
     '/warehouse/stock': 'kho-ton',
     '/warehouse/reports': 'kho-bao-cao',
   };
@@ -196,13 +194,7 @@ function guideHref(path: string): string {
     ? (kho[path] ?? 'kho-hieu')
     : path.startsWith('/accounting')
       ? 'kt-hieu'
-      : path.startsWith('/accounts') || path.startsWith('/roles')
-        ? 'tai-khoan'
-        : path.startsWith('/channels')
-          ? 'ket-noi-kenh'
-          : path === '/'
-            ? 'gioi-thieu'
-            : '';
+      : '';
   return `/huong-dan/index.html${chapter ? `#${chapter}` : ''}`;
 }
 

@@ -718,3 +718,36 @@ Rules:
 Endpoints: `GET batches?tab=mine|open|all`, `GET batches/:id`, `POST batches`, `POST batches/:id/send|receive|reject|cancel`, `GET die-journal`; `POST dies` takes `toWarehouseId` / `toPartnerId`, `toLocationId`, `reference`, `confirm`; `POST dies/:id/actions` accepts only the in-place actions; `POST die-counts` takes `warehouseId`; `POST/PUT locations` require `warehouseId`.
 
 **Paper stock import** (`POST materials/import-paper?dryRun`, CLI `npm run kho:giay -- file.xlsx --write`): reads the sheet whose header row has "Loại giấy" (columns Mã VT, Khổ giấy, TỒN, Ghi chú; "TỒN" may sit in the row above). Creates materials in Kho giấy (unit tờ, material code = Mã VT exactly as written, e.g. DC, GN, Op, C150, Ivory — shared by many materials, so WhMaterial.code is not unique; group from Mã VT: DC → Đề can, GN → Giấy ngoại, C<gsm> → Couche, else as written; names matched case-insensitively; materials made by earlier versions are reused and get the code), sizes, stock rows, then one PENDING adjustment slip (DC-GIAY-…) whose lines are sheet − confirmed stock. Rows without a quantity create the size only. Re-running creates nothing new; a previous import slip still pending is cancelled and replaced.
+
+
+### Catalog pickers accept new names (v0.14)
+
+Warehouse forms let the user pick an existing catalog entry or type a new one. The client sends the typed text in a `…Name` / `…Code` field next to the id; the server finds the entry case- and space-insensitively (reactivating it if inactive) or creates it, inside the same request, so the person filing the slip needs no catalog permission:
+
+- receipt slip `partnerName` → partner kind SUPPLIER (shown as "Nơi lấy hàng nhập kho");
+- new die `makerName` → DIE_MAKER, `toPartnerName` → DIE_SHOP, `toLocationCode` → shelf in the receiving die warehouse;
+- transfer `toPartnerName` → DIE_SHOP, `toLocationCode`; receive and in-place actions `locationCode` → shelf in that warehouse.
+
+An id always wins over a typed name. Warehouse slips no longer show unit prices (quantity and unit only); the API field stays optional for old data.
+
+
+### Die process v2: direct moves (v0.15)
+
+Replaces the keeper-confirmed die transfers.
+
+- A die moves along its real route; going through a kho is never required. Every change of place is one **Chuyển khuôn** (a WhDieBatch created already DONE, one TRANSFER move per die). It takes effect immediately; anyone with `warehouse.dies` can do it. No keeper roles for dies.
+- New die: the maker is required (picked or typed). The die is created at the maker with status MAKING. If a destination is given at creation, the die is moved there at once (maker → workshop or kho).
+- Status after a move depends on the destination: workshop → IN_USE ("Ở xưởng"); kho from a workshop/maker → CHECKING (a new die with a shelf → READY); kho → kho keeps the status; maker → REPAIRING (MAKING stays MAKING).
+- In-place actions: PASS, MOVE (shelf), DEFECT, DISPOSE. KEEP and REUSE are gone (a die at a workshop is just "Ở xưởng").
+- No return dates or overdue tracking; the production order is an optional reference on a move.
+- Old batches still OPEN can be confirmed or rejected by anyone with `warehouse.dies` ("Phiếu cũ còn chờ").
+- Migration `20261122090000_die_direct_moves`: adds MAKING / TRANSFER, merges READY-at-workshop into IN_USE, clears expectedBackOn.
+
+
+### Die process v3: make → inspect → cut (v0.16)
+
+- Process: **tạo khuôn mới** (MAKING "Đang làm khuôn", at the maker) → **kiểm tra** in place: PASS → READY "Đạt, sẵn sàng", DEFECT → "Không đạt" (re-inspect after rework) → **bế khuôn**: move to a workshop, IN_USE "Đang bế". Separately **chuyển kho**: move to a kho (kho A → kho B, or back from a workshop / maker).
+- New dies are always created at the maker; the create form has no destination.
+- Moving to a workshop (DIE_SHOP) requires READY or IN_USE (`WH_DIE_NOT_PASSED` otherwise). Moving to a maker (gửi sửa) → REPAIRING. Moving to a kho: IN_USE → READY, others unchanged.
+- PASS/DEFECT allowed anywhere (maker, kho, workshop); PASS at a kho may set a shelf. Transfers show in history as "Bế khuôn", "Chuyển kho" or "Gửi sửa" by destination.
+- Batch input `toPartnerKind` (DIE_SHOP | DIE_MAKER) sets the kind of a partner typed by name.

@@ -16,7 +16,7 @@ describe('order workflow (steps 2–6)', () => {
     customerId = (await t.api.post('/customers', { name: 'Chị Hạnh', phone: '0912 000 111', address: '5 Lê Lợi' }).expect(201)).body.id;
   });
 
-  async function order(dueDate = '2026-11-20') {
+  async function order(dueDate = '2030-11-20') {
     return (
       await t.api
         .post('/orders', {
@@ -90,7 +90,7 @@ describe('order workflow (steps 2–6)', () => {
     r = (await designer.post(`/orders/${o.id}/design/lock`).expect(200)).body;
     expect(r.status).toBe('IN_PRODUCTION');
     expect(r.design.lockedAt).not.toBeNull();
-    expect(r.production).toMatchObject({ stage: 'RECEIVED', priority: 'NORMAL', dueDate: '2026-11-20' });
+    expect(r.production).toMatchObject({ stage: 'RECEIVED', priority: 'NORMAL', dueDate: '2030-11-20' });
     expect(r.production.code).toMatch(/^LSX-\d{4}-0001$/);
     expect((await t.api.get('/design-queue').expect(200)).body).toEqual([]);
 
