@@ -32,7 +32,7 @@ export class WhCatalogService {
   }
 
   async savePartner(id: string | null, dto: PartnerInputDto): Promise<void> {
-    const data = { name: dto.name.trim(), kind: dto.kind, phone: cleanText(dto.phone), note: cleanText(dto.note), isActive: dto.isActive ?? true };
+    const data = { name: dto.name.trim(), kind: dto.kind ?? 'OTHER', phone: cleanText(dto.phone), note: cleanText(dto.note), isActive: dto.isActive ?? true };
     try {
       if (id) await this.prisma.whPartner.update({ where: { id }, data });
       else await this.prisma.whPartner.create({ data });
@@ -52,7 +52,7 @@ export class WhCatalogService {
 
   async saveLocation(id: string | null, dto: LocationInputDto): Promise<void> {
     const w = await this.prisma.whWarehouse.findUnique({ where: { id: dto.warehouseId } });
-    if (!w || w.kind !== 'DIE') throw DomainError.badRequest('WH_WAREHOUSE_NOT_DIE', 'Shelves belong to a die warehouse');
+    if (!w) throw DomainError.badRequest('WH_LOCATION_WAREHOUSE_REQUIRED', 'A shelf must belong to a warehouse');
     const data = { warehouseId: w.id, code: dto.code.trim(), note: cleanText(dto.note), isActive: dto.isActive ?? true };
     try {
       if (id) {
@@ -127,13 +127,9 @@ export class WhCatalogService {
     if (dto.units.some((u) => u.name.trim().toLowerCase() === dto.unit.trim().toLowerCase())) {
       throw DomainError.badRequest('WH_UNIT_IS_BASE', 'The base unit is already 1; do not add it again');
     }
-    const warehouseIds = [...new Set(dto.warehouseIds)];
+    // Vật tư là danh mục chung; kho nào nhập thì kho đó có tồn. warehouseIds chỉ còn để tương thích, bỏ qua.
     try {
       await this.prisma.$transaction(async (tx) => {
-        if (warehouseIds.length) {
-          const ok = await tx.whWarehouse.count({ where: { id: { in: warehouseIds }, kind: 'STOCK' } });
-          if (ok !== warehouseIds.length) throw DomainError.badRequest('WH_WAREHOUSE_NOT_STOCK', 'Materials go to stock warehouses only');
-        }
         const data = {
           code: cleanText(dto.code),
           group: dto.group.trim(),
@@ -189,24 +185,6 @@ export class WhCatalogService {
           else await tx.whUnit.create({ data: { materialId: m.id, ...values } });
         }
 
-        // Kho – vật tư: thêm kho mới; bỏ kho chỉ khi tồn ở kho đó bằng 0
-        const linked = (await tx.whWarehouseMaterial.findMany({ where: { materialId: m.id } })).map((l) => l.warehouseId);
-        for (const w of linked.filter((w) => !warehouseIds.includes(w))) {
-          const left = await tx.whStock.findFirst({ where: { warehouseId: w, spec: { materialId: m.id }, qty: { not: 0 } } });
-          if (left) throw DomainError.conflict('WH_MATERIAL_HAS_STOCK', 'A warehouse still holds this material; issue or transfer it first');
-          await tx.whWarehouseMaterial.delete({ where: { warehouseId_materialId: { warehouseId: w, materialId: m.id } } });
-          await tx.whStock.updateMany({ where: { warehouseId: w, spec: { materialId: m.id } }, data: { isActive: false } });
-        }
-        for (const w of warehouseIds) {
-          await tx.whWarehouseMaterial.upsert({
-            where: { warehouseId_materialId: { warehouseId: w, materialId: m.id } },
-            create: { warehouseId: w, materialId: m.id },
-            update: {},
-          });
-          for (const p of allSpecs) {
-            await tx.whStock.upsert({ where: { warehouseId_specId: { warehouseId: w, specId: p.id } }, create: { warehouseId: w, specId: p.id }, update: { isActive: true } });
-          }
-        }
       });
     } catch (e) {
       if (unique(e)) throw DomainError.conflict('WH_MATERIAL_EXISTS', 'This material already exists in this group');

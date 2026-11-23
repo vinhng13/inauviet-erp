@@ -52,7 +52,7 @@ describe('Warehouse', () => {
     expect(mine.find((w: { code: string }) => w.code === 'BAT').canConfirm).toBe(false);
   });
 
-  it('keeps one material catalog with sizes, units (factor per size) and the warehouses that hold it', async () => {
+  it('keeps one material catalog with sizes and units (factor per size), not tied to any warehouse', async () => {
     expect((await staff.get('/warehouse/materials').expect(403)).body.code).toBe('PERMISSION_DENIED');
     const base = { group: 'Giấy', name: 'Giấy ngoại IC 145', unit: 'tờ', hasSizes: true, units: [], warehouseIds: [giay.id] };
     expect((await t.api.post('/warehouse/materials', { ...base, specs: [{ widthCm: 18, lengthCm: 50.5 }, { widthCm: 18, lengthCm: 50.5 }] }).expect(400)).body.code).toBe('WH_SIZE_DUPLICATE');
@@ -76,13 +76,10 @@ describe('Warehouse', () => {
     spec27 = paper.specs[1].id;
     glueSpec = mats.find((m: { name: string }) => m.name === 'Keo sữa').specs[0].id;
 
-    const s18 = await stockOf(keeper, giay.id, spec18);
-    expect(s18).toMatchObject({ label: 'Giấy ngoại IC 145 · 18 x 50,5', qty: 0, warehouseCode: 'GIAY' });
-    expect(s18.units.map((u: { name: string; factor: number }) => [u.name, u.factor])).toEqual([['tờ', 1], ['ram', 500]]);
-    ramUnit = s18.units[1].id;
-    expect((await stockOf(keeper, giay.id, spec27)).units.map((u: { factor: number }) => u.factor)).toEqual([1, 250]);
-    expect(await stockOf(keeper, bat.id, spec18)).toBeUndefined();
-    expect(await stockOf(keeper, bat.id, glueSpec)).toMatchObject({ warehouseCode: 'BAT', qty: 0 });
+    ramUnit = paper.units.find((u: { factor: number }) => u.factor === 500).id;
+    // the catalog is independent: no warehouse holds anything until a slip brings it in (warehouseIds is ignored)
+    expect(await stockOf(keeper, giay.id, spec18)).toBeUndefined();
+    expect(await stockOf(keeper, bat.id, glueSpec)).toBeUndefined();
   });
 
   let receiptId: string;
@@ -93,7 +90,10 @@ describe('Warehouse', () => {
     expect(r).toMatchObject({ status: 'PENDING', canConfirm: false, canCancel: true, warehouseCode: 'GIAY' });
     expect(r.code).toMatch(/^NK-GIAY-\d{4}-\d{4}$/);
     expect(r.lines[0]).toMatchObject({ qty: 500, unitName: 'ram', unitQty: 1 });
-    expect((await stockOf(keeper, giay.id, spec18)).qty).toBe(0);
+    // the slip gives the warehouse a stock row for a material it never had
+    const s18 = await stockOf(keeper, giay.id, spec18);
+    expect(s18).toMatchObject({ label: 'Giấy ngoại IC 145 · 18 x 50,5', qty: 0, warehouseCode: 'GIAY' });
+    expect(s18.units.map((u: { name: string; factor: number }) => [u.name, u.factor])).toEqual([['tờ', 1], ['ram', 500]]);
     expect((await requester.post(`/warehouse/slips/${r.id}/confirm`).expect(403)).body.code).toBe('WH_NOT_KEEPER');
     const ok = (await keeper.post(`/warehouse/slips/${r.id}/confirm`).expect(201)).body;
     expect(ok).toMatchObject({ status: 'CONFIRMED', confirmedBy: 'Hà Thủ kho' });
@@ -114,8 +114,10 @@ describe('Warehouse', () => {
     const ret = (await requester.post('/warehouse/slips', { warehouseId: giay.id, kind: 'RETURN', date: today, receiver: 'Anh Tuấn', lines: [{ specId: spec18, qty: 20 }] }).expect(201)).body;
     expect((await requester.post(`/warehouse/slips/${ret.id}/cancel`).expect(201)).body.status).toBe('CANCELLED');
     await keeper.post('/warehouse/slips', { warehouseId: giay.id, kind: 'RETURN', date: today, receiver: 'Anh Tuấn', confirm: true, lines: [{ specId: spec18, qty: 20 }] }).expect(201);
-    // a size not held by the warehouse is refused
-    expect((await keeper.post('/warehouse/slips', { warehouseId: bat.id, kind: 'RECEIPT', date: today, lines: [{ specId: spec18, qty: 1 }] }).expect(400)).body.code).toBe('WH_ITEM_NOT_IN_WAREHOUSE');
+    // any warehouse takes any material from the catalog: the first slip adds the stock row
+    const atBat = (await keeper.post('/warehouse/slips', { warehouseId: bat.id, kind: 'RECEIPT', date: today, lines: [{ specId: spec18, qty: 1 }] }).expect(201)).body;
+    expect(await stockOf(keeper, bat.id, spec18)).toMatchObject({ qty: 0, warehouseCode: 'BAT' });
+    await keeper.post(`/warehouse/slips/${atBat.id}/cancel`).expect(201);
 
     const row = await stockOf(keeper, giay.id, spec18);
     expect(row).toMatchObject({ qty: 200, pendingOut: 0 });
@@ -157,10 +159,11 @@ describe('Warehouse', () => {
     expect((await keeper.post('/warehouse/transfers', { fromWarehouseId: giay.id, toWarehouseId: giay.id, date: today, lines: [{ specId: spec18, qty: 1 }] }).expect(400)).body.code).toBe('WH_TRANSFER_SAME');
   });
 
-  it('a size that has slips cannot be changed; a warehouse with stock cannot be removed from a material', async () => {
+  it('a size that has slips cannot be changed; saving a material never drops stock rows', async () => {
     const body = { group: 'Giấy', name: 'Giấy ngoại IC 145', unit: 'tờ', hasSizes: true, units: [], warehouseIds: [giay.id, bat.id] };
     expect((await t.api.put(`/warehouse/materials/${paperId}`, { ...body, specs: [{ id: spec18, widthCm: 19, lengthCm: 50.5 }, { id: spec27, widthCm: 27, lengthCm: 23 }] }).expect(409)).body.code).toBe('WH_SIZE_IN_USE');
-    expect((await t.api.put(`/warehouse/materials/${paperId}`, { ...body, warehouseIds: [giay.id], specs: [{ id: spec18, widthCm: 18, lengthCm: 50.5 }, { id: spec27, widthCm: 27, lengthCm: 23 }] }).expect(409)).body.code).toBe('WH_MATERIAL_HAS_STOCK');
+    await t.api.put(`/warehouse/materials/${paperId}`, { ...body, warehouseIds: [], specs: [{ id: spec18, widthCm: 18, lengthCm: 50.5 }, { id: spec27, widthCm: 27, lengthCm: 23 }] }).expect(204);
+    expect((await stockOf(keeper, bat.id, spec18)).qty).toBe(50);
   });
 
   it('reports in – out – balance, stock as of a day, and saves end-of-day snapshots', async () => {
@@ -206,13 +209,15 @@ describe('Warehouse', () => {
     await t.api.post('/warehouse/partners', { name: 'Mê Linh', kind: 'DIE_SHOP' }).expect(204);
     await t.api.post('/warehouse/partners', { name: 'A.Kiên Trương Định', kind: 'DIE_SHOP' }).expect(204);
     await t.api.post('/warehouse/partners', { name: 'Em Hòa', kind: 'DIE_MAKER' }).expect(204);
-    expect((await t.api.post('/warehouse/locations', { code: 'T4-K01', warehouseId: giay.id }).expect(400)).body.code).toBe('WH_WAREHOUSE_NOT_DIE');
+    // a shelf must belong to a warehouse; any warehouse may have shelves
+    expect((await t.api.post('/warehouse/locations', { code: 'T4-K01' }).expect(400)).body.code).toBe('VALIDATION_FAILED');
     await t.api.post('/warehouse/locations', { code: 'T4-K01', warehouseId: khuon }).expect(204);
+    await t.api.post('/warehouse/locations', { code: 'Kệ giấy A', warehouseId: giay.id }).expect(204);
     const partners = (await keeper.get('/warehouse/partners').expect(200)).body;
     mlId = partners.find((p: { name: string }) => p.name === 'Mê Linh').id;
     kienId = partners.find((p: { name: string }) => p.name === 'A.Kiên Trương Định').id;
     const hoaId = partners.find((p: { name: string }) => p.name === 'Em Hòa').id;
-    shelfId = (await keeper.get('/warehouse/locations').expect(200)).body[0].id;
+    shelfId = (await keeper.get('/warehouse/locations').expect(200)).body.find((l: { code: string }) => l.code === 'T4-K01').id;
 
     const base = { symbolCode: 'TUI', productName: 'Túi giấy Orien', lengthCm: 21, widthCm: 30, heightCm: 10 };
     expect((await keeper.post('/warehouse/dies', base).expect(400)).body.code).toBe('WH_DIE_MAKER_REQUIRED');
@@ -273,7 +278,8 @@ describe('Warehouse', () => {
     await requester.post(`/warehouse/dies/${dieId}/actions`, { action: 'DEFECT', date: today, note: 'Mẻ dao' }).expect(201);
     expect((await requester.post('/warehouse/batches', { date: today, fromPartnerId: mlId, toPartnerId: kienId, dieIds: [dieId] }).expect(409)).body.code).toBe('WH_DIE_NOT_PASSED');
     const hoa = (await keeper.get('/warehouse/partners').expect(200)).body.find((p: { name: string }) => p.name === 'Em Hòa').id;
-    await requester.post('/warehouse/batches', { date: today, fromPartnerId: mlId, toPartnerId: hoa, dieIds: [dieId] }).expect(201);
+    // gửi sửa: trạng thái theo thao tác, không theo loại đối tác (gửi tới một xưởng bế cũng được)
+    await requester.post('/warehouse/batches', { date: today, fromPartnerId: mlId, toPartnerId: hoa, dieIds: [dieId], purpose: 'REPAIR' }).expect(201);
     expect(await dieOf(keeper, dieId)).toMatchObject({ status: 'REPAIRING', place: 'Em Hòa' });
     await requester.post(`/warehouse/dies/${dieId}/actions`, { action: 'PASS', date: today }).expect(201);
     await requester.post('/warehouse/batches', { date: today, fromPartnerId: hoa, toPartnerId: mlId, dieIds: [dieId] }).expect(201);
@@ -385,7 +391,7 @@ describe('Warehouse', () => {
     expect(topUp).toMatchObject({ adjusted: 1, unchanged: 6 });
     expect(topUp.items.find((i: { name: string; size: string }) => i.name === 'C150' && i.size === '42 x 50')).toMatchObject({ onHand: 500, qty: 575, delta: 75 });
     const fix = (await agent.get(`/api/v1/warehouse/slips?warehouseId=${giay.id}`).expect(200)).body.find((x: { code: string }) => x.code === topUp.slipCode);
-    expect(fix).toMatchObject({ purpose: 'Điều chỉnh theo bảng tồn giấy' });
+    expect(fix).toMatchObject({ purpose: 'Điều chỉnh theo bảng tồn vật tư' });
     expect(fix.lines.map((l: { qty: number }) => l.qty)).toEqual([75]);
     await agent.post(`/api/v1/warehouse/slips/${fix.id}/confirm`).expect(201);
     expect(await stockOf('C150 · 42 x 50')).toBe(575);
@@ -397,7 +403,7 @@ describe('Warehouse', () => {
     const agent = request.agent(t.app.getHttpServer());
     await agent.post('/api/v1/auth/login').send({ username: ADMIN, password: PASSWORD }).expect(200);
     const file = readFileSync(join(__dirname, 'fixtures', 'khuon-mau.xlsx'));
-    const upload = (dryRun: boolean) => agent.post(`/api/v1/warehouse/dies/import?dryRun=${dryRun}`).attach('file', file, 'khuon.xlsx');
+    const upload = (dryRun: boolean) => agent.post(`/api/v1/warehouse/dies/import?dryRun=${dryRun}&warehouseId=${khuon}`).attach('file', file, 'khuon.xlsx');
 
     const preview = (await upload(true).expect(201)).body;
     expect(preview).toMatchObject({ dryRun: true, dies: 5, skippedExisting: 0, history: 1, partnersCreated: [], locationsCreated: ['Tầng 4'], byStatus: { READY: 4, IN_USE: 1 } });

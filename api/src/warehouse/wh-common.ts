@@ -125,7 +125,7 @@ const clean = (v?: string | null) => (v ?? '').normalize('NFC').trim().replace(/
  * Ô chọn danh mục cho gõ tên mới: tìm đối tác theo tên (không phân biệt hoa thường, khoảng trắng); chưa có thì thêm.
  * Đối tác đang ngừng dùng thì bật lại. Trả về id, hoặc `id` truyền vào khi không gõ tên.
  */
-export async function partnerIdOrCreate(db: Tx, id: string | null | undefined, name: string | null | undefined, kind: WhPartnerKind): Promise<string | null> {
+export async function partnerIdOrCreate(db: Tx, id: string | null | undefined, name: string | null | undefined, kind: WhPartnerKind = 'OTHER'): Promise<string | null> {
   const n = clean(name);
   if (id || !n) return id ?? null;
   if (n.length > 120) throw DomainError.badRequest('WH_NAME_TOO_LONG', 'Name is too long (max 120)');

@@ -209,18 +209,16 @@ function DieDrawer({ id, onClose, onEdit }: { id: string; onClose: () => void; o
   const { data: d, isLoading, dataUpdatedAt } = useDie(id);
   const { updateDie, diePhoto, sendBatch, receiveBatch } = useWarehouseMutations();
   const [action, setAction] = useState<DieAction | null>(null);
-  const places = useDiePlaces();
   const [move, setMove] = useState<MoveMode | null>(null);
   const pending = d?.pending ?? null;
   const may = !!d && !pending && can('warehouse.dies');
-  const atMaker = !!d?.holderId && places.partners.some((p) => p.id === d.holderId && p.kind === 'DIE_MAKER');
   // Bế khuôn: chỉ khuôn đã kiểm tra đạt (hoặc đang bế ở xưởng khác); chuyển kho; khuôn không đạt thì gửi sửa
   const moves: Array<{ mode: MoveMode; label: string; primary?: boolean }> = !may || !d
     ? []
     : [
         ...(d.status === 'READY' || d.status === 'IN_USE' ? [{ mode: 'cut' as const, label: d.status === 'IN_USE' ? 'Bế ở xưởng khác' : 'Bế khuôn', primary: d.status === 'READY' }] : []),
         ...(!['DISPOSED', 'BROKEN', 'TRANSIT', 'INCOMING', 'MAKING'].includes(d.status) ? [{ mode: 'kho' as const, label: d.holderId ? 'Chuyển về kho' : 'Chuyển kho' }] : []),
-        ...(d.status === 'DEFECT' && !atMaker ? [{ mode: 'fix' as const, label: 'Gửi sửa' }] : []),
+        ...(d.status === 'DEFECT' ? [{ mode: 'fix' as const, label: 'Gửi sửa' }] : []),
       ];
   const confirmReview = () =>
     d &&
@@ -509,7 +507,7 @@ function DieFormModal({ die, onClose, onCreated }: { die: Die | null; onClose: (
         </Flex>
         <Flex wrap gap={12}>
           <Form.Item name="makerId" label="Nơi làm khuôn" rules={die ? [] : [{ required: true, message: 'Chọn nơi làm khuôn (hoặc gõ tên mới)' }]}>
-            <CreatableSelect id="die-maker" allowClear={!!die} placeholder="Chọn hoặc gõ tên mới" style={{ width: 240 }} options={places.partners.filter((p) => p.kind === 'DIE_MAKER').map((p) => ({ value: p.id, label: p.name }))} />
+            <CreatableSelect id="die-maker" allowClear={!!die} placeholder="Chọn hoặc gõ tên mới" style={{ width: 240 }} options={places.partners.map((p) => ({ value: p.id, label: p.name }))} />
           </Form.Item>
           <Form.Item name="costVnd" label="Giá làm khuôn">
             <InputNumber {...vndInputProps} style={{ width: 160 }} />

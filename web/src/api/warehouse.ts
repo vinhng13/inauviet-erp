@@ -102,11 +102,13 @@ export function useWarehouseMutations() {
     dieAction: useMutation({ mutationFn: ({ id, ...body }: Schemas['DieActionDto'] & { id: string }) => unwrap(api.POST('/api/v1/warehouse/dies/{id}/actions', { params: p(id), body })), ...done }),
     diePhoto: useMutation({ mutationFn: ({ id, file }: { id: string; file: File }) => upload<void>(`/api/v1/warehouse/dies/${id}/photo`, file), ...done }),
     importDies: useMutation({
-      mutationFn: ({ file, dryRun }: { file: File; dryRun: boolean }) => upload<Schemas['ImportReportDto']>(`/api/v1/warehouse/dies/import?dryRun=${dryRun}`, file),
+      mutationFn: ({ file, dryRun, warehouseId }: { file: File; dryRun: boolean; warehouseId?: string }) =>
+        upload<Schemas['ImportReportDto']>(`/api/v1/warehouse/dies/import?dryRun=${dryRun}${warehouseId ? `&warehouseId=${warehouseId}` : ''}`, file),
       ...done,
     }),
     importPaper: useMutation({
-      mutationFn: ({ file, dryRun }: { file: File; dryRun: boolean }) => upload<Schemas['PaperImportReportDto']>(`/api/v1/warehouse/materials/import-paper?dryRun=${dryRun}`, file),
+      mutationFn: ({ file, dryRun, warehouseId }: { file: File; dryRun: boolean; warehouseId?: string }) =>
+        upload<Schemas['PaperImportReportDto']>(`/api/v1/warehouse/materials/import-paper?dryRun=${dryRun}${warehouseId ? `&warehouseId=${warehouseId}` : ''}`, file),
       ...done,
     }),
     createBatch: useMutation({ mutationFn: (body: Schemas['BatchInputDto']) => unwrap(api.POST('/api/v1/warehouse/batches', { body })), ...done }),

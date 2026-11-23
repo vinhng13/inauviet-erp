@@ -80,7 +80,6 @@ export class StockService {
       this.prisma.whStock.findMany({
         where: {
           ...(warehouseId ? { warehouseId } : {}),
-          warehouse: { kind: 'STOCK' },
           ...(includeInactive ? {} : { isActive: true, spec: { isActive: true, material: { isActive: true } } }),
         },
         include: { warehouse: true, spec: { include: { material: { include: { units: true } } } } },
@@ -201,10 +200,17 @@ export class StockService {
   private async resolveLines(tx: Tx, warehouseId: string, lines: SlipLineInputDto[], withPrice: boolean): Promise<ResolvedLine[]> {
     const ids = [...new Set(lines.map((l) => l.specId))];
     if (ids.length !== lines.length) throw DomainError.badRequest('WH_LINE_DUPLICATE', 'Each size may appear once per slip');
+    // Vật tư là danh mục chung: kho chưa có quy cách này thì thêm dòng tồn (và kho – vật tư) ngay khi lập phiếu
+    const specs = await tx.whSpec.findMany({ where: { id: { in: ids } }, include: { material: true } });
+    for (const id of ids) {
+      const p = specs.find((x) => x.id === id);
+      if (!p || !p.isActive || !p.material.isActive) throw DomainError.badRequest('WH_ITEM_INACTIVE', 'This material or size is not in use');
+      await tx.whWarehouseMaterial.upsert({ where: { warehouseId_materialId: { warehouseId, materialId: p.materialId } }, create: { warehouseId, materialId: p.materialId }, update: {} });
+      await tx.whStock.upsert({ where: { warehouseId_specId: { warehouseId, specId: id } }, create: { warehouseId, specId: id }, update: { isActive: true } });
+    }
     const stocks = await tx.whStock.findMany({ where: { warehouseId, specId: { in: ids } }, include: { spec: { include: { material: { include: { units: true } } } } } });
     return lines.map((l) => {
-      const st = stocks.find((s) => s.specId === l.specId);
-      if (!st || !st.isActive) throw DomainError.badRequest('WH_ITEM_NOT_IN_WAREHOUSE', 'This material is not kept in this warehouse');
+      const st = stocks.find((s) => s.specId === l.specId)!;
       let factor: number | null = null;
       let unitName: string | null = null;
       if (l.unitId) {

@@ -193,12 +193,12 @@ export function BatchDrawer({ id, onClose }: { id: string; onClose: () => void }
 
 type BatchForm = { date: Dayjs; from?: string; to?: string; toLocationId?: string; reference?: string; note?: string; newDies?: Array<{ symbolCode?: string; productName?: string; size?: string }> };
 
-/** Bế khuôn (tới xưởng bế), chuyển kho (tới một kho), gửi sửa (tới nơi làm khuôn) */
+/** Bế khuôn / gửi sửa (tới một đối tác bất kỳ), chuyển kho (tới một kho). Trạng thái theo thao tác, không theo loại đối tác */
 export type MoveMode = 'cut' | 'kho' | 'fix';
 const MODE: Record<MoveMode, { title: string; to: string; hint: string; ok: string }> = {
-  cut: { title: 'Bế khuôn', to: 'Xưởng bế', ok: 'Bế khuôn', hint: 'Khuôn tới xưởng bế, trạng thái Đang bế. Chỉ khuôn đã kiểm tra Đạt mới bế được.' },
+  cut: { title: 'Bế khuôn', to: 'Xưởng bế', ok: 'Bế khuôn', hint: 'Khuôn tới nơi bế, trạng thái Đang bế. Chỉ khuôn đã kiểm tra Đạt mới bế được.' },
   kho: { title: 'Phiếu chuyển kho', to: 'Kho nhận', ok: 'Chuyển kho', hint: 'Khuôn sang kho nhận. Khuôn đang bế về kho thì thành Đạt, sẵn sàng; còn lại giữ nguyên trạng thái.' },
-  fix: { title: 'Gửi sửa / làm lại', to: 'Nơi làm khuôn', ok: 'Gửi sửa', hint: 'Khuôn không đạt tới nơi làm khuôn, trạng thái Đang sửa. Sửa xong bấm Kiểm tra.' },
+  fix: { title: 'Gửi sửa / làm lại', to: 'Nơi sửa khuôn', ok: 'Gửi sửa', hint: 'Khuôn không đạt tới nơi sửa, trạng thái Đang sửa. Sửa xong bấm Kiểm tra.' },
 };
 
 /**
@@ -231,7 +231,7 @@ export function BatchModal({ dies = [], mode, onClose }: { dies?: DieRow[]; mode
   const pool = (preset ? dies : (candidates.data?.items ?? [])).filter((d) => !d.pendingBatchId || selected.includes(d.id));
   const fromKho = from?.startsWith('k:') ? from.slice(2) : null;
   const toKho = to?.startsWith('k:') ? to.slice(2) : null;
-  const group = { cut: 'Xưởng bế', kho: 'Kho Âu Việt', fix: 'Nơi làm khuôn' }[mode];
+  const group = mode === 'kho' ? 'Kho' : 'Đối tác';
   const toOptions = places.options.filter((g) => g.label === group).map((g) => ({ ...g, options: g.options.filter((o) => o.value !== from) })).filter((g) => g.options.length);
 
   const submit = (v: BatchForm) => {
@@ -249,8 +249,8 @@ export function BatchModal({ dies = [], mode, onClose }: { dies?: DieRow[]; mode
         fromPartnerId: f.startsWith('x:') ? f.slice(2) : null,
         toWarehouseId: v.to.startsWith('k:') ? v.to.slice(2) : null,
         toPartnerId: v.to.startsWith('x:') ? v.to.slice(2) : null,
-        toPartnerName: v.to.startsWith('n:') || v.to.startsWith('m:') ? v.to.slice(2).trim() : null,
-        toPartnerKind: v.to.startsWith('m:') ? 'DIE_MAKER' : null,
+        toPartnerName: v.to.startsWith('n:') ? v.to.slice(2).trim() : null,
+        purpose: mode === 'fix' ? 'REPAIR' : mode === 'cut' ? 'CUT' : null,
         toLocationId: v.toLocationId && !isNew(v.toLocationId) ? v.toLocationId : null,
         toLocationCode: newName(v.toLocationId) || null,
         dieIds: selected,
@@ -284,8 +284,8 @@ export function BatchModal({ dies = [], mode, onClose }: { dies?: DieRow[]; mode
             ) : (
               <CreatableSelect
                 id="batch-to"
-                newPrefix={mode === 'cut' ? 'n:' : 'm:'}
-                addLabel={mode === 'cut' ? 'Thêm xưởng bế' : 'Thêm nơi làm khuôn'}
+                newPrefix="n:"
+                addLabel="Thêm đối tác"
                 placeholder="Chọn hoặc gõ tên mới"
                 options={toOptions}
               />

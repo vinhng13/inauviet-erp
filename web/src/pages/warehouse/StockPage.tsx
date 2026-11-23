@@ -4,7 +4,7 @@ import dayjs, { type Dayjs } from 'dayjs';
 import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import type { Schemas } from '../../api/client';
-import { usePartners, useSlip, useSlips, useStockCard, useStockItems, useWarehouseMutations, useWarehouses, type StockItem } from '../../api/warehouse';
+import { usePartners, useSlip, useSlips, useStockCard, useStockItems, useWarehouseMutations, useWarehouses, useWhMaterials, type StockItem } from '../../api/warehouse';
 import { useCan } from '../../lib/access';
 import { errorMessage } from '../../lib/errors';
 import { formatDate, formatDateTime } from '../../lib/format';
@@ -361,10 +361,41 @@ function SlipDrawer({ id, onClose, onOpen }: { id: string; onClose: () => void; 
 }
 
 type LineValue = { specId?: string; unitId?: string | null; qty?: number };
+/** Một lựa chọn trên dòng phiếu: quy cách + tồn ở kho đang lập phiếu (null = kho chưa có vật tư này) */
+type LineItem = Pick<StockItem, 'specId' | 'materialCode' | 'label' | 'unit' | 'units'> & { qty: number | null };
 
-function LinesEditor({ items, lines }: { items: StockItem[]; lines: LineValue[] }) {
+/**
+ * Vật tư chọn được trên phiếu: phiếu nhập / nhập lại lấy toàn bộ danh mục vật tư (vật tư chưa có ở kho thì kho có dòng tồn
+ * khi lưu); phiếu xuất / chuyển đi chỉ lấy vật tư đang có ở kho.
+ */
+function useLineItems(warehouseId: string, wholeCatalog: boolean): LineItem[] {
+  const stock = useStockItems(warehouseId);
+  const catalog = useWhMaterials();
+  const at = new Map((stock.data ?? []).map((i) => [i.specId, i]));
+  if (!wholeCatalog) return stock.data ?? [];
+  return (catalog.data ?? [])
+    .filter((m) => m.isActive)
+    .flatMap((m) =>
+      m.specs
+        .filter((p) => p.isActive)
+        .map((p) => {
+          const st = at.get(p.id);
+          if (st) return st;
+          return {
+            specId: p.id,
+            materialCode: m.code,
+            label: p.label ? `${m.name} · ${p.label}` : m.name,
+            unit: m.unit,
+            units: [{ id: null, name: m.unit, factor: 1 }, ...m.units.filter((u) => !u.specId || u.specId === p.id).map((u) => ({ id: u.id, name: u.name, factor: u.factor }))],
+            qty: null,
+          };
+        }),
+    );
+}
+
+function LinesEditor({ items, lines }: { items: LineItem[]; lines: LineValue[] }) {
   const bySpec = new Map(items.map((i) => [i.specId, i]));
-  const options = items.map((i) => ({ value: i.specId, label: `${i.materialCode ? `${i.materialCode} · ` : ''}${i.label} (tồn ${qty(i.qty)} ${i.unit})` }));
+  const options = items.map((i) => ({ value: i.specId, label: `${i.materialCode ? `${i.materialCode} · ` : ''}${i.label} (${i.qty === null ? 'chưa có ở kho này' : `tồn ${qty(i.qty)} ${i.unit}`})` }));
   return (
     <Form.List name="lines">
       {(fields, { add, remove }) => (
@@ -408,7 +439,7 @@ type SlipForm = { date: Dayjs; partnerId?: string; receiver?: string; purpose?: 
 function SlipModal({ kind, warehouse, onClose, onCreated }: { kind: NewKind; warehouse: Warehouse; onClose: () => void; onCreated: (id: string) => void }) {
   const { message } = App.useApp();
   const [form] = Form.useForm<SlipForm>();
-  const items = useStockItems(warehouse.id);
+  const items = useLineItems(warehouse.id, kind !== 'ISSUE');
   const partners = usePartners();
   const { createSlip } = useWarehouseMutations();
   const lines = Form.useWatch('lines', form) ?? [];
@@ -463,7 +494,7 @@ function SlipModal({ kind, warehouse, onClose, onCreated }: { kind: NewKind; war
             <Input style={{ width: 170 }} />
           </Form.Item>
         </Flex>
-        <LinesEditor items={items.data ?? []} lines={lines} />
+        <LinesEditor items={items} lines={lines} />
         <Form.Item name="note" label="Ghi chú" style={{ marginTop: 12 }}>
           <Input.TextArea rows={2} />
         </Form.Item>
@@ -477,7 +508,7 @@ type TransferForm = { date: Dayjs; toWarehouseId?: string; receiver?: string; re
 function TransferModal({ warehouse, onClose, onCreated }: { warehouse: Warehouse; onClose: () => void; onCreated: (id: string) => void }) {
   const { message } = App.useApp();
   const [form] = Form.useForm<TransferForm>();
-  const items = useStockItems(warehouse.id);
+  const items = useLineItems(warehouse.id, false);
   const warehouses = useWarehouses();
   const { createTransfer } = useWarehouseMutations();
   const lines = Form.useWatch('lines', form) ?? [];
@@ -513,7 +544,7 @@ function TransferModal({ warehouse, onClose, onCreated }: { warehouse: Warehouse
             <DatePicker format="DD/MM/YYYY" allowClear={false} />
           </Form.Item>
           <Form.Item name="toWarehouseId" label="Chuyển đến kho" rules={[{ required: true, message: 'Chọn kho nhận' }]} style={{ minWidth: 240 }}>
-            <Select options={(warehouses.data ?? []).filter((w) => w.kind === 'STOCK' && w.isActive && w.id !== warehouse.id).map((w) => ({ value: w.id, label: w.name }))} />
+            <Select options={(warehouses.data ?? []).filter((w) => w.isActive && w.id !== warehouse.id).map((w) => ({ value: w.id, label: w.name }))} />
           </Form.Item>
           <Form.Item name="receiver" label="Người mang / người nhận">
             <Input style={{ width: 180 }} />
@@ -522,7 +553,7 @@ function TransferModal({ warehouse, onClose, onCreated }: { warehouse: Warehouse
             <Input style={{ width: 170 }} />
           </Form.Item>
         </Flex>
-        <LinesEditor items={items.data ?? []} lines={lines} />
+        <LinesEditor items={items} lines={lines} />
         <Form.Item name="note" label="Ghi chú" style={{ marginTop: 12 }}>
           <Input.TextArea rows={2} />
         </Form.Item>

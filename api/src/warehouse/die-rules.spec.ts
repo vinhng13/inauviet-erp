@@ -13,11 +13,11 @@ describe('die rules', () => {
   });
 
   it('sets the status from where a die is moved to', () => {
-    expect(statusAfterMove('READY', { toKho: false, toMaker: false })).toBe('IN_USE'); // bế khuôn
-    expect(statusAfterMove('IN_USE', { toKho: true, toMaker: false })).toBe('READY'); // bế xong về kho
-    expect(statusAfterMove('READY', { toKho: true, toMaker: false })).toBe('READY'); // kho → kho
-    expect(statusAfterMove('DEFECT', { toKho: false, toMaker: true })).toBe('REPAIRING'); // gửi sửa
-    expect(statusAfterMove('MAKING', { toKho: false, toMaker: true })).toBe('MAKING');
+    expect(statusAfterMove('READY', { toKho: false, repair: false })).toBe('IN_USE'); // bế khuôn
+    expect(statusAfterMove('IN_USE', { toKho: true, repair: false })).toBe('READY'); // bế xong về kho
+    expect(statusAfterMove('READY', { toKho: true, repair: false })).toBe('READY'); // kho → kho
+    expect(statusAfterMove('DEFECT', { toKho: false, repair: true })).toBe('REPAIRING'); // gửi sửa
+    expect(statusAfterMove('MAKING', { toKho: false, repair: true })).toBe('MAKING');
   });
 
   it('finds dies by size in any order within tolerance', () => {

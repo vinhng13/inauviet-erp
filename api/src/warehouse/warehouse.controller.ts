@@ -363,20 +363,32 @@ export class WarehouseController {
   @ApiConsumes('multipart/form-data')
   @ApiBody(fileBody)
   @ApiQuery({ name: 'dryRun', required: false, type: Boolean })
+  @ApiQuery({ name: 'warehouseId', required: false, type: String })
   @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 20 * 1024 * 1024 } }))
-  importDies(@UploadedFile() file: Upload | undefined, @Query('dryRun') dryRun: string | undefined, @CurrentUser() user: AuthUser): Promise<ImportReportDto> {
-    return this.importer.run(file?.buffer, dryRun !== 'false', user, this.dies.today());
+  importDies(
+    @UploadedFile() file: Upload | undefined,
+    @Query('dryRun') dryRun: string | undefined,
+    @Query('warehouseId') warehouseId: string | undefined,
+    @CurrentUser() user: AuthUser,
+  ): Promise<ImportReportDto> {
+    return this.importer.run(file?.buffer, dryRun !== 'false', user, this.dies.today(), warehouseId);
   }
 
-  /** Nhập bảng tồn giấy Excel vào Kho giấy (danh mục + phiếu kiểm kê nháp). dryRun=true chỉ xem trước */
+  /** Nhập tồn vật tư từ Excel vào một kho (warehouseId; mặc định Kho giấy): danh mục + phiếu điều chỉnh chờ xác nhận. dryRun=true chỉ xem trước */
   @RequirePermission('warehouse.manage')
   @Post('materials/import-paper')
   @ApiConsumes('multipart/form-data')
   @ApiBody(fileBody)
   @ApiQuery({ name: 'dryRun', required: false, type: Boolean })
+  @ApiQuery({ name: 'warehouseId', required: false, type: String })
   @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 20 * 1024 * 1024 } }))
-  importPaper(@UploadedFile() file: Upload | undefined, @Query('dryRun') dryRun: string | undefined, @CurrentUser() user: AuthUser): Promise<PaperImportReportDto> {
-    return this.paperImporter.run(file?.buffer, dryRun !== 'false', user, this.dies.today());
+  importPaper(
+    @UploadedFile() file: Upload | undefined,
+    @Query('dryRun') dryRun: string | undefined,
+    @Query('warehouseId') warehouseId: string | undefined,
+    @CurrentUser() user: AuthUser,
+  ): Promise<PaperImportReportDto> {
+    return this.paperImporter.run(file?.buffer, dryRun !== 'false', user, this.dies.today(), warehouseId);
   }
 
   // ───────────── Giao nhận khuôn ─────────────

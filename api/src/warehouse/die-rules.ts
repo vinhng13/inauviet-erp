@@ -34,14 +34,14 @@ export function allowedActions(status: WhDieStatus, atPartner: boolean, pending:
 export const CAN_GO_CUT: WhDieStatus[] = ['READY', 'IN_USE'];
 
 /**
- * Trạng thái khuôn sau khi chuyển, theo nơi đến:
- * - tới xưởng bế: đang bế;
+ * Trạng thái khuôn sau khi chuyển, theo nơi đến và thao tác (không theo loại đối tác):
  * - tới kho: khuôn đang bế về kho thì sẵn sàng, còn lại giữ nguyên;
- * - tới nơi làm khuôn: đang làm vẫn đang làm, còn lại là đi sửa.
+ * - gửi sửa tới một đối tác: đang làm vẫn đang làm, còn lại là đang sửa;
+ * - bế khuôn tại một đối tác: đang bế.
  */
-export function statusAfterMove(cur: WhDieStatus, o: { toKho: boolean; toMaker: boolean }): WhDieStatus {
+export function statusAfterMove(cur: WhDieStatus, o: { toKho: boolean; repair: boolean }): WhDieStatus {
   if (o.toKho) return cur === 'IN_USE' ? 'READY' : cur;
-  if (o.toMaker) return cur === 'MAKING' ? 'MAKING' : 'REPAIRING';
+  if (o.repair) return cur === 'MAKING' ? 'MAKING' : 'REPAIRING';
   return 'IN_USE';
 }
 

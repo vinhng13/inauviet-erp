@@ -26,21 +26,16 @@ export function WarehouseOverviewPage() {
       <Row gutter={[12, 12]}>
         {data.warehouses.map((w) => (
           <Col key={w.id} xs={12} md={6}>
-            <Card size="small" hoverable onClick={() => navigate(w.kind === 'DIE' ? `/warehouse/dies?place=k:${w.id}` : `/warehouse/stock?kho=${w.code}`)}>
+            <Card size="small" hoverable onClick={() => navigate(w.dies > 0 && w.materials === 0 ? `/warehouse/dies?place=k:${w.id}` : `/warehouse/stock?kho=${w.code}`)}>
               <Typography.Text strong>{w.name}</Typography.Text>
               <div style={{ fontSize: 12, opacity: 0.75 }}>Thủ kho: {w.keepers.map((k) => k.fullName).join(', ') || 'chưa chỉ định'}</div>
-              {w.kind === 'DIE' && (
-                <Flex gap={6} wrap style={{ marginTop: 6 }}>
-                  <Tag>{w.dies} khuôn trong kho</Tag>
-                </Flex>
-              )}
-              {w.kind === 'STOCK' && (
-                <Flex gap={6} wrap style={{ marginTop: 6 }}>
-                  <Tag>{w.materials} vật tư</Tag>
-                  {w.pending > 0 && <Tag color="gold">{w.pending} phiếu chờ xác nhận</Tag>}
-                  {w.low > 0 && <Tag color="red">{w.low} dưới tối thiểu</Tag>}
-                </Flex>
-              )}
+              <Flex gap={6} wrap style={{ marginTop: 6 }}>
+                {w.materials > 0 && <Tag>{w.materials} vật tư</Tag>}
+                {w.dies > 0 && <Tag>{w.dies} khuôn trong kho</Tag>}
+                {w.pending > 0 && <Tag color="gold">{w.pending} phiếu chờ xác nhận</Tag>}
+                {w.low > 0 && <Tag color="red">{w.low} dưới tối thiểu</Tag>}
+                {w.materials === 0 && w.dies === 0 && <Tag>Chưa có hàng</Tag>}
+              </Flex>
             </Card>
           </Col>
         ))}

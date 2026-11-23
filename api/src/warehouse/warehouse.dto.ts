@@ -39,8 +39,9 @@ import {
 export class PartnerInputDto {
   @IsString() @IsNotEmpty() @MaxLength(120)
   name: string;
-  @IsEnum(WhPartnerKind)
-  kind: WhPartnerKind;
+  /** Chỉ để ghi nhớ, không giới hạn chỗ chọn; bỏ trống = Khác */
+  @IsOptional() @IsEnum(WhPartnerKind)
+  kind?: WhPartnerKind;
   @IsOptional() @IsString() @MaxLength(30)
   phone?: string | null;
   @IsOptional() @IsString() @MaxLength(500)
@@ -111,7 +112,7 @@ export class WarehouseInputDto {
   name: string;
   @IsOptional() @IsString() @MaxLength(300)
   address?: string | null;
-  /** Chỉ đặt khi tạo kho */
+  /** Không còn dùng: mọi kho giữ được cả vật tư lẫn khuôn */
   @IsOptional() @IsEnum(WhWarehouseKind)
   kind?: WhWarehouseKind;
   @IsOptional() @IsString() @MaxLength(500)
@@ -201,9 +202,9 @@ export class WhMaterialInputDto {
   specs: SpecInputDto[];
   @IsArray() @ValidateNested({ each: true }) @Type(() => UnitInputDto)
   units: UnitInputDto[];
-  /** Kho có vật tư này */
-  @IsArray() @IsUUID('all', { each: true })
-  warehouseIds: string[];
+  /** Không còn dùng: vật tư là danh mục chung, kho nào nhập thì có tồn ở kho đó */
+  @IsOptional() @IsArray() @IsUUID('all', { each: true })
+  warehouseIds?: string[];
 }
 
 export class SpecDto {
@@ -744,9 +745,9 @@ export class BatchInputDto {
   /** Nơi đến gõ tên mới: tự thêm vào danh mục (mặc định xưởng bế) */
   @IsOptional() @IsString() @MaxLength(120)
   toPartnerName?: string | null;
-  /** Loại đối tác khi thêm mới theo tên: gửi sửa thì nơi làm khuôn */
-  @IsOptional() @IsIn(['DIE_SHOP', 'DIE_MAKER'])
-  toPartnerKind?: 'DIE_SHOP' | 'DIE_MAKER' | null;
+  /** Thao tác khi tới một đối tác: CUT = bế khuôn (đang bế), REPAIR = gửi sửa (đang sửa). Không phụ thuộc loại đối tác */
+  @IsOptional() @IsIn(['CUT', 'REPAIR'])
+  purpose?: 'CUT' | 'REPAIR' | null;
   @IsOptional() @ValidateIf((_, v) => v !== null) @IsUUID()
   toLocationId?: string | null;
   /** Kệ gõ mã mới: tự thêm vào kho nhận */
@@ -930,6 +931,9 @@ export class PaperImportItemDto {
 /** Nhập bảng tồn giấy: danh mục tạo thêm, phiếu điều chỉnh tồn đầu chờ thủ kho xác nhận */
 export class PaperImportReportDto {
   sheet: string;
+  /** Kho nhận tồn */
+  warehouseId: string;
+  warehouseName: string;
   /** Số dòng (loại giấy × khổ) đọc được */
   rows: number;
   materialsCreated: number;
@@ -951,6 +955,9 @@ export class PaperImportReportDto {
 
 export class ImportReportDto {
   dryRun: boolean;
+  /** Kho mặc định: khuôn "TRONG KHO" vào đây */
+  warehouseId: string;
+  warehouseName: string;
   dies: number;
   skippedExisting: number;
   history: number;

@@ -751,3 +751,17 @@ Replaces the keeper-confirmed die transfers.
 - Moving to a workshop (DIE_SHOP) requires READY or IN_USE (`WH_DIE_NOT_PASSED` otherwise). Moving to a maker (gửi sửa) → REPAIRING. Moving to a kho: IN_USE → READY, others unchanged.
 - PASS/DEFECT allowed anywhere (maker, kho, workshop); PASS at a kho may set a shelf. Transfers show in history as "Bế khuôn", "Chuyển kho" or "Gửi sửa" by destination.
 - Batch input `toPartnerKind` (DIE_SHOP | DIE_MAKER) sets the kind of a partner typed by name.
+
+
+### Independent catalogs (v0.17)
+
+The kho catalogs no longer constrain each other.
+
+- **Warehouses**: one kind for all. Any active warehouse holds both materials and dies; `WhWarehouse.kind` stays in the database but nothing reads it (UI no longer asks). Slips, transfers, die moves, snapshots, the stock list and the die place picker use every active warehouse.
+- **Materials**: one shared catalog, not tied to a warehouse. `WhMaterialInputDto.warehouseIds` is optional and ignored. A slip line on a size the warehouse never had creates its `WhWarehouseMaterial` link and `WhStock` row on the spot (`WH_ITEM_INACTIVE` when the material or size is turned off). Receipt / return pick from the whole catalog; issue / transfer pick from what the warehouse holds.
+- **Shelves**: must belong to a warehouse (any warehouse); `WH_LOCATION_WAREHOUSE_REQUIRED`.
+- **Partners**: the kind is a memo only (`kind` optional, default OTHER). Every partner picker lists every partner. Die status after a move to a partner follows the action, not the partner kind: batch input `purpose` CUT (bế khuôn → IN_USE, die must be READY / IN_USE) or REPAIR (gửi sửa → REPAIRING, MAKING stays MAKING). `toPartnerKind` is gone. New dies default their managing warehouse to the first active warehouse holding dies, else the first active warehouse.
+- **Catalog UI**: tabs Kho (warehouses + shelves) · Vật tư · Khuôn (die symbols) · Đối tác · Nhập tồn vật tư Excel · Nhập bảng khuôn Excel. No stock column in materials, no kind / counts in warehouses.
+- **Stock import** (`POST materials/import-paper?warehouseId=`): any warehouse (default GIAY). Reads "Tên vật tư" or "Loại giấy", TỒN (required), and optional Mã VT, Nhóm, Khổ / Quy cách (blank = no size, a single number = roll width), ĐVT (blank = tờ, used only for new materials). Materials are matched by name (same group first, else the only one with that name). Report adds `warehouseId`, `warehouseName`.
+- **Die import** (`POST dies/import?warehouseId=`): default warehouse chosen by the user (else first holding dies, else first active). The place column matches any warehouse by name. Shelves are created in the warehouse the die is in. New partners get kind OTHER. Report adds `warehouseId`, `warehouseName`.
+- No migration.

@@ -5653,6 +5653,14 @@
         "operationId": "Warehouse_importDies",
         "parameters": [
           {
+            "name": "warehouseId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "dryRun",
             "required": false,
             "in": "query",
@@ -5703,6 +5711,14 @@
         "operationId": "Warehouse_importPaper",
         "parameters": [
           {
+            "name": "warehouseId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "dryRun",
             "required": false,
             "in": "query",
@@ -5742,7 +5758,7 @@
             }
           }
         },
-        "summary": "Nhập bảng tồn giấy Excel vào Kho giấy (danh mục + phiếu kiểm kê nháp). dryRun=true chỉ xem trước",
+        "summary": "Nhập tồn vật tư từ Excel vào một kho (warehouseId; mặc định Kho giấy): danh mục + phiếu điều chỉnh chờ xác nhận. dryRun=true chỉ xem trước",
         "tags": [
           "warehouse"
         ]
@@ -13379,7 +13395,7 @@
             "maxLength": 300
           },
           "kind": {
-            "description": "Chỉ đặt khi tạo kho",
+            "description": "Không còn dùng: mọi kho giữ được cả vật tư lẫn khuôn",
             "enum": [
               "STOCK",
               "DIE"
@@ -13473,6 +13489,7 @@
             "maxLength": 120
           },
           "kind": {
+            "description": "Chỉ để ghi nhớ, không giới hạn chỗ chọn; bỏ trống = Khác",
             "enum": [
               "OTHER",
               "DIE_MAKER",
@@ -13496,8 +13513,7 @@
           }
         },
         "required": [
-          "name",
-          "kind"
+          "name"
         ]
       },
       "LocationDto": {
@@ -13853,7 +13869,7 @@
             }
           },
           "warehouseIds": {
-            "description": "Kho có vật tư này",
+            "description": "Không còn dùng: vật tư là danh mục chung, kho nào nhập thì có tồn ở kho đó",
             "type": "array",
             "items": {
               "type": "string",
@@ -13867,8 +13883,7 @@
           "unit",
           "hasSizes",
           "specs",
-          "units",
-          "warehouseIds"
+          "units"
         ]
       },
       "StockUpdateDto": {
@@ -14849,6 +14864,13 @@
           "dryRun": {
             "type": "boolean"
           },
+          "warehouseId": {
+            "type": "string",
+            "description": "Kho mặc định: khuôn \"TRONG KHO\" vào đây"
+          },
+          "warehouseName": {
+            "type": "string"
+          },
           "dies": {
             "type": "number"
           },
@@ -14880,6 +14902,8 @@
         "required": [
           "byStatus",
           "dryRun",
+          "warehouseId",
+          "warehouseName",
           "dies",
           "skippedExisting",
           "history",
@@ -14945,6 +14969,13 @@
           "sheet": {
             "type": "string"
           },
+          "warehouseId": {
+            "type": "string",
+            "description": "Kho nhận tồn"
+          },
+          "warehouseName": {
+            "type": "string"
+          },
           "rows": {
             "type": "number",
             "description": "Số dòng (loại giấy × khổ) đọc được"
@@ -14997,6 +15028,8 @@
         },
         "required": [
           "sheet",
+          "warehouseId",
+          "warehouseName",
           "rows",
           "materialsCreated",
           "specsCreated",
@@ -15075,13 +15108,13 @@
             "description": "Nơi đến gõ tên mới: tự thêm vào danh mục (mặc định xưởng bế)",
             "maxLength": 120
           },
-          "toPartnerKind": {
+          "purpose": {
             "type": "string",
             "nullable": true,
-            "description": "Loại đối tác khi thêm mới theo tên: gửi sửa thì nơi làm khuôn",
+            "description": "Thao tác khi tới một đối tác: CUT = bế khuôn (đang bế), REPAIR = gửi sửa (đang sửa). Không phụ thuộc loại đối tác",
             "enum": [
-              "DIE_SHOP",
-              "DIE_MAKER"
+              "CUT",
+              "REPAIR"
             ]
           },
           "toLocationId": {

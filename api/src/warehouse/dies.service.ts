@@ -266,14 +266,17 @@ export class DiesService {
   private async dieKho(tx: Tx, id: string) {
     const w = await tx.whWarehouse.findUnique({ where: { id }, include: { members: true } });
     if (!w) throw DomainError.notFound('WhWarehouse', id);
-    if (w.kind !== 'DIE') throw DomainError.badRequest('WH_WAREHOUSE_NOT_DIE', 'This warehouse does not keep dies');
     if (!w.isActive) throw DomainError.badRequest('WH_WAREHOUSE_INACTIVE', 'This warehouse is not in use');
     return w;
   }
 
   private async defaultDieKho(tx: Tx) {
-    const w = await tx.whWarehouse.findFirst({ where: { kind: 'DIE', isActive: true }, orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }], include: { members: true } });
-    if (!w) throw DomainError.badRequest('WH_NO_DIE_WAREHOUSE', 'Create a die warehouse first');
+    // Kho quản lý mặc định của khuôn mới: kho đang giữ khuôn đầu tiên, chưa có thì kho đang dùng đầu tiên
+    const order = [{ sortOrder: 'asc' as const }, { name: 'asc' as const }];
+    const w =
+      (await tx.whWarehouse.findFirst({ where: { isActive: true, dies: { some: {} } }, orderBy: order, include: { members: true } })) ??
+      (await tx.whWarehouse.findFirst({ where: { isActive: true }, orderBy: order, include: { members: true } }));
+    if (!w) throw DomainError.badRequest('WH_NO_DIE_WAREHOUSE', 'Create a warehouse first');
     return w;
   }
 
@@ -335,7 +338,7 @@ export class DiesService {
 
   async createBatch(dto: BatchInputDto, actor: AuthUser): Promise<BatchDto> {
     const id = await this.prisma.$transaction(async (tx) => {
-      if (!dto.toWarehouseId && !dto.toPartnerId) dto.toPartnerId = await partnerIdOrCreate(tx, null, dto.toPartnerName, dto.toPartnerKind ?? 'DIE_SHOP');
+      if (!dto.toWarehouseId && !dto.toPartnerId) dto.toPartnerId = await partnerIdOrCreate(tx, null, dto.toPartnerName, dto.purpose === 'REPAIR' ? 'DIE_MAKER' : 'DIE_SHOP');
       dto.toLocationId = await locationIdOrCreate(tx, dto.toWarehouseId, dto.toLocationId, dto.toLocationCode);
       const from: End = { warehouseId: dto.fromWarehouseId ?? null, partnerId: dto.fromPartnerId ?? null };
       if (!!from.warehouseId === !!from.partnerId) throw DomainError.badRequest('WH_BATCH_FROM_REQUIRED', 'Choose where the dies come from');
@@ -375,7 +378,7 @@ export class DiesService {
         tx,
         from,
         { warehouseId: dto.toWarehouseId ?? null, partnerId: dto.toPartnerId ?? null },
-        { date: dto.date, dieIds: ids, toLocationId: dto.toLocationId ?? null, reference: dto.reference ?? null, note: dto.note ?? null },
+        { date: dto.date, dieIds: ids, toLocationId: dto.toLocationId ?? null, reference: dto.reference ?? null, note: dto.note ?? null, repair: dto.purpose === 'REPAIR' },
         actor,
       );
     });
@@ -390,7 +393,7 @@ export class DiesService {
     tx: Tx,
     from: End,
     to: End,
-    o: { date: string; dieIds: string[]; toLocationId?: string | null; reference?: string | null; note?: string | null; isNew?: boolean },
+    o: { date: string; dieIds: string[]; toLocationId?: string | null; reference?: string | null; note?: string | null; isNew?: boolean; repair?: boolean },
     actor: AuthUser,
   ): Promise<string> {
     if (!!to.warehouseId === !!to.partnerId) throw DomainError.badRequest('WH_BATCH_TO_REQUIRED', 'Choose where the dies go: one warehouse or one workshop');
@@ -411,7 +414,7 @@ export class DiesService {
     if (dies.length !== o.dieIds.length) throw DomainError.notFound('WhDie', o.dieIds.find((i) => !dies.some((d) => d.id === i))!);
     for (const d of dies) {
       if (d.pendingBatchId) throw DomainError.conflict('WH_DIE_PENDING', `${d.code} is already on a transfer waiting for confirmation`, { code: d.code });
-      if (to.partnerId && toPartner?.kind !== 'DIE_MAKER' && !CAN_GO_CUT.includes(d.status)) {
+      if (to.partnerId && !o.repair && !CAN_GO_CUT.includes(d.status)) {
         throw DomainError.conflict('WH_DIE_NOT_PASSED', `${d.code} has not passed inspection yet`, { code: d.code, status: d.status });
       }
       if (['DISPOSED', 'BROKEN', 'TRANSIT', 'INCOMING'].includes(d.status)) {
@@ -447,9 +450,8 @@ export class DiesService {
         items: { create: dies.map((d) => ({ dieId: d.id })) },
       },
     });
-    const toMaker = toPartner?.kind === 'DIE_MAKER';
     for (const d of dies) {
-      const status = statusAfterMove(d.status, { toKho: !!toKho, toMaker });
+      const status = statusAfterMove(d.status, { toKho: !!toKho, repair: !!o.repair });
       const updated = await tx.whDie.update({
         where: { id: d.id },
         data: toKho
@@ -743,7 +745,7 @@ export class DiesService {
       this.prisma.whDie.findMany({ where: { status: 'CHECKING' }, include: dieInclude, take: 50, orderBy: { updatedAt: 'desc' } }),
       this.prisma.whDie.count({ where: { needsReview: true } }),
       this.batches({ tab: 'open' }, actor),
-      this.prisma.whWarehouse.findMany({ where: { kind: 'DIE', isActive: true }, orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }] }),
+      this.prisma.whWarehouse.findMany({ where: { isActive: true }, orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }] }),
       this.prisma.whDie.groupBy({ by: ['warehouseId'], where: { holderId: null, status: { notIn: ['DISPOSED', 'TRANSIT', 'INCOMING'] } }, _count: { _all: true } }),
     ]);
     const rowsOut = out.map((d) => dieRow(d, today));

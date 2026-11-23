@@ -43,7 +43,7 @@ interface Planned {
 export class DieImportService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async run(buf: Buffer | undefined, dryRun: boolean, actor: AuthUser, today: string): Promise<ImportReportDto> {
+  async run(buf: Buffer | undefined, dryRun: boolean, actor: AuthUser, today: string, warehouseId?: string): Promise<ImportReportDto> {
     if (!buf?.length) throw DomainError.badRequest('FILE_REQUIRED', 'Choose the Excel file');
     let sheets: Map<string, Cell[][]>;
     try {
@@ -182,19 +182,31 @@ export class DieImportService {
 
     const existing = new Set((await this.prisma.whDie.findMany({ where: { code: { in: planned.map((p) => p.code) } }, select: { code: true } })).map((d) => d.code));
     const todo = planned.filter((p) => !existing.has(p.code));
-    // Kho khuôn: khuôn ở kho mặc định (kho đầu tiên); "ở đâu" trùng tên một kho khuôn (vd Xuân Đỉnh) thì vào kho đó
-    const dieKhos = await this.prisma.whWarehouse.findMany({ where: { kind: 'DIE', isActive: true }, orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }] });
-    if (!dieKhos.length) throw DomainError.badRequest('WH_NO_DIE_WAREHOUSE', 'Create a die warehouse first');
+    // Khuôn ở kho mặc định do người nhập chọn (không chọn: kho đang giữ khuôn đầu tiên, rồi kho đầu tiên);
+    // "ở đâu" trùng tên một kho bất kỳ (vd Xuân Đỉnh) thì vào kho đó. Mọi kho giữ được khuôn.
+    const khos = await this.prisma.whWarehouse.findMany({ where: { isActive: true }, orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }], include: { _count: { select: { dies: true } } } });
+    if (!khos.length) throw DomainError.badRequest('WH_NO_DIE_WAREHOUSE', 'Create a warehouse first');
+    const homeKho = warehouseId ? khos.find((k) => k.id === warehouseId) : (khos.find((k) => k._count.dies > 0) ?? khos[0]);
+    if (!homeKho) throw DomainError.badRequest('WH_WAREHOUSE_NOT_FOUND', 'The chosen warehouse is not in use');
     const khoByName = new Map<string, string>();
-    for (const k of dieKhos) {
+    for (const k of khos) {
       khoByName.set(k.name.toLowerCase(), k.id);
       khoByName.set(k.name.replace(/^kho\s+(khuôn\s+)?/i, '').toLowerCase(), k.id);
     }
-    const homeKho = dieKhos[0];
+    const khoOf = (p: Planned) => (p.holder ? khoByName.get(p.holder.toLowerCase()) : undefined);
     const partnerNames = (await this.prisma.whPartner.findMany({ select: { name: true } })).map((p) => p.name.toLowerCase());
-    const locationCodes = (await this.prisma.whLocation.findMany({ where: { warehouseId: homeKho.id }, select: { code: true } })).map((l) => l.code.toLowerCase());
+    // Kệ luôn thuộc một kho: kệ của khuôn tạo ở đúng kho khuôn đó nằm
+    const locKey = (w: string, code: string) => `${w}|${code.toLowerCase()}`;
+    const existingLocs = new Set((await this.prisma.whLocation.findMany({ select: { warehouseId: true, code: true } })).map((l) => locKey(l.warehouseId, l.code)));
+    const shelfOf = (p: Planned) => (p.shelf && (!p.holder || khoOf(p)) ? { warehouseId: khoOf(p) ?? homeKho.id, code: p.shelf } : null);
+    const newLocs = new Map<string, { warehouseId: string; code: string }>();
+    for (const p of todo) {
+      const s = shelfOf(p);
+      if (s && !existingLocs.has(locKey(s.warehouseId, s.code))) newLocs.set(locKey(s.warehouseId, s.code), s);
+    }
     const partnersCreated = uniq([...todo.map((p) => p.maker), ...todo.map((p) => p.holder)]).filter((n) => !partnerNames.includes(n.toLowerCase()) && !khoByName.has(n.toLowerCase()));
-    const locationsCreated = uniq(todo.map((p) => p.shelf)).filter((c) => !locationCodes.includes(c.toLowerCase()));
+    const khoName = (id: string) => khos.find((k) => k.id === id)!.name;
+    const locationsCreated = [...newLocs.values()].map((l) => (l.warehouseId === homeKho.id ? l.code : `${l.code} (${khoName(l.warehouseId)})`));
     const byStatus: Record<string, number> = {};
     for (const p of todo) byStatus[p.status] = (byStatus[p.status] ?? 0) + 1;
     const todoCodes = new Set(todo.map((p) => p.code));
@@ -206,6 +218,8 @@ export class DieImportService {
 
     const report: ImportReportDto = {
       dryRun,
+      warehouseId: homeKho.id,
+      warehouseName: homeKho.name,
       dies: todo.length,
       skippedExisting: planned.length - todo.length,
       history: historyTodo.length,
@@ -220,16 +234,16 @@ export class DieImportService {
       async (tx) => {
         const partners = new Map<string, string>();
         for (const p of await tx.whPartner.findMany()) partners.set(p.name.toLowerCase(), p.id);
-        const makers = new Set(todo.map((p) => p.maker).filter(Boolean));
+        // Đối tác mới không gán loại: loại chỉ để ghi nhớ, không giới hạn chỗ chọn
         for (const name of partnersCreated) {
-          const p = await tx.whPartner.create({ data: { name, kind: makers.has(name) ? 'DIE_MAKER' : 'DIE_SHOP' } });
+          const p = await tx.whPartner.create({ data: { name, kind: 'OTHER' } });
           partners.set(name.toLowerCase(), p.id);
         }
         const locations = new Map<string, string>();
-        for (const l of await tx.whLocation.findMany({ where: { warehouseId: homeKho.id } })) locations.set(l.code.toLowerCase(), l.id);
-        for (const code of locationsCreated) {
-          const l = await tx.whLocation.create({ data: { code, warehouseId: homeKho.id } });
-          locations.set(code.toLowerCase(), l.id);
+        for (const l of await tx.whLocation.findMany()) locations.set(locKey(l.warehouseId, l.code), l.id);
+        for (const s of newLocs.values()) {
+          const l = await tx.whLocation.create({ data: { code: s.code, warehouseId: s.warehouseId } });
+          locations.set(locKey(s.warehouseId, s.code), l.id);
         }
         const symbols = new Map((await tx.whDieSymbol.findMany()).map((s) => [s.code, s.lastNo]));
         for (const p of todo) {
@@ -240,9 +254,10 @@ export class DieImportService {
         }
         const imported = dateField(today, 'today');
         for (const p of todo) {
-          const atKho = p.holder ? khoByName.get(p.holder.toLowerCase()) : undefined;
+          const atKho = khoOf(p);
           const holderId = p.holder && !atKho ? partners.get(p.holder.toLowerCase())! : null;
-          const locationId = p.shelf && !atKho ? locations.get(p.shelf.toLowerCase())! : null;
+          const shelf = shelfOf(p);
+          const locationId = shelf ? locations.get(locKey(shelf.warehouseId, shelf.code))! : null;
           const warehouseId = atKho ?? homeKho.id;
           const status = atKho && p.status === 'IN_USE' ? 'READY' : p.status;
           const fields = {
@@ -279,7 +294,7 @@ export class DieImportService {
               action: 'IMPORT',
               date: p.lastDate ? dateField(p.lastDate, 'date') : imported,
               toStatus: status,
-              place: atKho ? dieKhos.find((k) => k.id === atKho)!.name : (p.holder ?? (p.shelf ? `${homeKho.name} · ${p.shelf}` : homeKho.name)),
+              place: holderId ? p.holder! : `${khoName(warehouseId)}${shelf ? ` · ${shelf.code}` : ''}`,
               partnerId: holderId,
               locationId,
               expectedBackOn: p.expectedBackOn ? dateField(p.expectedBackOn, 'expectedBackOn') : null,

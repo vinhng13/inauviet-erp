@@ -41,16 +41,15 @@ export function BatchStatusTag({ batch }: { batch: Pick<Schemas['BatchDto'], 'st
   return <Tag color="gold">Chờ kho nhận</Tag>;
 }
 
-/** Nơi đi / nơi đến của khuôn: các kho khuôn và các xưởng, giá trị "k:<id>" / "x:<id>" */
+/** Nơi đi / nơi đến của khuôn: mọi kho và mọi đối tác (không lọc theo loại), giá trị "k:<id>" / "x:<id>" */
 export function useDiePlaces(): { options: Array<{ label: string; options: Array<{ value: string; label: string }> }>; khos: Schemas['WarehouseDto'][]; partners: Schemas['PartnerDto'][]; name: (key?: string | null) => string } {
   const warehouses = useWarehouses();
   const partners = usePartners();
-  const khos = (warehouses.data ?? []).filter((w) => w.kind === 'DIE' && w.isActive);
-  const shops = (partners.data ?? []).filter((p) => p.isActive && (p.kind === 'DIE_SHOP' || p.kind === 'DIE_MAKER'));
+  const khos = (warehouses.data ?? []).filter((w) => w.isActive);
+  const shops = (partners.data ?? []).filter((p) => p.isActive);
   const options = [
-    { label: 'Kho Âu Việt', options: khos.map((k) => ({ value: `k:${k.id}`, label: k.name })) },
-    { label: 'Xưởng bế', options: shops.filter((p) => p.kind === 'DIE_SHOP').map((p) => ({ value: `x:${p.id}`, label: p.name })) },
-    { label: 'Nơi làm khuôn', options: shops.filter((p) => p.kind === 'DIE_MAKER').map((p) => ({ value: `x:${p.id}`, label: p.name })) },
+    { label: 'Kho', options: khos.map((k) => ({ value: `k:${k.id}`, label: k.name })) },
+    { label: 'Đối tác', options: shops.map((p) => ({ value: `x:${p.id}`, label: p.name })) },
   ].filter((g) => g.options.length);
   const name = (key?: string | null) => {
     if (!key) return '';
@@ -101,13 +100,13 @@ export function lineQty(l: Pick<Schemas['SlipLineDto'], 'qty' | 'unit' | 'unitNa
 const PICK_KEY = 'wh.kho';
 
 /**
- * Kho đang làm việc (kho theo số lượng), nhớ trên địa chỉ trang (?kho=GIAY) và trong trình duyệt.
+ * Kho đang làm việc (mọi kho đang dùng), nhớ trên địa chỉ trang (?kho=GIAY) và trong trình duyệt.
  * Trả về kho đang chọn và hàm đổi kho.
  */
 export function useWarehousePick(): { warehouse: Schemas['WarehouseDto'] | undefined; list: Schemas['WarehouseDto'][]; pick: (code: string) => void; loading: boolean } {
   const { data, isLoading } = useWarehouses();
   const [params, setParams] = useSearchParams();
-  const list = (data ?? []).filter((w) => w.kind === 'STOCK' && w.isActive);
+  const list = (data ?? []).filter((w) => w.isActive);
   let saved: string | null = null;
   try {
     saved = localStorage.getItem(PICK_KEY);

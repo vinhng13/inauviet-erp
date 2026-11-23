@@ -40,7 +40,7 @@ export class WhSnapshotService implements OnModuleInit, OnModuleDestroy {
     this.running = true;
     try {
       const yesterday = addDays(todayInZone(this.env.APP_TIMEZONE), -1);
-      const warehouses = await this.prisma.whWarehouse.findMany({ where: { kind: 'STOCK' } });
+      const warehouses = await this.prisma.whWarehouse.findMany();
       let days = 0;
       let rows = 0;
       for (const w of warehouses) {

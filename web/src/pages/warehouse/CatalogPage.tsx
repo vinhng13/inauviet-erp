@@ -8,7 +8,10 @@ import { errorMessage } from '../../lib/errors';
 import { cm, PageHead, PARTNER_KIND, qty, STATUS, type DieStatus } from './common';
 import { pager } from '../../lib/paging';
 
-/** Danh mục riêng của kho: kho và thủ kho, vật tư (quy cách, đơn vị tính), đối tác, vị trí kệ, ký hiệu khuôn, chốt tháng, nhập bảng khuôn Excel */
+/**
+ * Danh mục riêng của kho. Các danh mục độc lập, không cần gắn trước với nhau: kho (kèm vị trí kệ, kệ bắt buộc thuộc một kho),
+ * vật tư (quy cách, đơn vị tính), khuôn (ký hiệu), đối tác (loại chỉ để ghi nhớ); nhập tồn vật tư và bảng khuôn từ Excel.
+ */
 export function WarehouseCatalogPage() {
   const can = useCan();
   return (
@@ -16,14 +19,22 @@ export function WarehouseCatalogPage() {
       <PageHead title="Danh mục kho" />
       <Tabs
         items={[
-          { key: 'warehouses', label: 'Kho', children: <Warehouses /> },
+          {
+            key: 'warehouses',
+            label: 'Kho',
+            children: (
+              <Flex vertical gap={28}>
+                <Warehouses />
+                <Locations />
+              </Flex>
+            ),
+          },
           { key: 'materials', label: 'Vật tư', children: <Materials /> },
+          { key: 'symbols', label: 'Khuôn', children: <Symbols /> },
           { key: 'partners', label: 'Đối tác', children: <Partners /> },
-          { key: 'locations', label: 'Vị trí kệ', children: <Locations /> },
-          { key: 'symbols', label: 'Ký hiệu khuôn', children: <Symbols /> },
           ...(can('warehouse.manage')
             ? [
-                { key: 'import-paper', label: 'Nhập tồn giấy Excel', children: <ImportPaper /> },
+                { key: 'import-paper', label: 'Nhập tồn vật tư Excel', children: <ImportPaper /> },
                 { key: 'import', label: 'Nhập bảng khuôn Excel', children: <ImportDies /> },
               ]
             : []),
@@ -45,7 +56,7 @@ function Warehouses() {
   return (
     <Flex vertical gap={12}>
       <Typography.Text type="secondary">
-        Mỗi kho có thủ kho riêng. Phiếu nhập / xuất / chuyển của kho chỉ làm thay đổi tồn khi thủ kho của kho đó xác nhận. Kho chưa có thủ kho: ai có quyền lập phiếu cũng xác nhận được.
+        Kho nào cũng giữ được cả vật tư lẫn khuôn. Mỗi kho có thủ kho riêng: phiếu vật tư của kho chỉ làm thay đổi tồn khi thủ kho của kho đó xác nhận (thủ kho tự lập thì có hiệu lực ngay). Kho chưa có thủ kho: ai có quyền lập phiếu cũng xác nhận được.
       </Typography.Text>
       {can('warehouse.manage') && <Button type="primary" icon={<PlusOutlined />} style={{ alignSelf: 'flex-start' }} onClick={() => setEditing('new')}>Thêm kho</Button>}
       <Table<Warehouse>
@@ -57,10 +68,8 @@ function Warehouses() {
         columns={[
           { title: 'Mã', dataIndex: 'code', width: 100, render: (v: string) => <Tag>{v}</Tag> },
           { title: 'Tên kho', dataIndex: 'name', render: (v: string, w) => <span style={{ opacity: w.isActive ? 1 : 0.5 }}>{v}{!w.isActive && ' (ngừng dùng)'}</span> },
-          { title: 'Quản lý', dataIndex: 'kind', width: 150, render: (k: Warehouse['kind']) => (k === 'DIE' ? 'Khuôn (từng cái)' : 'Vật tư (số lượng)') },
           { title: 'Thủ kho', key: 'k', render: (_, w) => w.keepers.map((k) => k.fullName).join(', ') || <Typography.Text type="secondary">chưa chỉ định</Typography.Text> },
           { title: 'Địa chỉ', dataIndex: 'address', ellipsis: true },
-          { title: 'Đang quản lý', key: 'n', width: 120, align: 'right', render: (_, w) => (w.kind === 'DIE' ? `${w.dies} khuôn` : `${w.materials} vật tư`) },
           { key: 'e', width: 60, render: (_, w) => can('warehouse.manage') && <Button size="small" type="text" icon={<EditOutlined />} onClick={() => setEditing(w)} aria-label={`Sửa ${w.name}`} /> },
         ]}
       />
@@ -79,10 +88,10 @@ function WarehouseModal({ warehouse, onClose }: { warehouse: Warehouse | null; o
       <Form
         form={form}
         layout="vertical"
-        initialValues={warehouse ? { ...warehouse, keeperIds: warehouse.keepers.map((k) => k.id) } : { kind: 'STOCK', isActive: true, keeperIds: [], sortOrder: 50 }}
+        initialValues={warehouse ? { ...warehouse, keeperIds: warehouse.keepers.map((k) => k.id) } : { isActive: true, keeperIds: [], sortOrder: 50 }}
         onFinish={(v) =>
           saveWarehouse.mutate(
-            { id: warehouse?.id, code: v.code.toUpperCase(), name: v.name, address: v.address || null, note: v.note || null, kind: warehouse ? undefined : v.kind, isActive: v.isActive, sortOrder: v.sortOrder, keeperIds: v.keeperIds ?? [] },
+            { id: warehouse?.id, code: v.code.toUpperCase(), name: v.name, address: v.address || null, note: v.note || null, isActive: v.isActive, sortOrder: v.sortOrder, keeperIds: v.keeperIds ?? [] },
             { onSuccess: ok(message, onClose), onError: (e) => message.error(errorMessage(e)) },
           )
         }
@@ -96,11 +105,6 @@ function WarehouseModal({ warehouse, onClose }: { warehouse: Warehouse | null; o
           </Form.Item>
         </Flex>
         <Form.Item name="address" label="Địa chỉ"><Input /></Form.Item>
-        {!warehouse && (
-          <Form.Item name="kind" label="Cách quản lý">
-            <Select options={[{ value: 'STOCK', label: 'Theo số lượng (giấy, vật tư, hàng tồn…)' }, { value: 'DIE', label: 'Từng cái (khuôn)' }]} />
-          </Form.Item>
-        )}
         <Form.Item name="keeperIds" label="Thủ kho (xác nhận phiếu)">
           <Select mode="multiple" allowClear showSearch optionFilterProp="label" options={(people.data ?? []).map((p) => ({ value: p.id, label: p.fullName }))} />
         </Form.Item>
@@ -117,22 +121,18 @@ function WarehouseModal({ warehouse, onClose }: { warehouse: Warehouse | null; o
 function Materials() {
   const can = useCan();
   const { data, isFetching } = useWhMaterials();
-  const warehouses = useWarehouses();
   const [editing, setEditing] = useState<Material | 'new' | null>(null);
   const [q, setQ] = useState('');
-  const [kho, setKho] = useState<string>('all');
   const text = q.trim().toLowerCase();
-  const rows = (data ?? []).filter((m) => (kho === 'all' || m.warehouseIds.includes(kho)) && (!text || `${m.code ?? ''} ${m.group} ${m.name}`.toLowerCase().includes(text)));
-  const khoName = new Map((warehouses.data ?? []).map((w) => [w.id, w.code]));
+  const rows = (data ?? []).filter((m) => !text || `${m.code ?? ''} ${m.group} ${m.name}`.toLowerCase().includes(text));
   return (
     <Flex vertical gap={12}>
       <Typography.Text type="secondary">
-        Một danh mục vật tư chung cho mọi kho. Mỗi vật tư có đơn vị cơ sở (tồn lưu theo đơn vị này), các quy cách / khổ, các đơn vị khác có hệ số quy đổi (đặt riêng được cho từng quy cách), và các kho có vật tư.
+        Một danh mục vật tư chung, không gắn với kho: lập phiếu ở kho nào cũng chọn được mọi vật tư, nhập vào kho nào thì kho đó có tồn (xem ở Kho vật tư). Mỗi vật tư có đơn vị cơ sở (tồn lưu theo đơn vị này), các quy cách / khổ và các đơn vị khác có hệ số quy đổi (đặt riêng được cho từng quy cách).
       </Typography.Text>
       <Flex wrap gap={12} align="center">
         {can('warehouse.manage') && <Button type="primary" icon={<PlusOutlined />} onClick={() => setEditing('new')}>Thêm vật tư</Button>}
         <Input.Search id="material-search" placeholder="Mã, nhóm, tên" allowClear onChange={(e) => setQ(e.target.value)} style={{ width: 240 }} />
-        <Select value={kho} onChange={setKho} style={{ width: 200 }} options={[{ value: 'all', label: 'Mọi kho' }, ...(warehouses.data ?? []).filter((w) => w.kind === 'STOCK').map((w) => ({ value: w.id, label: w.name }))]} />
       </Flex>
       <Table<Material>
         rowKey="id"
@@ -158,7 +158,6 @@ function Materials() {
                 <Typography.Text type="secondary">Không theo khổ</Typography.Text>
               ),
           },
-          { title: 'Tồn theo kho', key: 't', width: 180, render: (_, m) => m.warehouseIds.map((w) => `${khoName.get(w) ?? '?'}: ${qty(m.stocks.find((s) => s.warehouseId === w)?.qty ?? 0)}`).join(' · ') },
           { key: 'e', width: 60, render: (_, m) => can('warehouse.manage') && <Button size="small" type="text" icon={<EditOutlined />} onClick={() => setEditing(m)} aria-label={`Sửa ${m.name}`} /> },
         ]}
       />
@@ -169,14 +168,13 @@ function Materials() {
 
 type SpecRow = { id?: string; widthCm?: number; lengthCm?: number; isActive?: boolean };
 type UnitRow = { id?: string; name?: string; factor?: number; spec?: string };
-type MaterialForm = { code?: string; group: string; name: string; unit: string; hasSizes: boolean; isActive: boolean; warehouseIds: string[]; specs: SpecRow[]; units: UnitRow[] };
+type MaterialForm = { code?: string; group: string; name: string; unit: string; hasSizes: boolean; isActive: boolean; specs: SpecRow[]; units: UnitRow[] };
 const specKey = (w?: number | null, l?: number | null) => `${w ?? 0}x${l ?? 0}`;
 const specText = (w?: number | null, l?: number | null) => (w && l ? `${cm(w)} x ${cm(l)}` : w ? `khổ ${cm(w)}` : '');
 
 function MaterialModal({ material, groups, onClose }: { material: Material | null; groups: string[]; onClose: () => void }) {
   const { message } = App.useApp();
   const [form] = Form.useForm<MaterialForm>();
-  const warehouses = useWarehouses();
   const { saveMaterial } = useWarehouseMutations();
   const hasSizes = Form.useWatch('hasSizes', form);
   const unit = Form.useWatch('unit', form);
@@ -189,14 +187,13 @@ function MaterialModal({ material, groups, onClose }: { material: Material | nul
         unit: material.unit,
         hasSizes: material.hasSizes,
         isActive: material.isActive,
-        warehouseIds: material.warehouseIds,
         specs: material.hasSizes ? material.specs.map((p) => ({ id: p.id, widthCm: p.widthCm, lengthCm: p.lengthCm, isActive: p.isActive })) : [],
         units: material.units.map((u) => {
           const p = material.specs.find((x) => x.id === u.specId);
           return { id: u.id, name: u.name, factor: u.factor, spec: p ? specKey(p.widthCm, p.lengthCm) : '' };
         }),
       }
-    : { group: groups[0] ?? 'Giấy', name: '', unit: 'tờ', hasSizes: true, isActive: true, warehouseIds: [], specs: [{}], units: [] };
+    : { group: groups[0] ?? 'Giấy', name: '', unit: 'tờ', hasSizes: true, isActive: true, specs: [{}], units: [] };
   const submit = (v: MaterialForm) =>
     saveMaterial.mutate(
       {
@@ -207,7 +204,6 @@ function MaterialModal({ material, groups, onClose }: { material: Material | nul
         unit: v.unit,
         hasSizes: v.hasSizes,
         isActive: v.isActive,
-        warehouseIds: v.warehouseIds ?? [],
         specs: v.hasSizes ? (v.specs ?? []).map((s) => ({ id: s.id, widthCm: s.widthCm ?? 0, lengthCm: s.lengthCm ?? 0, isActive: s.isActive ?? true })) : [],
         units: (v.units ?? [])
           .filter((u) => u.name && u.factor)
@@ -236,9 +232,6 @@ function MaterialModal({ material, groups, onClose }: { material: Material | nul
             <AutoComplete style={{ width: 110 }} options={['tờ', 'm', 'm²', 'kg', 'lít', 'cái', 'cuộn'].map((u) => ({ value: u }))} />
           </Form.Item>
         </Flex>
-        <Form.Item name="warehouseIds" label="Có ở kho">
-          <Select mode="multiple" allowClear options={(warehouses.data ?? []).filter((w) => w.kind === 'STOCK').map((w) => ({ value: w.id, label: w.name }))} placeholder="Chọn kho giữ vật tư này" />
-        </Form.Item>
         <Flex gap={24}>
           <Form.Item name="hasSizes" label="Có quy cách / khổ" valuePropName="checked">
             <Switch disabled={!!material} />
@@ -320,6 +313,9 @@ function Partners() {
   const [form] = Form.useForm<Schemas['PartnerInputDto']>();
   return (
     <Flex vertical gap={12}>
+      <Typography.Text type="secondary">
+        Một danh sách đối tác chung: ô Nơi lấy hàng nhập kho, Nơi làm khuôn, Xưởng bế, Gửi sửa đều chọn được mọi đối tác (chưa có thì gõ tên mới khi lập phiếu). Loại chỉ để ghi nhớ, không giới hạn chỗ chọn.
+      </Typography.Text>
       {can('warehouse.manage') && <Button type="primary" icon={<PlusOutlined />} style={{ alignSelf: 'flex-start' }} onClick={() => setEditing('new')}>Thêm đối tác</Button>}
       <Table<Schemas['PartnerDto']>
         rowKey="id"
@@ -330,7 +326,7 @@ function Partners() {
         locale={{ emptyText: 'Chưa có đối tác (xưởng bế, nơi làm khuôn, nhà cung cấp giấy...)' }}
         columns={[
           { title: 'Tên', dataIndex: 'name', render: (v: string, p) => <span style={{ opacity: p.isActive ? 1 : 0.5 }}>{v}</span> },
-          { title: 'Loại', dataIndex: 'kind', width: 150, render: (k: Schemas['WhPartnerKind']) => PARTNER_KIND[k] },
+          { title: 'Loại (ghi nhớ)', dataIndex: 'kind', width: 150, render: (k: Schemas['WhPartnerKind']) => (k === 'OTHER' ? '' : PARTNER_KIND[k]) },
           { title: 'Điện thoại', dataIndex: 'phone', width: 130 },
           { title: 'Khuôn đang giữ', dataIndex: 'diesHeld', width: 130, align: 'right' },
           { title: 'Ghi chú', dataIndex: 'note' },
@@ -351,7 +347,7 @@ function Partners() {
           <Form
             form={form}
             layout="vertical"
-            initialValues={editing === 'new' ? { kind: 'DIE_SHOP', isActive: true } : { ...editing }}
+            initialValues={editing === 'new' ? { kind: 'OTHER', isActive: true } : { ...editing }}
             onFinish={(v) =>
               savePartner.mutate(
                 { id: editing === 'new' ? undefined : editing.id, name: v.name, kind: v.kind, phone: v.phone || null, note: v.note || null, isActive: v.isActive },
@@ -360,7 +356,7 @@ function Partners() {
             }
           >
             <Form.Item name="name" label="Tên" rules={[{ required: true }]}><Input /></Form.Item>
-            <Form.Item name="kind" label="Loại"><Select options={Object.entries(PARTNER_KIND).map(([value, label]) => ({ value, label }))} /></Form.Item>
+            <Form.Item name="kind" label="Loại (ghi nhớ)" extra="Không giới hạn chỗ chọn đối tác"><Select options={Object.entries(PARTNER_KIND).map(([value, label]) => ({ value, label }))} /></Form.Item>
             <Form.Item name="phone" label="Điện thoại"><Input /></Form.Item>
             <Form.Item name="note" label="Ghi chú"><Input /></Form.Item>
             <Form.Item name="isActive" label="Đang hợp tác" valuePropName="checked"><Switch /></Form.Item>
@@ -377,37 +373,41 @@ function Locations() {
   const { data, isFetching } = useLocations();
   const { saveLocation } = useWarehouseMutations();
   const warehouses = useWarehouses();
-  const khos = (warehouses.data ?? []).filter((w) => w.kind === 'DIE' && w.isActive);
+  const khos = (warehouses.data ?? []).filter((w) => w.isActive);
   const [code, setCode] = useState('');
   const [kho, setKho] = useState<string | undefined>(undefined);
+  const [filter, setFilter] = useState<string>('all');
   const khoId = kho ?? khos[0]?.id;
+  const rows = (data ?? []).filter((l) => filter === 'all' || l.warehouseId === filter);
   return (
     <Flex vertical gap={12}>
-      <Typography.Text type="secondary">Mỗi kệ thuộc một kho khuôn. Mã kệ nên theo dạng Tầng-Kệ-Ô, ví dụ T4-K02-O03, để thủ kho tìm khuôn nhanh.</Typography.Text>
+      <Typography.Title level={5} style={{ margin: 0 }}>Vị trí kệ</Typography.Title>
+      <Typography.Text type="secondary">Mỗi kệ bắt buộc thuộc một kho. Mã kệ nên theo dạng Tầng-Kệ-Ô, ví dụ T4-K02-O03, để thủ kho tìm khuôn nhanh.</Typography.Text>
       {can('warehouse.manage') && (
         <Space.Compact style={{ maxWidth: 520 }}>
-          <Select id="location-kho" value={khoId} onChange={setKho} style={{ width: 190 }} options={khos.map((k) => ({ value: k.id, label: k.name }))} />
-          <Input id="location-code" placeholder="Mã vị trí mới" value={code} onChange={(e) => setCode(e.target.value)} />
+          <Select id="location-kho" value={khoId} onChange={setKho} style={{ width: 190 }} options={khos.map((k) => ({ value: k.id, label: k.name }))} aria-label="Kho của kệ" />
+          <Input id="location-code" placeholder="Mã kệ mới" value={code} onChange={(e) => setCode(e.target.value)} />
           <Button
             type="primary"
             disabled={!code.trim() || !khoId}
             loading={saveLocation.isPending}
-            onClick={() => saveLocation.mutate({ code: code.trim(), warehouseId: khoId! }, { onSuccess: () => (setCode(''), message.success('Đã thêm vị trí')), onError: (e) => message.error(errorMessage(e)) })}
+            onClick={() => saveLocation.mutate({ code: code.trim(), warehouseId: khoId! }, { onSuccess: () => (setCode(''), message.success('Đã thêm kệ')), onError: (e) => message.error(errorMessage(e)) })}
           >
-            Thêm
+            Thêm kệ
           </Button>
         </Space.Compact>
       )}
+      <Select id="location-filter" value={filter} onChange={setFilter} style={{ width: 220 }} options={[{ value: 'all', label: 'Kệ của mọi kho' }, ...khos.map((k) => ({ value: k.id, label: k.name }))]} aria-label="Lọc theo kho" />
       <Table<Schemas['LocationDto']>
         rowKey="id"
         size="small"
         loading={isFetching}
-        dataSource={data}
-        pagination={false}
-        locale={{ emptyText: 'Chưa có vị trí' }}
+        dataSource={rows}
+        pagination={pager(rows.length)}
+        locale={{ emptyText: 'Chưa có kệ' }}
         columns={[
           { title: 'Kho', dataIndex: 'warehouseName', width: 180 },
-          { title: 'Mã vị trí', dataIndex: 'code', render: (v: string, l) => <span style={{ opacity: l.isActive ? 1 : 0.5 }}>{v}</span> },
+          { title: 'Mã kệ', dataIndex: 'code', render: (v: string, l) => <span style={{ opacity: l.isActive ? 1 : 0.5 }}>{v}</span> },
           { title: 'Số khuôn', dataIndex: 'dies', width: 110, align: 'right' },
           { title: 'Ghi chú', dataIndex: 'note' },
           {
@@ -432,7 +432,7 @@ function Symbols() {
   const [form] = Form.useForm<{ code: string; name: string }>();
   return (
     <Flex vertical gap={12}>
-      <Typography.Text type="secondary">Mã khuôn = ký hiệu + số thứ tự (TUI-001), cấp một lần và không đổi. Mã đã dùng không cấp lại.</Typography.Text>
+      <Typography.Text type="secondary">Ký hiệu nhóm khuôn. Mã khuôn = ký hiệu + số thứ tự (TUI-001), cấp một lần và không đổi. Mã đã dùng không cấp lại.</Typography.Text>
       {can('warehouse.manage') && (
         <Form form={form} layout="inline" onFinish={(v) => saveSymbol.mutate({ code: v.code.toUpperCase(), name: v.name }, { onSuccess: () => (form.resetFields(), message.success('Đã lưu ký hiệu')), onError: (e) => message.error(errorMessage(e)) })}>
           <Form.Item name="code" rules={[{ required: true, pattern: /^[A-Za-z]{2,5}$/, message: '2–5 chữ cái' }]}><Input placeholder="Ký hiệu, ví dụ HOP" style={{ width: 170 }} /></Form.Item>
@@ -466,12 +466,16 @@ function Symbols() {
 function ImportDies() {
   const { message } = App.useApp();
   const { importDies } = useWarehouseMutations();
+  const warehouses = useWarehouses();
+  const khos = (warehouses.data ?? []).filter((w) => w.isActive);
   const [file, setFile] = useState<File | null>(null);
+  const [kho, setKho] = useState<string | undefined>(undefined);
+  const khoId = kho ?? (khos.find((k) => k.dies > 0) ?? khos[0])?.id;
   const [report, setReport] = useState<Schemas['ImportReportDto'] | null>(null);
   const run = (dryRun: boolean) =>
     file &&
     importDies.mutate(
-      { file, dryRun },
+      { file, dryRun, warehouseId: khoId },
       {
         onSuccess: (r) => {
           setReport(r);
@@ -483,8 +487,13 @@ function ImportDies() {
   return (
     <Flex vertical gap={12} style={{ maxWidth: 900 }}>
       <Typography.Paragraph type="secondary" style={{ margin: 0 }}>
-        Chọn file Excel quản lý khuôn đang dùng (sheet DANH_SACH_KHUON; NHAP_LIEU được giữ làm lịch sử). Bấm Xem trước để kiểm tra, rồi Nhập. Chạy lại không tạo trùng: mã đã có sẽ bỏ qua.
+        Chọn kho mặc định và file Excel quản lý khuôn đang dùng (sheet DANH_SACH_KHUON; NHAP_LIEU được giữ làm lịch sử). Khuôn TRONG KHO vào kho mặc định; cột nơi ghi tên một kho (vd Xuân Đỉnh) thì vào kho đó. Kệ tạo ở đúng kho của khuôn;
+        đối tác mới không gán loại. Bấm Xem trước để kiểm tra, rồi Nhập. Chạy lại không tạo trùng: mã đã có sẽ bỏ qua.
       </Typography.Paragraph>
+      <Flex align="center" gap={8}>
+        <Typography.Text>Kho mặc định</Typography.Text>
+        <Select id="import-die-kho" value={khoId} onChange={(v) => (setKho(v), setReport(null))} style={{ width: 240 }} options={khos.map((k) => ({ value: k.id, label: k.name }))} />
+      </Flex>
       <Upload.Dragger
         accept=".xlsx"
         maxCount={1}
@@ -509,7 +518,7 @@ function ImportDies() {
           <Alert
             type={report.dryRun ? 'info' : 'success'}
             title={report.dryRun ? 'Xem trước — chưa ghi gì' : 'Đã nhập xong'}
-            description={`${report.dies} khuôn mới${report.skippedExisting ? `, ${report.skippedExisting} mã đã có bỏ qua` : ''}; ${report.history} dòng lịch sử giao dịch.`}
+            description={`Kho mặc định: ${report.warehouseName}. ${report.dies} khuôn mới${report.skippedExisting ? `, ${report.skippedExisting} mã đã có bỏ qua` : ''}; ${report.history} dòng lịch sử giao dịch.`}
           />
           <Descriptions
             size="small"
@@ -518,7 +527,7 @@ function ImportDies() {
             items={[
               { label: 'Theo trạng thái', children: Object.entries(report.byStatus).map(([s, n]) => `${STATUS[s as DieStatus]?.label ?? s}: ${n}`).join(' · ') || '—' },
               { label: 'Đối tác sẽ tạo', children: report.partnersCreated.join(', ') || '—' },
-              { label: 'Vị trí sẽ tạo', children: report.locationsCreated.join(', ') || '—' },
+              { label: 'Kệ sẽ tạo', children: report.locationsCreated.join(', ') || '—' },
             ]}
           />
           <Table<Schemas['ImportIssueDto']>
@@ -539,17 +548,22 @@ function ImportDies() {
   );
 }
 
-/** Nhập bảng tồn giấy (Google Sheets "THEO DÕI GIẤY TỒN" tải về dạng .xlsx): danh mục + phiếu điều chỉnh đưa tồn về đúng bảng, chờ xác nhận */
+/** Nhập tồn vật tư từ Excel vào một kho (bảng "THEO DÕI GIẤY TỒN" hoặc bảng vật tư chung): danh mục + phiếu điều chỉnh đưa tồn về đúng bảng, chờ xác nhận */
 function ImportPaper() {
   const { message } = App.useApp();
   const { importPaper } = useWarehouseMutations();
+  const warehouses = useWarehouses();
+  const khos = (warehouses.data ?? []).filter((w) => w.isActive);
+  const [kho, setKho] = useState<string | undefined>(undefined);
+  const khoId = kho ?? (khos.find((k) => k.code === 'GIAY') ?? khos[0])?.id;
+  const khoName = khos.find((k) => k.id === khoId)?.name ?? '';
   const [file, setFile] = useState<File | null>(null);
   const [report, setReport] = useState<Schemas['PaperImportReportDto'] | null>(null);
   const [dry, setDry] = useState(true);
   const run = (dryRun: boolean) =>
     file &&
     importPaper.mutate(
-      { file, dryRun },
+      { file, dryRun, warehouseId: khoId },
       {
         onSuccess: (r) => {
           setReport(r);
@@ -562,10 +576,14 @@ function ImportPaper() {
   return (
     <Flex vertical gap={12} style={{ maxWidth: 1100 }}>
       <Typography.Paragraph type="secondary" style={{ margin: 0 }}>
-        Chọn bảng tồn giấy đang theo dõi (trên Google Sheets: Tệp → Tải xuống → Microsoft Excel). Phần mềm đọc sheet có cột Mã VT, Loại giấy, Khổ giấy, TỒN; tạo vật tư (đơn vị tờ, mã vật tư đúng Mã VT trong bảng) và quy cách theo khổ ở Kho giấy, rồi lập
-        một phiếu điều chỉnh đưa tồn từng quy cách về đúng số trong bảng (lần đầu là phiếu "Tồn đầu"). Thủ kho Kho giấy vào Kho vật tư → Chờ xác nhận, xem lại và bấm Xác nhận thì tồn khớp bảng. Nhập lại bảng
-        mới: phiếu theo bảng trước còn chờ sẽ được thay; đã xác nhận rồi thì phiếu mới chỉ ghi phần chênh. Dòng chưa đếm chỉ tạo quy cách, không đổi tồn.
+        Chọn kho và bảng tồn (Google Sheets: Tệp → Tải xuống → Microsoft Excel). Cột đọc được: <b>Tên vật tư</b> (hoặc Loại giấy), <b>TỒN</b>; không bắt buộc: Mã VT, Nhóm, Khổ / Quy cách, ĐVT. Vật tư tìm theo tên trong danh
+        mục chung, chưa có thì tạo (ĐVT trống = tờ; nhóm trống thì suy từ Mã VT). Phần mềm lập một phiếu điều chỉnh ở kho đã chọn đưa tồn về đúng số trong bảng; thủ kho của kho đó vào Kho vật tư → Phiếu chờ xác nhận, xem lại
+        và bấm Xác nhận. Nhập lại: phiếu theo bảng trước của cùng kho còn chờ sẽ được thay; đã xác nhận rồi thì phiếu mới chỉ ghi phần chênh. Dòng chưa đếm chỉ tạo quy cách, không đổi tồn.
       </Typography.Paragraph>
+      <Flex align="center" gap={8}>
+        <Typography.Text>Nhập vào kho</Typography.Text>
+        <Select id="import-stock-kho" value={khoId} onChange={(v) => (setKho(v), setReport(null))} style={{ width: 240 }} options={khos.map((k) => ({ value: k.id, label: k.name }))} />
+      </Flex>
       <Upload.Dragger
         accept=".xlsx"
         maxCount={1}
@@ -581,7 +599,7 @@ function ImportPaper() {
       </Upload.Dragger>
       <Space>
         <Button disabled={!file} loading={importPaper.isPending && importPaper.variables?.dryRun} onClick={() => run(true)}>Xem trước</Button>
-        <Popconfirm title="Nhập danh mục giấy và lập phiếu điều chỉnh theo bảng?" okText="Nhập" cancelText="Không" disabled={!report || !dry} onConfirm={() => run(false)}>
+        <Popconfirm title={`Nhập vào ${khoName} và lập phiếu điều chỉnh theo bảng?`} okText="Nhập" cancelText="Không" disabled={!report || !dry} onConfirm={() => run(false)}>
           <Button type="primary" disabled={!report || !dry} loading={importPaper.isPending && importPaper.variables?.dryRun === false}>Nhập</Button>
         </Popconfirm>
       </Space>
@@ -589,8 +607,8 @@ function ImportPaper() {
         <Flex vertical gap={12}>
           <Alert
             type={dry ? 'info' : 'success'}
-            title={dry ? `Xem trước sheet "${report.sheet}" — chưa ghi gì` : report.slipCode ? `Đã nhập. Phiếu ${report.slipCode} chờ thủ kho Kho giấy xác nhận (Kho vật tư → Chờ xác nhận).` : 'Đã nhập danh mục; tồn đã đúng bảng'}
-            description={`${report.rows} loại giấy × khổ; ${report.materialsCreated} vật tư mới, ${report.specsCreated} quy cách mới; ${report.counted} quy cách có số tồn, tổng ${report.totalQty.toLocaleString('vi-VN')} tờ; ${report.adjusted} quy cách cần điều chỉnh, ${report.unchanged} đã đúng${report.replacedSlips.length ? `; ${dry ? 'sẽ thay' : 'đã thay'} phiếu chờ ${report.replacedSlips.join(', ')}` : ''}.`}
+            title={dry ? `Xem trước sheet "${report.sheet}" — chưa ghi gì` : report.slipCode ? `Đã nhập. Phiếu ${report.slipCode} chờ thủ kho ${report.warehouseName} xác nhận (Kho vật tư → Phiếu chờ xác nhận).` : 'Đã nhập danh mục; tồn đã đúng bảng'}
+            description={`Kho: ${report.warehouseName}. ${report.rows} dòng vật tư × quy cách; ${report.materialsCreated} vật tư mới, ${report.specsCreated} quy cách mới; ${report.counted} quy cách có số tồn, tổng ${report.totalQty.toLocaleString('vi-VN')}; ${report.adjusted} quy cách cần điều chỉnh, ${report.unchanged} đã đúng${report.replacedSlips.length ? `; ${dry ? 'sẽ thay' : 'đã thay'} phiếu chờ ${report.replacedSlips.join(', ')}` : ''}.`}
           />
           {report.issues.length > 0 && (
             <Table<Schemas['ImportIssueDto']>
@@ -601,7 +619,7 @@ function ImportPaper() {
               title={() => `${report.issues.length} điểm cần xem`}
               columns={[
                 { title: 'Dòng', dataIndex: 'row', width: 70, render: (v: number) => v || '' },
-                { title: 'Giấy', dataIndex: 'code', width: 260 },
+                { title: 'Vật tư', dataIndex: 'code', width: 260 },
                 { title: 'Nội dung', dataIndex: 'message' },
               ]}
             />
@@ -616,9 +634,9 @@ function ImportPaper() {
               { title: 'Dòng', dataIndex: 'row', width: 70 },
               { title: 'Mã VT', dataIndex: 'code', width: 80 },
               { title: 'Nhóm', dataIndex: 'group', width: 110 },
-              { title: 'Loại giấy', dataIndex: 'name', width: 280 },
-              { title: 'Khổ', dataIndex: 'size', width: 120 },
-              { title: 'Tồn (tờ)', dataIndex: 'qty', width: 100, align: 'right', render: (v: number | null) => (v === null ? <Typography.Text type="secondary">chưa đếm</Typography.Text> : v.toLocaleString('vi-VN')) },
+              { title: 'Vật tư', dataIndex: 'name', width: 280 },
+              { title: 'Quy cách', dataIndex: 'size', width: 120 },
+              { title: 'Tồn', dataIndex: 'qty', width: 100, align: 'right', render: (v: number | null) => (v === null ? <Typography.Text type="secondary">chưa đếm</Typography.Text> : v.toLocaleString('vi-VN')) },
               { title: 'Đang có', dataIndex: 'onHand', width: 90, align: 'right', render: (v: number | null) => (v ?? 0).toLocaleString('vi-VN') },
               {
                 title: 'Chênh',

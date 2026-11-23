@@ -1,0 +1,972 @@
+<title>Inauviet ERP ERD</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: schema reference sheet. Sticky module index on the left (top bar on phones), one block per module: diagram first, then table list + enums. */
+:root {
+  --bg: #f5f6f8; --surface: #ffffff; --fg: #1d2330; --muted: #5d6677; --line: #dde1e8; --code-bg: #eef0f4;
+  --sys: #5b6475; --crm: #2f6fd1; --kt: #2f8f5b; --chat: #8a4fcf; --kho: #c27a12; --die: #c4453a;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #12151b; --surface: #1a1e26; --fg: #e3e6ec; --muted: #9aa3b2; --line: #2c323d; --code-bg: #242a34;
+  --sys: #9aa3b2; --crm: #6ea2f0; --kt: #5cc08a; --chat: #b48af0; --kho: #e6a443; --die: #ef7b6f; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #12151b; --surface: #1a1e26; --fg: #e3e6ec; --muted: #9aa3b2; --line: #2c323d; --code-bg: #242a34;
+  --sys: #9aa3b2; --crm: #6ea2f0; --kt: #5cc08a; --chat: #b48af0; --kho: #e6a443; --die: #ef7b6f; color-scheme: dark }
+body { background: var(--bg); color: var(--fg); font: 15px/1.55 var(--sans); }
+.wrap { display: grid; grid-template-columns: 210px minmax(0, 1fr); gap: 32px; max-width: 1400px; margin: 0 auto;
+  padding-block: 28px 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+nav { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 20px); align-self: start; display: flex; flex-direction: column; gap: 2px; }
+nav .lbl { font: 500 11px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 8px 10px; }
+nav a { display: flex; align-items: center; gap: 10px; padding: 7px 10px; border-radius: 6px; color: var(--fg); text-decoration: none; font-weight: 500; }
+nav a:hover, nav a:focus-visible { background: var(--code-bg); outline: none; }
+.sw { width: 10px; height: 10px; border-radius: 3px; background: var(--c); flex: none; }
+.sys { --c: var(--sys) } .crm { --c: var(--crm) } .kt { --c: var(--kt) } .chat { --c: var(--chat) } .kho { --c: var(--kho) } .die { --c: var(--die) }
+main { min-width: 0; display: flex; flex-direction: column; gap: 40px; }
+h1 { font-size: 30px; line-height: 1.2; margin: 0; font-weight: 600; text-wrap: balance; }
+.sub { color: var(--muted); margin: 6px 0 0; max-width: 70ch; }
+.stats { display: flex; flex-wrap: wrap; gap: 8px 24px; margin-top: 16px; font: 13px var(--mono); color: var(--muted); }
+.stats b { color: var(--fg); font-weight: 500; font-variant-numeric: tabular-nums; }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-top: 14px; font-size: 13px; color: var(--muted); }
+.legend code { font: 12px var(--mono); color: var(--fg); background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+h2 { font-size: 21px; margin: 0; font-weight: 600; }
+h3 { font-size: 13px; font: 500 12px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 10px; }
+.mod-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding-bottom: 10px; border-bottom: 2px solid var(--c, var(--line)); }
+.mod-head .sw { width: 14px; height: 14px; }
+.mod-head .meta { margin-left: auto; font: 13px var(--mono); color: var(--muted); }
+.intro { margin: 12px 0 16px; max-width: 75ch; color: var(--muted); }
+.diagram { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; overflow-x: auto; padding: 16px; }
+.diagram pre.mermaid { margin: 0; display: flex; justify-content: center; min-width: min-content; }
+.diagram svg { max-width: none !important; height: auto; }
+.ext { font-size: 13px; color: var(--muted); margin: 8px 0 0; }
+.cols { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 24px; margin-top: 20px; align-items: start; }
+.tbl-wrap { overflow-x: auto; min-width: 0; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th { text-align: left; font: 500 11px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding: 6px 10px; border-bottom: 1px solid var(--line); }
+td { padding: 7px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+td:first-child { white-space: nowrap; }
+.num { text-align: right; font-variant-numeric: tabular-nums; width: 3.5em; }
+code { font: 13px var(--mono); }
+td code { color: var(--c, var(--fg)); font-weight: 500; }
+.enums { min-width: 0; }
+.enum { margin-bottom: 14px; }
+.enum h4 { margin: 0 0 4px; font-size: 13px; }
+.enum ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 6px; }
+.enum li { font-size: 12.5px; background: var(--surface); border: 1px solid var(--line); border-radius: 5px; padding: 2px 7px; }
+.enum li code { font-size: 12px; margin-right: 4px; }
+.enum li.old { opacity: .6; }
+.enum li em { font-style: normal; font: 500 10px var(--mono); text-transform: uppercase; color: var(--muted); margin-left: 4px; }
+.note { font-size: 14px; color: var(--muted); border-left: 3px solid var(--line); padding: 4px 0 4px 12px; max-width: 80ch; }
+@media (max-width: 900px) {
+  .wrap { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+  nav { position: static; flex-direction: row; flex-wrap: wrap; gap: 4px; }
+  nav .lbl { width: 100%; margin-bottom: 2px; }
+  nav a { padding: 5px 9px; background: var(--surface); border: 1px solid var(--line); font-size: 14px; }
+  .cols { grid-template-columns: minmax(0, 1fr); }
+  .mod-head .meta { margin-left: 0; width: 100%; }
+}
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+</style>
+
+<div class="wrap">
+  <nav aria-label="Phân hệ">
+    <div class="lbl">Phân hệ</div>
+    <a href="#tong-quan" class="sys" style="--c: var(--fg)"><span class="sw"></span>Tổng quan</a>
+    <a href="#he-thong" class="sys"><span class="sw"></span>Hệ thống</a><a href="#crm" class="crm"><span class="sw"></span>CRM bán hàng</a><a href="#ke-toan" class="kt"><span class="sw"></span>Kế toán</a><a href="#hoi-thoai" class="chat"><span class="sw"></span>Hội thoại</a><a href="#kho-vat-tu" class="kho"><span class="sw"></span>Kho vật tư</a><a href="#kho-khuon" class="die"><span class="sw"></span>Kho khuôn</a>
+  </nav>
+  <main>
+    <section id="tong-quan">
+      <h1>Inauviet ERP: sơ đồ dữ liệu</h1>
+      <p class="sub">Vẽ từ <code>api/prisma/schema.prisma</code> của bản code hiện tại (migration mới nhất <code>20261122090000_die_direct_moves</code>, v0.17 danh mục kho độc lập, ngày 23/11/2026). PostgreSQL, Prisma 7. Mỗi phân hệ một sơ đồ; bảng của phân hệ khác chỉ hiện tên.</p>
+      <div class="stats"><span><b>57</b> bảng</span><span><b>33</b> enum</span><span><b>104</b> khoá ngoại</span><span><b>12</b> migration</span></div>
+      <div class="legend">
+        <span><code>PK</code> khoá chính</span><span><code>FK</code> khoá ngoại</span><span><code>UK</code> duy nhất</span>
+        <span><code>||--o{</code> một – nhiều</span><span><code>|o--o{</code> khoá ngoại có thể trống</span><span><code>||--o|</code> một – một</span>
+      </div>
+      <div class="diagram" style="margin-top:20px"><pre class="mermaid">
+flowchart LR
+  he_thong[&quot;&lt;b&gt;Hệ thống&lt;/b&gt;&lt;br/&gt;5 bảng&quot;]
+  crm[&quot;&lt;b&gt;CRM bán hàng&lt;/b&gt;&lt;br/&gt;10 bảng&quot;]
+  ke_toan[&quot;&lt;b&gt;Kế toán&lt;/b&gt;&lt;br/&gt;15 bảng&quot;]
+  hoi_thoai[&quot;&lt;b&gt;Hội thoại&lt;/b&gt;&lt;br/&gt;5 bảng&quot;]
+  kho_vat_tu[&quot;&lt;b&gt;Kho vật tư&lt;/b&gt;&lt;br/&gt;14 bảng&quot;]
+  kho_khuon[&quot;&lt;b&gt;Kho khuôn&lt;/b&gt;&lt;br/&gt;8 bảng&quot;]
+  crm --&gt;|6 khoá| he_thong
+  hoi_thoai --&gt;|1 khoá| crm
+  hoi_thoai --&gt;|3 khoá| he_thong
+  ke_toan --&gt;|1 khoá| he_thong
+  kho_khuon --&gt;|5 khoá| he_thong
+  kho_khuon --&gt;|12 khoá| kho_vat_tu
+  kho_vat_tu --&gt;|6 khoá| he_thong
+      </pre></div>
+      <p class="note" style="margin-top:14px">Mũi tên đi từ phân hệ có khoá ngoại tới phân hệ được tham chiếu; số trên mũi tên là số khoá ngoại. Gần như mọi bảng chứng từ trỏ về <code>User</code> (người lập, người xác nhận). Phân hệ Kho tách riêng khỏi CRM và Kế toán: không có khoá ngoại sang hai phân hệ đó.</p>
+    </section>
+    
+<section id="he-thong" class="mod sys">
+  <header class="mod-head"><span class="sw"></span><h2>Hệ thống</h2><span class="meta">5 bảng · 0 enum</span></header>
+  <p class="intro">Tài khoản, nhóm quyền, phiên đăng nhập, đánh số chứng từ và nhật ký thao tác. Bảng User được hầu hết các phân hệ khác tham chiếu (người lập, người xác nhận).</p>
+  <div class="diagram"><pre class="mermaid">
+erDiagram
+  User {
+    string id PK
+    string username UK &quot;lowercase letters, digits, dot, dash, undersc…&quot;
+    string passwordHash &quot;scrypt; null = cannot sign in until a passwor…&quot;
+    bool mustChangePassword
+    datetime passwordChangedAt
+    string fullName
+    string email UK
+    string phone
+    string roleId FK
+    bool isActive
+    datetime lastSeenAt
+    datetime createdAt
+    datetime updatedAt
+  }
+  Role {
+    string id PK
+    string name UK
+    string description
+    string_list permissions
+    bool isSystem &quot;the built-in admin group: always has every pe…&quot;
+    datetime createdAt
+    datetime updatedAt
+  }
+  Session {
+    string id PK
+    string userId FK
+    string tokenHash UK
+    string userAgent
+    string ip
+    datetime createdAt
+    datetime lastUsedAt
+    datetime expiresAt
+    datetime revokedAt
+  }
+  DocumentSequence {
+    string prefix &quot;KH, BG, DH, LSX, GH&quot;
+    string period &quot;&#x27;2610&#x27;; &#x27;&#x27; for KH&quot;
+    int lastNo
+  }
+  ActivityLog {
+    string id PK
+    string orderId &quot;every order-related entry carries its order,…&quot;
+    string entityType &quot;ORDER, QUOTE, DELIVERY, PAYMENT, USER, CUSTOM…&quot;
+    string entityId
+    string action &quot;CREATED, STATUS_CHANGED, DELIVERED, PAYMENT_R…&quot;
+    string fromValue
+    string toValue
+    json data
+    string userId FK
+    datetime createdAt
+  }
+  Role ||--o{ User : &quot;role&quot;
+  User ||--o{ Session : &quot;user&quot;
+  User |o--o{ ActivityLog : &quot;user&quot;
+  </pre></div>
+  
+  <div class="cols">
+    <div class="tbl-wrap"><table><thead><tr><th>Bảng</th><th class="num">Cột</th><th>Dùng để</th></tr></thead><tbody><tr><td><code>User</code></td><td class="num">13</td><td>Tài khoản nhân viên, đăng nhập bằng tên + mật khẩu; quyền lấy từ nhóm quyền.</td></tr><tr><td><code>Role</code></td><td class="num">7</td><td>Nhóm quyền; permissions là danh sách khoá quyền (orders.create, warehouse.dies…).</td></tr><tr><td><code>Session</code></td><td class="num">9</td><td>Phiên đăng nhập của một trình duyệt; chỉ lưu SHA-256 của token cookie.</td></tr><tr><td><code>DocumentSequence</code></td><td class="num">3</td><td>Bộ đếm số chứng từ theo tiền tố và tháng (BG-, DH-, NK-GIAY-2611-…).</td></tr><tr><td><code>ActivityLog</code></td><td class="num">10</td><td>Nhật ký thao tác: ai làm gì trên bản ghi nào, lúc nào.</td></tr></tbody></table></div>
+    
+  </div>
+</section>
+<section id="crm" class="mod crm">
+  <header class="mod-head"><span class="sw"></span><h2>CRM bán hàng</h2><span class="meta">10 bảng · 8 enum</span></header>
+  <p class="intro">Quy trình một đơn: báo giá → đơn hàng → thiết kế (maket) → sản xuất → giao hàng → thanh toán.</p>
+  <div class="diagram"><pre class="mermaid">
+erDiagram
+  Customer {
+    string id PK
+    string code UK &quot;KH-0001&quot;
+    string name
+    string phone UK &quot;normalized 0xxxxxxxxx&quot;
+    string companyName
+    string taxCode
+    string address &quot;default delivery address&quot;
+    string note
+    string searchText &quot;name + phone + company, diacritics removed&quot;
+    datetime createdAt
+    datetime updatedAt
+    datetime archivedAt
+  }
+  Product {
+    string id PK
+    string name UK
+    string category &quot;Decal, Bạt, Biển &amp; hộp đèn, Standee, Ấn phẩm…&quot;
+    PricingMode pricingMode
+    string unit &quot;AREA: always m²; UNIT: cái, bộ, hộp…&quot;
+    bigint unitPriceVnd &quot;list price per m² (AREA) or per unit (UNIT)&quot;
+    bool isActive &quot;inactive products are hidden when quoting&quot;
+    string note
+    int sortOrder
+    datetime createdAt
+    datetime updatedAt
+  }
+  Quote {
+    string id PK
+    string code UK &quot;BG-2610-0012&quot;
+    string customerId FK
+    string title &quot;&#x27;Biển hiệu mặt tiền + decal kính&#x27;&quot;
+    QuoteStatus status
+    datetime quoteDate
+    int validDays
+    string note &quot;printed on the quote&quot;
+    bigint totalVnd
+    datetime sentAt
+    datetime lostAt
+    string lostReason
+    datetime wonAt
+    string createdById FK
+    datetime createdAt
+    datetime updatedAt
+  }
+  QuoteLine {
+    string id PK
+    string quoteId FK
+    string productId FK &quot;null for a free-text line&quot;
+    string description
+    string spec
+    string unit &quot;ĐVT printed: &#x27;tấm&#x27; for AREA lines, product un…&quot;
+    decimal widthM
+    decimal heightM
+    bigint areaPriceVnd &quot;price per m² (AREA lines)&quot;
+    int quantity
+    bigint unitPriceVnd
+    bigint lineTotalVnd
+    int sortOrder
+  }
+  Order {
+    string id PK
+    string code UK &quot;DH-2610-0042&quot;
+    string quoteId FK,UK &quot;the quote this order was closed from&quot;
+    string customerId FK
+    OrderStatus status
+    datetime orderDate
+    datetime dueDate
+    bigint totalVnd &quot;sum of priced lines; null if no line has a pr…&quot;
+    bigint paidVnd &quot;sum of non-voided payments&quot;
+    string note
+    string cancelReason
+    datetime productionStartedAt
+    datetime confirmedAt &quot;Step 2: confirmed with the customer; needsDes…&quot;
+    bool needsDesign
+    string designerId FK &quot;Steps 3–4: design&quot;
+    datetime designApprovedAt
+    int approvedVersion
+    string approvalChannel &quot;Zalo, Email, Trực tiếp…&quot;
+    string approvedByName &quot;who approved on the customer side&quot;
+    datetime designFinalizedAt &quot;print files finished from the approved version&quot;
+    datetime designLockedAt
+    string productionCode UK &quot;LSX-2610-0014&quot;
+    ProductionStage productionStage
+    datetime productionDueDate
+    Priority productionPriority
+    string productionNote
+    datetime productionDoneAt
+    datetime acceptedAt &quot;Step 6: acceptance report signed by the custo…&quot;
+    string acceptedByName
+    string acceptanceNote
+    string createdById FK
+    datetime createdAt
+    datetime updatedAt
+    datetime completedAt
+    datetime cancelledAt
+  }
+  OrderLine {
+    string id PK
+    string orderId FK
+    string productId FK &quot;catalog item, when the line came from the cat…&quot;
+    string quoteLineId &quot;the quote line it was created from (to show w…&quot;
+    string description &quot;&#x27;Banner hiflex 2×1 m&#x27;&quot;
+    string spec &quot;material, finishing&quot;
+    string unit &quot;ĐVT: tấm, cái, bộ…&quot;
+    decimal widthM &quot;AREA lines&quot;
+    decimal heightM
+    bigint areaPriceVnd &quot;price per m² (AREA lines); unitPriceVnd is th…&quot;
+    int quantity
+    int plannedQty &quot;cached: sum of planned qty on SCHEDULED deliv…&quot;
+    int deliveredQty &quot;cached: sum of delivered qty on DELIVERED del…&quot;
+    bigint unitPriceVnd &quot;optional&quot;
+    bigint lineTotalVnd &quot;quantity × unit price, null if no price&quot;
+    int sortOrder
+  }
+  DesignVersion {
+    string id PK
+    string orderId FK
+    int version
+    datetime sentAt
+    string note &quot;what was sent, through which channel&quot;
+    DesignFeedback feedback
+    datetime feedbackAt
+    string feedbackNote
+    string createdById FK
+  }
+  Delivery {
+    string id PK
+    string code UK &quot;GH-2610-0011&quot;
+    string orderId FK
+    DeliveryStatus status
+    datetime plannedDate
+    datetime deliveredAt
+    string address &quot;defaults to customer address&quot;
+    string receiverName
+    string note
+    string cancelReason
+    string createdById FK
+    datetime createdAt
+    datetime updatedAt
+  }
+  DeliveryLine {
+    string id PK
+    string deliveryId FK
+    string orderLineId FK
+    int plannedQty
+    int deliveredQty &quot;set when the delivery is marked DELIVERED&quot;
+  }
+  Payment {
+    string id PK
+    string orderId FK
+    string deliveryId FK &quot;set when collected at a delivery&quot;
+    bigint amountVnd &quot;&gt; 0&quot;
+    PaymentMethod method
+    datetime paidOn
+    bool isDeposit
+    string note
+    string recordedById FK
+    datetime createdAt
+    datetime voidedAt
+    string voidReason
+  }
+  Customer ||--o{ Quote : &quot;customer&quot;
+  User ||--o{ Quote : &quot;createdBy&quot;
+  Quote ||--o{ QuoteLine : &quot;quote&quot;
+  Product |o--o{ QuoteLine : &quot;product&quot;
+  Customer ||--o{ Order : &quot;customer&quot;
+  Quote |o--o| Order : &quot;quote&quot;
+  User ||--o{ Order : &quot;createdBy&quot;
+  User |o--o{ Order : &quot;designer&quot;
+  Order ||--o{ OrderLine : &quot;order&quot;
+  Product |o--o{ OrderLine : &quot;product&quot;
+  Order ||--o{ DesignVersion : &quot;order&quot;
+  User ||--o{ DesignVersion : &quot;createdBy&quot;
+  Order ||--o{ Delivery : &quot;order&quot;
+  User ||--o{ Delivery : &quot;createdBy&quot;
+  Delivery ||--o{ DeliveryLine : &quot;delivery&quot;
+  OrderLine ||--o{ DeliveryLine : &quot;orderLine&quot;
+  Order ||--o{ Payment : &quot;order&quot;
+  Delivery |o--o{ Payment : &quot;delivery&quot;
+  User ||--o{ Payment : &quot;recordedBy&quot;
+  </pre></div>
+  <p class="ext">Bảng ở phân hệ khác, chỉ hiện tên: <code>User</code>.</p>
+  <div class="cols">
+    <div class="tbl-wrap"><table><thead><tr><th>Bảng</th><th class="num">Cột</th><th>Dùng để</th></tr></thead><tbody><tr><td><code>Customer</code></td><td class="num">12</td><td>Khách hàng.</td></tr><tr><td><code>Product</code></td><td class="num">11</td><td>Danh mục sản phẩm để báo giá; tính theo m² hoặc theo cái.</td></tr><tr><td><code>Quote</code></td><td class="num">16</td><td>Bước 1: báo giá. Chốt báo giá thì sinh đơn hàng.</td></tr><tr><td><code>QuoteLine</code></td><td class="num">13</td><td>Dòng báo giá; dòng tính theo diện tích lưu kích thước và đơn giá m².</td></tr><tr><td><code>Order</code></td><td class="num">35</td><td>Đơn hàng: trạng thái, công đoạn sản xuất, ưu tiên, hạn giao.</td></tr><tr><td><code>OrderLine</code></td><td class="num">16</td><td>Dòng đơn hàng.</td></tr><tr><td><code>DesignVersion</code></td><td class="num">9</td><td>Một lần gửi maket (v1, v2…) và phản hồi của khách.</td></tr><tr><td><code>Delivery</code></td><td class="num">13</td><td>Lần giao hàng (giao nhiều đợt được).</td></tr><tr><td><code>DeliveryLine</code></td><td class="num">5</td><td>Số lượng từng dòng đơn trong một lần giao.</td></tr><tr><td><code>Payment</code></td><td class="num">12</td><td>Khoản khách thanh toán; huỷ thì có lý do, kế toán ghi bút toán đảo.</td></tr></tbody></table></div>
+    <div class="enums"><h3>Enum</h3><div class="enum"><h4><code>DeliveryStatus</code></h4><ul><li><code>SCHEDULED</code> Đã hẹn</li><li><code>DELIVERED</code> Đã giao</li><li><code>CANCELLED</code> Huỷ</li></ul></div><div class="enum"><h4><code>DesignFeedback</code></h4><ul><li><code>PENDING</code> Chờ khách</li><li><code>CHANGES_REQUESTED</code> Khách yêu cầu sửa</li><li><code>APPROVED</code> Khách duyệt</li></ul></div><div class="enum"><h4><code>OrderStatus</code></h4><ul><li><code>CONFIRMED</code> Đã xác nhận</li><li><code>DESIGNING</code> Đang thiết kế</li><li><code>DESIGN_FINALIZING</code> Chốt maket</li><li><code>IN_PRODUCTION</code> Đang sản xuất</li><li><code>DELIVERING</code> Đang giao</li><li><code>COMPLETED</code> Hoàn thành</li><li><code>CANCELLED</code> Huỷ</li></ul></div><div class="enum"><h4><code>PaymentMethod</code></h4><ul><li><code>CASH</code> Tiền mặt</li><li><code>BANK_TRANSFER</code> Chuyển khoản</li><li><code>OTHER</code> Khác</li></ul></div><div class="enum"><h4><code>PricingMode</code></h4><ul><li><code>AREA</code> Theo m²</li><li><code>UNIT</code> Theo cái / bộ</li></ul></div><div class="enum"><h4><code>Priority</code></h4><ul><li><code>NORMAL</code> Thường</li><li><code>URGENT</code> Gấp</li></ul></div><div class="enum"><h4><code>ProductionStage</code></h4><ul><li><code>RECEIVED</code> Nhận lệnh</li><li><code>PRINTING</code> In</li><li><code>FINISHING</code> Gia công</li><li><code>QC</code> Kiểm tra</li><li><code>DONE</code> Xong</li></ul></div><div class="enum"><h4><code>QuoteStatus</code></h4><ul><li><code>DRAFT</code> Nháp</li><li><code>SENT</code> Đã gửi</li><li><code>WON</code> Chốt thành đơn</li><li><code>LOST</code> Không chốt</li></ul></div></div>
+  </div>
+</section>
+<section id="ke-toan" class="mod kt">
+  <header class="mod-head"><span class="sw"></span><h2>Kế toán</h2><span class="meta">15 bảng · 5 enum</span></header>
+  <p class="intro">Sổ nội bộ theo Thông tư 133: hệ thống tài khoản, kỳ kế toán, bút toán, kho NVL của kế toán, phiếu chi, tài sản. Chứng từ CRM tự sinh bút toán.</p>
+  <div class="diagram"><pre class="mermaid">
+erDiagram
+  LedgerAccount {
+    string code PK &quot;&#x27;111&#x27;, &#x27;33311&#x27;&quot;
+    string name
+    bool isCredit &quot;true for accounts whose normal balance is on…&quot;
+    bool isActive
+    int sortOrder
+  }
+  AccountingPeriod {
+    string id PK
+    string month UK &quot;&#x27;2026-10&#x27;&quot;
+    PeriodStatus status
+    datetime pricedAt &quot;Month-end steps, in order; reset whenever a p…&quot;
+    datetime depreciatedAt
+    datetime allocatedAt
+    datetime vatOffsetAt
+    datetime transferredAt
+    datetime closedAt
+    string closedById FK
+    bigint revenueVnd &quot;Results saved when closing&quot;
+    bigint cogsVnd
+    bigint sellingVnd
+    bigint adminVnd
+    bigint otherNetVnd
+    datetime createdAt
+  }
+  PeriodOpening {
+    string periodId FK
+    string accountCode FK
+    bigint balanceVnd
+  }
+  JournalEntry {
+    string id PK
+    string code UK &quot;PT-2610-0001, DT-2610-0005, PKT-2610-0001…&quot;
+    string periodId FK
+    datetime date
+    string description
+    EntryKind kind
+    EntrySource source
+    string sourceType &quot;What it was posted from, e.g. PAYMENT + payme…&quot;
+    string sourceId
+    string orderId
+    string customerId
+    string supplierId FK
+    string note &quot;Why the entry sits in this period when its do…&quot;
+    json originalLines &quot;Auto entry changed by hand: the lines as post…&quot;
+    string editReason
+    string editedById
+    datetime editedAt
+    string createdById
+    datetime createdAt
+  }
+  JournalLine {
+    string id PK
+    string entryId FK
+    string accountCode FK
+    bigint debitVnd
+    bigint creditVnd
+    int sortOrder
+  }
+  Supplier {
+    string id PK
+    string code UK &quot;NCC-0001&quot;
+    string name UK
+    string phone
+    string taxCode
+    string address
+    bool isActive
+    datetime createdAt
+  }
+  Material {
+    string id PK
+    string code UK &quot;VT-DPP&quot;
+    string name
+    string unit
+    bool isActive
+    datetime createdAt
+  }
+  MaterialOpening {
+    string periodId FK
+    string materialId FK
+    decimal qty
+    bigint priceVnd
+  }
+  StockReceipt {
+    string id PK
+    string code UK &quot;PN-2610-0001&quot;
+    string periodId FK
+    datetime date
+    string supplierId FK
+    PayMethod payMethod
+    int vatRate
+    string note
+    string createdById
+    datetime createdAt
+  }
+  StockReceiptLine {
+    string id PK
+    string receiptId FK
+    string materialId FK
+    decimal qty
+    bigint priceVnd
+    int sortOrder
+  }
+  StockIssue {
+    string id PK
+    string code UK &quot;PX-2610-0001&quot;
+    string periodId FK
+    datetime date
+    string orderId
+    string note
+    string createdById
+    datetime createdAt
+  }
+  StockIssueLine {
+    string id PK
+    string issueId FK
+    string materialId FK
+    decimal qty
+    bigint priceVnd &quot;Unit cost used: provisional until the month i…&quot;
+    int sortOrder
+  }
+  ExpenseCategory {
+    string id PK
+    string name UK
+    json split &quot;[{ &#x27;account&#x27;: &#x27;154&#x27;, &#x27;percent&#x27;: 60 }, …], per…&quot;
+    bool isActive
+    int sortOrder
+  }
+  CashPayment {
+    string id PK
+    string code UK &quot;PC-2610-0001&quot;
+    string periodId FK
+    datetime date
+    string description
+    string categoryId FK &quot;expense&quot;
+    string supplierId FK &quot;supplier payment&quot;
+    bigint amountVnd &quot;before VAT&quot;
+    int vatRate
+    bigint vatVnd
+    PayMethod method
+    string createdById
+    datetime createdAt
+  }
+  FixedAsset {
+    string id PK
+    string code UK &quot;TS-01, CC-01&quot;
+    AssetKind kind
+    string name
+    bigint costVnd
+    string startMonth &quot;First month charged, &#x27;2026-04&#x27;&quot;
+    int months
+    string expenseAccount &quot;Where the monthly charge goes: 154, 6421 or 6…&quot;
+    string supplierId FK
+    string createdById
+    datetime createdAt
+  }
+  User |o--o{ AccountingPeriod : &quot;closedBy&quot;
+  AccountingPeriod ||--o{ PeriodOpening : &quot;period&quot;
+  LedgerAccount ||--o{ PeriodOpening : &quot;account&quot;
+  AccountingPeriod ||--o{ JournalEntry : &quot;period&quot;
+  Supplier |o--o{ JournalEntry : &quot;supplier&quot;
+  JournalEntry ||--o{ JournalLine : &quot;entry&quot;
+  LedgerAccount ||--o{ JournalLine : &quot;account&quot;
+  AccountingPeriod ||--o{ MaterialOpening : &quot;period&quot;
+  Material ||--o{ MaterialOpening : &quot;material&quot;
+  AccountingPeriod ||--o{ StockReceipt : &quot;period&quot;
+  Supplier ||--o{ StockReceipt : &quot;supplier&quot;
+  StockReceipt ||--o{ StockReceiptLine : &quot;receipt&quot;
+  Material ||--o{ StockReceiptLine : &quot;material&quot;
+  AccountingPeriod ||--o{ StockIssue : &quot;period&quot;
+  StockIssue ||--o{ StockIssueLine : &quot;issue&quot;
+  Material ||--o{ StockIssueLine : &quot;material&quot;
+  AccountingPeriod ||--o{ CashPayment : &quot;period&quot;
+  ExpenseCategory |o--o{ CashPayment : &quot;category&quot;
+  Supplier |o--o{ CashPayment : &quot;supplier&quot;
+  Supplier |o--o{ FixedAsset : &quot;supplier&quot;
+  </pre></div>
+  <p class="ext">Bảng ở phân hệ khác, chỉ hiện tên: <code>User</code>.</p>
+  <div class="cols">
+    <div class="tbl-wrap"><table><thead><tr><th>Bảng</th><th class="num">Cột</th><th>Dùng để</th></tr></thead><tbody><tr><td><code>LedgerAccount</code></td><td class="num">5</td><td>Hệ thống tài khoản kế toán (111, 131, 152, 511…).</td></tr><tr><td><code>AccountingPeriod</code></td><td class="num">16</td><td>Kỳ kế toán theo tháng; chỉ kỳ mở nhận bút toán.</td></tr><tr><td><code>PeriodOpening</code></td><td class="num">3</td><td>Số dư đầu kỳ của tài khoản (nợ dương, có âm).</td></tr><tr><td><code>JournalEntry</code></td><td class="num">19</td><td>Bút toán (tự sinh từ chứng từ hoặc nhập tay).</td></tr><tr><td><code>JournalLine</code></td><td class="num">6</td><td>Dòng nợ / có của bút toán, có thể gắn khách, nhà cung cấp, vật tư.</td></tr><tr><td><code>Supplier</code></td><td class="num">8</td><td>Nhà cung cấp của kế toán (công nợ 331).</td></tr><tr><td><code>Material</code></td><td class="num">6</td><td>Nguyên vật liệu của kế toán (tính giá bình quân tháng).</td></tr><tr><td><code>MaterialOpening</code></td><td class="num">4</td><td>Tồn đầu kỳ và đơn giá của NVL.</td></tr><tr><td><code>StockReceipt</code></td><td class="num">10</td><td>Phiếu nhập NVL của kế toán.</td></tr><tr><td><code>StockReceiptLine</code></td><td class="num">6</td><td>Dòng phiếu nhập NVL.</td></tr><tr><td><code>StockIssue</code></td><td class="num">8</td><td>Phiếu xuất NVL cho sản xuất, định giá bình quân cuối tháng.</td></tr><tr><td><code>StockIssueLine</code></td><td class="num">6</td><td>Dòng phiếu xuất NVL.</td></tr><tr><td><code>ExpenseCategory</code></td><td class="num">5</td><td>Khoản mục chi phí và tỷ lệ chia 154 / 6421 / 6422.</td></tr><tr><td><code>CashPayment</code></td><td class="num">13</td><td>Phiếu chi: chi phí hoặc trả nhà cung cấp.</td></tr><tr><td><code>FixedAsset</code></td><td class="num">11</td><td>TSCĐ (khấu hao vào 214) hoặc CCDC (phân bổ từ 242).</td></tr></tbody></table></div>
+    <div class="enums"><h3>Enum</h3><div class="enum"><h4><code>AssetKind</code></h4><ul><li><code>FIXED_ASSET</code> TSCĐ (211)</li><li><code>TOOL</code> CCDC (242)</li></ul></div><div class="enum"><h4><code>EntryKind</code></h4><ul><li><code>CUSTOMER_RECEIPT</code> PT thu khách</li><li><code>RECEIPT_VOID</code> Đảo phiếu thu</li><li><code>REVENUE</code> DT doanh thu</li><li><code>COGS</code> GV giá vốn</li><li><code>PURCHASE</code> PN nhập NVL</li><li><code>ISSUE</code> PX xuất NVL</li><li><code>EXPENSE</code> PC chi phí</li><li><code>SUPPLIER_PAYMENT</code> PC trả NCC</li><li><code>ASSET_PURCHASE</code> Mua tài sản</li><li><code>DEPRECIATION</code> KH khấu hao</li><li><code>ALLOCATION</code> PB phân bổ CCDC</li><li><code>VAT_OFFSET</code> KT bù trừ VAT</li><li><code>CLOSING</code> KC kết chuyển</li><li><code>MANUAL</code> PKT nhập tay</li></ul></div><div class="enum"><h4><code>EntrySource</code></h4><ul><li><code>AUTO</code> Tự sinh từ chứng từ</li><li><code>MANUAL</code> Nhập tay</li></ul></div><div class="enum"><h4><code>PayMethod</code></h4><ul><li><code>CASH</code> 111 tiền mặt</li><li><code>BANK</code> 112 ngân hàng</li><li><code>CREDIT</code> 331 mua chịu</li></ul></div><div class="enum"><h4><code>PeriodStatus</code></h4><ul><li><code>OPEN</code> Mở</li><li><code>CLOSED</code> Đã khoá</li></ul></div></div>
+  </div>
+</section>
+<section id="hoi-thoai" class="mod chat">
+  <header class="mod-head"><span class="sw"></span><h2>Hội thoại</h2><span class="meta">5 bảng · 7 enum</span></header>
+  <p class="intro">Fanpage Facebook (sau này Zalo OA) nối vào CRM: webhook, người liên hệ, cuộc hội thoại, tin nhắn.</p>
+  <div class="diagram"><pre class="mermaid">
+erDiagram
+  ChannelAccount {
+    string id PK
+    ChannelPlatform platform
+    string externalId &quot;Facebook page id&quot;
+    string name
+    string pictureUrl
+    string accessTokenEnc &quot;page access token, encrypted&quot;
+    ChannelStatus status
+    datetime lastEventAt
+    string lastError
+    datetime lastErrorAt
+    string connectedById FK
+    datetime connectedAt
+    datetime createdAt
+    datetime updatedAt
+  }
+  WebhookEvent {
+    string id PK
+    ChannelPlatform platform
+    json payload &quot;one &#x27;entry&#x27; of the webhook body&quot;
+    datetime receivedAt
+    datetime nextAttemptAt
+    datetime lockedUntil
+    int attempts
+    datetime processedAt
+    datetime failedAt &quot;gave up after 5 attempts&quot;
+    string lastError
+  }
+  ChannelContact {
+    string id PK
+    string channelId FK
+    string externalId &quot;PSID for Messenger, user id for comments&quot;
+    string name
+    string avatarUrl
+    string phone &quot;first phone number the person wrote, normaliz…&quot;
+    string customerId FK
+    datetime createdAt
+    datetime updatedAt
+  }
+  Conversation {
+    string id PK
+    string channelId FK
+    string contactId FK
+    ConversationKind kind
+    string threadKey &quot;&#x27;m&#x27; for Messenger, &#x27;c:&lt;postId&gt;&#x27; for comments:…&quot;
+    string postId
+    string postUrl
+    string assigneeId FK
+    ConversationStatus status
+    datetime lastMessageAt
+    string lastMessageText
+    bool lastMessageIn &quot;last message came from the customer: waiting…&quot;
+    datetime lastInboundAt
+    int unreadCount
+    datetime privateReplyAt &quot;comment threads: Facebook allows one private…&quot;
+    datetime createdAt
+    datetime updatedAt
+  }
+  Message {
+    string id PK
+    string conversationId FK
+    MessageDirection direction
+    string externalId UK &quot;Messenger mid or comment id; filters duplicat…&quot;
+    MessageType type
+    string text
+    json attachments &quot;[{ type, url, name?, mime?, size?, file? }]:…&quot;
+    string senderId FK &quot;staff member who sent it from the CRM&quot;
+    bool outsideCrm &quot;sent by the page from Facebook / Meta Busines…&quot;
+    bool privateReply &quot;private message in reply to a comment&quot;
+    MessageStatus status
+    string error
+    datetime sentAt
+    datetime createdAt
+  }
+  User |o--o{ ChannelAccount : &quot;connectedBy&quot;
+  ChannelAccount ||--o{ ChannelContact : &quot;channel&quot;
+  Customer |o--o{ ChannelContact : &quot;customer&quot;
+  ChannelAccount ||--o{ Conversation : &quot;channel&quot;
+  ChannelContact ||--o{ Conversation : &quot;contact&quot;
+  User |o--o{ Conversation : &quot;assignee&quot;
+  Conversation ||--o{ Message : &quot;conversation&quot;
+  User |o--o{ Message : &quot;sender&quot;
+  </pre></div>
+  <p class="ext">Bảng ở phân hệ khác, chỉ hiện tên: <code>Customer</code>, <code>User</code>.</p>
+  <div class="cols">
+    <div class="tbl-wrap"><table><thead><tr><th>Bảng</th><th class="num">Cột</th><th>Dùng để</th></tr></thead><tbody><tr><td><code>ChannelAccount</code></td><td class="num">14</td><td>Fanpage đã kết nối; token mã hoá AES-256-GCM.</td></tr><tr><td><code>WebhookEvent</code></td><td class="num">10</td><td>Mọi lần webhook gửi tới, lưu trước khi xử lý để chạy lại được.</td></tr><tr><td><code>ChannelContact</code></td><td class="num">9</td><td>Một người trên một fanpage, có thể gắn với khách hàng.</td></tr><tr><td><code>Conversation</code></td><td class="num">17</td><td>Cuộc hội thoại Messenger hoặc chuỗi bình luận của một người.</td></tr><tr><td><code>Message</code></td><td class="num">14</td><td>Tin nhắn / bình luận vào hoặc ra.</td></tr></tbody></table></div>
+    <div class="enums"><h3>Enum</h3><div class="enum"><h4><code>ChannelPlatform</code></h4><ul><li><code>FACEBOOK</code> Facebook</li><li><code>ZALO</code> Zalo</li></ul></div><div class="enum"><h4><code>ChannelStatus</code></h4><ul><li><code>ACTIVE</code> Đang nhận</li><li><code>ERROR</code> Lỗi token / sự kiện</li><li><code>DISCONNECTED</code> Đã tắt</li></ul></div><div class="enum"><h4><code>ConversationKind</code></h4><ul><li><code>MESSAGE</code> Messenger</li><li><code>COMMENT</code> Bình luận</li></ul></div><div class="enum"><h4><code>ConversationStatus</code></h4><ul><li><code>OPEN</code> Đang mở</li><li><code>DONE</code> Xong</li></ul></div><div class="enum"><h4><code>MessageDirection</code></h4><ul><li><code>IN</code> Vào</li><li><code>OUT</code> Ra</li></ul></div><div class="enum"><h4><code>MessageStatus</code></h4><ul><li><code>RECEIVED</code> Đã nhận</li><li><code>SENDING</code> Đang gửi</li><li><code>SENT</code> Đã gửi</li><li><code>FAILED</code> Lỗi</li></ul></div><div class="enum"><h4><code>MessageType</code></h4><ul><li><code>TEXT</code></li><li><code>IMAGE</code></li><li><code>VIDEO</code></li><li><code>AUDIO</code></li><li><code>FILE</code></li><li><code>STICKER</code></li><li><code>OTHER</code></li></ul></div></div>
+  </div>
+</section>
+<section id="kho-vat-tu" class="mod kho">
+  <header class="mod-head"><span class="sw"></span><h2>Kho vật tư</h2><span class="meta">14 bảng · 5 enum</span></header>
+  <p class="intro">Danh mục kho, vật tư, quy cách, đơn vị; tồn theo kho; phiếu nhập / xuất / nhập lại / chuyển / điều chỉnh; bản chụp tồn cuối ngày; kiểm kê và chốt tháng.</p>
+  <div class="diagram"><pre class="mermaid">
+erDiagram
+  WhWarehouse {
+    string id PK
+    string code UK &quot;GIAY, BAT, OFFSET… dùng trong số phiếu&quot;
+    string name
+    string address
+    WhWarehouseKind kind &quot;cũ, không còn dùng&quot;
+    string note
+    bool isActive
+    int sortOrder
+    datetime createdAt
+    datetime updatedAt
+  }
+  WhWarehouseMember {
+    string warehouseId FK
+    string userId FK
+  }
+  WhPartner {
+    string id PK
+    string name UK
+    WhPartnerKind kind
+    string phone
+    string note
+    bool isActive
+    datetime createdAt
+    datetime updatedAt
+  }
+  WhMaterial {
+    string id PK
+    string code &quot;mã vật tư = Mã VT trong bảng theo dõi (DC, GN…&quot;
+    string group &quot;nhóm: Giấy ngoại, Đề can, Op, Bạt, Mực…&quot;
+    string name
+    string unit &quot;đơn vị cơ sở: tồn luôn lưu theo đơn vị này (t…&quot;
+    bool hasSizes &quot;có quy cách (khổ) hay không&quot;
+    bool isActive
+    datetime createdAt
+    datetime updatedAt
+  }
+  WhSpec {
+    string id PK
+    string materialId FK
+    decimal widthCm
+    decimal lengthCm &quot;0 = chỉ có khổ rộng (cuộn)&quot;
+    bool isActive
+    datetime createdAt
+  }
+  WhUnit {
+    string id PK
+    string materialId FK
+    string specId FK
+    string name &quot;ram, cuộn, thùng, m²…&quot;
+    decimal factor
+    datetime createdAt
+  }
+  WhWarehouseMaterial {
+    string warehouseId FK
+    string materialId FK
+  }
+  WhStock {
+    string id PK
+    string warehouseId FK
+    string specId FK
+    decimal qty
+    decimal minQty &quot;mức tối thiểu tại kho này&quot;
+    bool isActive
+    datetime createdAt
+  }
+  WhDailyStock {
+    datetime date
+    string warehouseId FK
+    string specId FK
+    decimal qty
+    datetime takenAt
+  }
+  WhSlip {
+    string id PK
+    string code UK &quot;NK / XK / NL / DC / CK - mã kho - YYMM-NNNN&quot;
+    string warehouseId FK
+    WhSlipKind kind
+    datetime date
+    string transferId &quot;phiếu chuyển kho: hai phiếu (đi / đến) chung…&quot;
+    WhSlipStatus status
+    datetime confirmedAt
+    string confirmedById FK
+    string rejectReason
+    string partnerId FK &quot;nhà cung cấp (phiếu nhập)&quot;
+    string receiver &quot;người nhận (phiếu xuất)&quot;
+    string purpose
+    string reference &quot;số lệnh / đơn tham chiếu, gõ tay, không đối c…&quot;
+    string note
+    string countId FK,UK
+    string createdById FK
+    datetime createdAt
+    datetime voidedAt
+    string voidReason
+    string voidedById FK
+  }
+  WhSlipLine {
+    string id PK
+    string slipId FK
+    string specId FK
+    decimal qty &quot;theo đơn vị cơ sở; dương, phiếu điều chỉnh có…&quot;
+    string unitName &quot;đơn vị đã ghi trên phiếu (null = đơn vị cơ sở)&quot;
+    decimal unitQty &quot;số lượng theo đơn vị đó&quot;
+    decimal factor &quot;hệ số lúc lập phiếu&quot;
+    bigint unitPriceVnd &quot;đơn giá theo đơn vị đã ghi, không bắt buộc&quot;
+  }
+  WhCount {
+    string id PK
+    string code UK &quot;KKV - mã kho - YYMM-NNNN&quot;
+    string warehouseId FK
+    datetime date
+    WhCountStatus status
+    string note
+    string createdById FK
+    datetime createdAt
+    datetime approvedAt
+  }
+  WhCountLine {
+    string id PK
+    string countId FK
+    string specId FK
+    decimal systemQty &quot;tồn trên phần mềm lúc đếm&quot;
+    decimal countedQty
+  }
+  WhMonthLock {
+    string warehouseId FK
+    string month &quot;YYYY-MM&quot;
+    string lockedById FK
+    datetime lockedAt
+  }
+  WhWarehouse ||--o{ WhWarehouseMember : &quot;warehouse&quot;
+  User ||--o{ WhWarehouseMember : &quot;user&quot;
+  WhMaterial ||--o{ WhSpec : &quot;material&quot;
+  WhMaterial ||--o{ WhUnit : &quot;material&quot;
+  WhSpec |o--o{ WhUnit : &quot;spec&quot;
+  WhWarehouse ||--o{ WhWarehouseMaterial : &quot;warehouse&quot;
+  WhMaterial ||--o{ WhWarehouseMaterial : &quot;material&quot;
+  WhWarehouse ||--o{ WhStock : &quot;warehouse&quot;
+  WhSpec ||--o{ WhStock : &quot;spec&quot;
+  WhWarehouse ||--o{ WhDailyStock : &quot;warehouse&quot;
+  WhSpec ||--o{ WhDailyStock : &quot;spec&quot;
+  WhWarehouse ||--o{ WhSlip : &quot;warehouse&quot;
+  WhPartner |o--o{ WhSlip : &quot;partner&quot;
+  WhCount |o--o| WhSlip : &quot;count&quot;
+  User ||--o{ WhSlip : &quot;createdBy&quot;
+  User |o--o{ WhSlip : &quot;voidedBy&quot;
+  User |o--o{ WhSlip : &quot;confirmedBy&quot;
+  WhSlip ||--o{ WhSlipLine : &quot;slip&quot;
+  WhSpec ||--o{ WhSlipLine : &quot;spec&quot;
+  WhWarehouse ||--o{ WhCount : &quot;warehouse&quot;
+  User ||--o{ WhCount : &quot;createdBy&quot;
+  WhCount ||--o{ WhCountLine : &quot;count&quot;
+  WhSpec ||--o{ WhCountLine : &quot;spec&quot;
+  WhWarehouse ||--o{ WhMonthLock : &quot;warehouse&quot;
+  User ||--o{ WhMonthLock : &quot;lockedBy&quot;
+  </pre></div>
+  <p class="ext">Bảng ở phân hệ khác, chỉ hiện tên: <code>User</code>.</p>
+  <div class="cols">
+    <div class="tbl-wrap"><table><thead><tr><th>Bảng</th><th class="num">Cột</th><th>Dùng để</th></tr></thead><tbody><tr><td><code>WhWarehouse</code></td><td class="num">10</td><td>Kho; kho nào cũng giữ được cả vật tư lẫn khuôn (cột kind cũ không còn dùng).</td></tr><tr><td><code>WhWarehouseMember</code></td><td class="num">2</td><td>Thủ kho của kho; phiếu vật tư do thủ kho lập thì xác nhận luôn.</td></tr><tr><td><code>WhPartner</code></td><td class="num">8</td><td>Đối tác kho (xưởng bế, nơi làm khuôn, nơi lấy hàng); kind chỉ để ghi nhớ, không giới hạn chỗ chọn.</td></tr><tr><td><code>WhMaterial</code></td><td class="num">9</td><td>Vật tư, danh mục chung không gắn kho; code là Mã VT (dùng chung, không duy nhất), group là nhóm.</td></tr><tr><td><code>WhSpec</code></td><td class="num">6</td><td>Quy cách = vật tư + khổ (rộng × dài cm); là đơn vị tồn kho.</td></tr><tr><td><code>WhUnit</code></td><td class="num">6</td><td>Đơn vị tính khác (ram, cuộn); hệ số riêng theo khổ nếu có.</td></tr><tr><td><code>WhWarehouseMaterial</code></td><td class="num">2</td><td>Vật tư nào đã có ở kho nào; tự thêm khi kho lập phiếu đầu tiên cho vật tư đó.</td></tr><tr><td><code>WhStock</code></td><td class="num">7</td><td>Tồn hiện tại của một quy cách tại một kho, kèm mức tối thiểu.</td></tr><tr><td><code>WhDailyStock</code></td><td class="num">5</td><td>Bản chụp tồn cuối ngày, ghi một lần, không đổi về sau.</td></tr><tr><td><code>WhSlip</code></td><td class="num">21</td><td>Phiếu kho: nhập, xuất, nhập lại, điều chỉnh, chuyển đi / nhận chuyển (hai phiếu chung transferId).</td></tr><tr><td><code>WhSlipLine</code></td><td class="num">8</td><td>Dòng phiếu: quy cách, số lượng theo đơn vị đã chọn và quy về đơn vị cơ sở.</td></tr><tr><td><code>WhCount</code></td><td class="num">9</td><td>Đợt kiểm kê vật tư; duyệt thì sinh phiếu điều chỉnh.</td></tr><tr><td><code>WhCountLine</code></td><td class="num">5</td><td>Số sổ và số đếm của từng quy cách.</td></tr><tr><td><code>WhMonthLock</code></td><td class="num">4</td><td>Tháng đã chốt tồn của một kho: không lập / huỷ phiếu trong tháng đó.</td></tr></tbody></table></div>
+    <div class="enums"><h3>Enum</h3><div class="enum"><h4><code>WhCountStatus</code></h4><ul><li><code>DRAFT</code> Nháp</li><li><code>APPROVED</code> Đã duyệt</li><li><code>CANCELLED</code> Huỷ</li></ul></div><div class="enum"><h4><code>WhPartnerKind</code></h4><ul><li><code>DIE_MAKER</code> nơi làm khuôn</li><li><code>DIE_SHOP</code> xưởng bế ngoài</li><li><code>SUPPLIER</code> nhà cung cấp giấy, vật tư</li><li><code>OTHER</code></li></ul></div><div class="enum"><h4><code>WhSlipKind</code></h4><ul><li><code>RECEIPT</code> Nhập kho (NK)</li><li><code>ISSUE</code> Xuất kho (XK)</li><li><code>RETURN</code> Nhập lại (NL)</li><li><code>ADJUST</code> Điều chỉnh (DC)</li><li><code>TRANSFER_OUT</code> Chuyển đi (CK)</li><li><code>TRANSFER_IN</code> Nhận chuyển (CK)</li></ul></div><div class="enum"><h4><code>WhSlipStatus</code></h4><ul><li><code>PENDING</code> Chờ xác nhận</li><li><code>CONFIRMED</code> Đã xác nhận</li><li><code>REJECTED</code> Từ chối</li><li><code>CANCELLED</code> Đã huỷ</li></ul></div><div class="enum"><h4><code>WhWarehouseKind</code></h4><ul><li><code>STOCK</code> quản lý theo số lượng (giấy, vật tư bạt, hàng tồn…)</li><li><code>DIE</code> quản lý từng khuôn</li></ul></div></div>
+  </div>
+</section>
+<section id="kho-khuon" class="mod die">
+  <header class="mod-head"><span class="sw"></span><h2>Kho khuôn</h2><span class="meta">8 bảng · 8 enum</span></header>
+  <p class="intro">Từng khuôn bế: ký hiệu, kệ, nơi đang ở (kho hoặc đối tác), lịch sử thao tác, lần bế / chuyển kho, kiểm kê khuôn.</p>
+  <div class="diagram"><pre class="mermaid">
+erDiagram
+  WhDie {
+    string id PK
+    string code UK &quot;TUI-001&quot;
+    string symbolCode FK
+    int seq
+    WhDieKind kind
+    string productName
+    string customerName
+    decimal lengthCm &quot;dài&quot;
+    decimal widthCm &quot;rộng&quot;
+    decimal heightCm &quot;cao / hông&quot;
+    string sizeText &quot;kích thước dạng chữ khi không tách được 3 số&quot;
+    WhOrientation orientation
+    int pieces &quot;số mảnh&quot;
+    int ups &quot;số sản phẩm trên một khuôn&quot;
+    string makerId FK
+    WhDieOwner owner
+    WhDieStatus status
+    string warehouseId FK &quot;kho quản lý; khuôn ở kho này khi holderId null&quot;
+    string locationId FK &quot;kệ trong kho&quot;
+    string holderId FK &quot;xưởng ngoài đang giữ; null = ở kho&quot;
+    string pendingBatchId FK &quot;cũ, không còn dùng&quot;
+    datetime expectedBackOn &quot;cũ, không còn dùng&quot;
+    bigint costVnd
+    string photo &quot;đường dẫn trong WH_FILES_DIR&quot;
+    string note
+    bool needsReview
+    string reviewNote
+    string searchText
+    datetime createdAt
+    datetime updatedAt
+  }
+  WhDieSymbol {
+    string code PK &quot;TUI&quot;
+    string name
+    int lastNo
+    bool isActive
+  }
+  WhLocation {
+    string id PK
+    string warehouseId FK
+    string code
+    string note
+    bool isActive
+    datetime createdAt
+  }
+  WhDieMove {
+    string id PK
+    string dieId FK
+    WhDieAction action
+    datetime date
+    WhDieStatus fromStatus
+    WhDieStatus toStatus
+    string fromPlace &quot;nơi trước thao tác&quot;
+    string place &quot;nơi sau thao tác, dạng chữ để lịch sử không đ…&quot;
+    string partnerId FK
+    string locationId FK
+    string reference &quot;số lệnh / đơn tham chiếu&quot;
+    datetime expectedBackOn &quot;cũ, không còn dùng&quot;
+    string note
+    string batchId FK
+    string userId FK
+    datetime createdAt
+  }
+  WhDieBatch {
+    string id PK
+    string code UK &quot;GN-YYMM-NNNN&quot;
+    WhBatchKind kind &quot;cũ, không còn dùng&quot;
+    datetime date
+    string partnerId FK &quot;cũ, không còn dùng&quot;
+    string fromWarehouseId FK
+    string fromPartnerId FK
+    string toWarehouseId FK
+    string toPartnerId FK
+    string toLocationId FK &quot;kệ đề xuất khi nhận&quot;
+    string controlWarehouseId FK &quot;kho có thủ kho xác nhận xuất&quot;
+    WhDieBatchStatus status
+    WhConfirmState outState
+    WhConfirmState inState
+    string outById FK
+    datetime outAt
+    string inById FK
+    datetime inAt
+    bool isNew &quot;khuôn mới làm xong giao về&quot;
+    datetime expectedBackOn &quot;cũ, không còn dùng&quot;
+    string rejectReason
+    string reference
+    string note
+    string createdById FK
+    datetime createdAt
+  }
+  WhDieBatchItem {
+    string id PK
+    string batchId FK
+    string dieId FK
+  }
+  WhDieCount {
+    string id PK
+    string warehouseId FK
+    string locationId FK
+    string scope &quot;mô tả phạm vi: &#x27;T4-K02&#x27;, &#x27;Mê Linh&#x27;, &#x27;Toàn kho&#x27;&quot;
+    string createdById FK
+    datetime createdAt
+    datetime finishedAt
+  }
+  WhDieCountLine {
+    string id PK
+    string countId FK
+    string dieId FK
+    bool found
+    bool extra &quot;thấy ở đây nhưng phần mềm ghi ở nơi khác&quot;
+  }
+  WhDieSymbol ||--o{ WhDie : &quot;symbol&quot;
+  WhPartner |o--o{ WhDie : &quot;maker&quot;
+  WhPartner |o--o{ WhDie : &quot;holder&quot;
+  WhWarehouse ||--o{ WhDie : &quot;warehouse&quot;
+  WhDieBatch |o--o{ WhDie : &quot;pendingBatch&quot;
+  WhLocation |o--o{ WhDie : &quot;location&quot;
+  WhWarehouse ||--o{ WhLocation : &quot;warehouse&quot;
+  WhDie ||--o{ WhDieMove : &quot;die&quot;
+  WhPartner |o--o{ WhDieMove : &quot;partner&quot;
+  WhLocation |o--o{ WhDieMove : &quot;location&quot;
+  WhDieBatch |o--o{ WhDieMove : &quot;batch&quot;
+  User |o--o{ WhDieMove : &quot;user&quot;
+  WhPartner |o--o{ WhDieBatch : &quot;partner&quot;
+  WhWarehouse |o--o{ WhDieBatch : &quot;fromWarehouse&quot;
+  WhPartner |o--o{ WhDieBatch : &quot;fromPartner&quot;
+  WhWarehouse |o--o{ WhDieBatch : &quot;toWarehouse&quot;
+  WhPartner |o--o{ WhDieBatch : &quot;toPartner&quot;
+  WhLocation |o--o{ WhDieBatch : &quot;toLocation&quot;
+  WhWarehouse |o--o{ WhDieBatch : &quot;control&quot;
+  User |o--o{ WhDieBatch : &quot;outBy&quot;
+  User |o--o{ WhDieBatch : &quot;inBy&quot;
+  User ||--o{ WhDieBatch : &quot;createdBy&quot;
+  WhDieBatch ||--o{ WhDieBatchItem : &quot;batch&quot;
+  WhDie ||--o{ WhDieBatchItem : &quot;die&quot;
+  WhWarehouse |o--o{ WhDieCount : &quot;warehouse&quot;
+  WhLocation |o--o{ WhDieCount : &quot;location&quot;
+  User ||--o{ WhDieCount : &quot;createdBy&quot;
+  WhDieCount ||--o{ WhDieCountLine : &quot;count&quot;
+  WhDie ||--o{ WhDieCountLine : &quot;die&quot;
+  </pre></div>
+  <p class="ext">Bảng ở phân hệ khác, chỉ hiện tên: <code>User</code>, <code>WhPartner</code>, <code>WhWarehouse</code>.</p>
+  <div class="cols">
+    <div class="tbl-wrap"><table><thead><tr><th>Bảng</th><th class="num">Cột</th><th>Dùng để</th></tr></thead><tbody><tr><td><code>WhDie</code></td><td class="num">30</td><td>Một khuôn: mã cố định, kích thước, trạng thái; ở kho (holderId null) hoặc ở đối tác (holderId).</td></tr><tr><td><code>WhDieSymbol</code></td><td class="num">4</td><td>Ký hiệu nhóm khuôn (TUI, HOP, KEF) và số đã cấp tới đâu.</td></tr><tr><td><code>WhLocation</code></td><td class="num">6</td><td>Kệ / vị trí; bắt buộc thuộc một kho (kho nào cũng được).</td></tr><tr><td><code>WhDieMove</code></td><td class="num">16</td><td>Lịch sử thao tác của khuôn: tạo, kiểm tra, chuyển, thanh lý; từ đâu tới đâu, ai làm.</td></tr><tr><td><code>WhDieBatch</code></td><td class="num">25</td><td>Một lần bế khuôn / chuyển kho (số GN-…). Từ v0.16 tạo ở trạng thái DONE ngay.</td></tr><tr><td><code>WhDieBatchItem</code></td><td class="num">3</td><td>Khuôn trong một lần chuyển.</td></tr><tr><td><code>WhDieCount</code></td><td class="num">7</td><td>Kiểm kê khuôn theo một kệ hoặc một xưởng.</td></tr><tr><td><code>WhDieCountLine</code></td><td class="num">5</td><td>Khuôn có / không thấy khi kiểm kê.</td></tr></tbody></table></div>
+    <div class="enums"><h3>Enum</h3><div class="enum"><h4><code>WhBatchKind</code></h4><ul><li><code>OUT</code> Ra khỏi kho</li><li><code>IN</code> Về kho</li></ul></div><div class="enum"><h4><code>WhConfirmState</code></h4><ul><li><code>PENDING</code> Chờ</li><li><code>OK</code> Đã xác nhận</li><li><code>NONE</code> Không có bước này</li></ul></div><div class="enum"><h4><code>WhDieAction</code></h4><ul><li><code>CREATE</code> Tạo khuôn</li><li class="old"><code>ISSUE</code> Xuất khuôn <em>cũ</em></li><li class="old"><code>KEEP</code> Gửi giữ <em>cũ</em></li><li class="old"><code>RETURN</code> Trả về <em>cũ</em></li><li><code>PASS</code> Kiểm tra: đạt</li><li><code>DEFECT</code> Kiểm tra: không đạt / báo lỗi</li><li class="old"><code>SEND_REPAIR</code> Gửi sửa <em>cũ</em></li><li class="old"><code>BACK_REPAIR</code> Sửa xong <em>cũ</em></li><li><code>DISPOSE</code> Thanh lý</li><li><code>MOVE</code> Đổi kệ</li><li><code>EDIT</code> Sửa thông tin</li><li><code>IMPORT</code> Nạp từ Excel</li><li class="old"><code>REQUEST</code> Lập phiếu <em>cũ</em></li><li class="old"><code>SEND</code> Xác nhận xuất <em>cũ</em></li><li class="old"><code>RECEIVE</code> Xác nhận nhận <em>cũ</em></li><li class="old"><code>REJECT</code> Từ chối <em>cũ</em></li><li class="old"><code>REUSE</code> Bế lại tại xưởng <em>cũ</em></li><li><code>COUNT</code> Kiểm kê</li><li><code>TRANSFER</code> Bế khuôn / chuyển kho / gửi sửa</li></ul></div><div class="enum"><h4><code>WhDieBatchStatus</code></h4><ul><li class="old"><code>OPEN</code> Chờ xác nhận <em>cũ</em></li><li><code>DONE</code> Xong</li><li><code>REJECTED</code> Từ chối</li><li><code>CANCELLED</code> Huỷ</li></ul></div><div class="enum"><h4><code>WhDieKind</code></h4><ul><li><code>CUT</code> khuôn bế</li><li><code>FOIL</code> ép kim</li><li><code>EMBOSS</code> ép nổi</li></ul></div><div class="enum"><h4><code>WhDieOwner</code></h4><ul><li><code>AU_VIET</code></li><li><code>CUSTOMER</code></li><li><code>PARTNER</code></li></ul></div><div class="enum"><h4><code>WhDieStatus</code></h4><ul><li><code>READY</code> Đạt, sẵn sàng</li><li><code>IN_USE</code> Đang bế</li><li class="old"><code>CHECKING</code> Chờ kiểm <em>cũ</em></li><li><code>REPAIRING</code> Đang sửa</li><li><code>DEFECT</code> Không đạt</li><li><code>BROKEN</code> Hỏng</li><li><code>DISPOSED</code> Đã thanh lý</li><li class="old"><code>TRANSIT</code> Đang chuyển <em>cũ</em></li><li class="old"><code>INCOMING</code> Chờ nhận <em>cũ</em></li><li><code>MAKING</code> Đang làm khuôn</li></ul></div><div class="enum"><h4><code>WhOrientation</code></h4><ul><li><code>PORTRAIT</code> dọc</li><li><code>LANDSCAPE</code> ngang</li></ul></div></div>
+  </div>
+</section>
+    <p class="note">Cột ghi “cũ, không còn dùng” và giá trị enum đánh dấu <b>cũ</b> vẫn còn trong cơ sở dữ liệu để giữ lịch sử từ trước v0.16 (quy trình khuôn cũ có bước thủ kho xác nhận và hạn trả). Code hiện tại không ghi mới vào đó.</p>
+  </main>
+</div>

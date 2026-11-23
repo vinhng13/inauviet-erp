@@ -2240,7 +2240,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Nhập bảng tồn giấy Excel vào Kho giấy (danh mục + phiếu kiểm kê nháp). dryRun=true chỉ xem trước */
+        /** Nhập tồn vật tư từ Excel vào một kho (warehouseId; mặc định Kho giấy): danh mục + phiếu điều chỉnh chờ xác nhận. dryRun=true chỉ xem trước */
         post: operations["Warehouse_importPaper"];
         delete?: never;
         options?: never;
@@ -4338,7 +4338,7 @@ export interface components {
             name: string;
             address?: string | null;
             /**
-             * @description Chỉ đặt khi tạo kho
+             * @description Không còn dùng: mọi kho giữ được cả vật tư lẫn khuôn
              * @enum {string}
              */
             kind?: "STOCK" | "DIE";
@@ -4362,8 +4362,11 @@ export interface components {
         };
         PartnerInputDto: {
             name: string;
-            /** @enum {string} */
-            kind: "OTHER" | "DIE_MAKER" | "DIE_SHOP" | "SUPPLIER";
+            /**
+             * @description Chỉ để ghi nhớ, không giới hạn chỗ chọn; bỏ trống = Khác
+             * @enum {string}
+             */
+            kind?: "OTHER" | "DIE_MAKER" | "DIE_SHOP" | "SUPPLIER";
             phone?: string | null;
             note?: string | null;
             isActive?: boolean;
@@ -4463,8 +4466,8 @@ export interface components {
             /** @description Quy cách (khổ); vật tư không theo khổ để trống */
             specs: components["schemas"]["SpecInputDto"][];
             units: components["schemas"]["UnitInputDto"][];
-            /** @description Kho có vật tư này */
-            warehouseIds: string[];
+            /** @description Không còn dùng: vật tư là danh mục chung, kho nào nhập thì có tồn ở kho đó */
+            warehouseIds?: string[];
         };
         StockUpdateDto: {
             minQty?: number | null;
@@ -4738,6 +4741,9 @@ export interface components {
                 [key: string]: number;
             };
             dryRun: boolean;
+            /** @description Kho mặc định: khuôn "TRONG KHO" vào đây */
+            warehouseId: string;
+            warehouseName: string;
             dies: number;
             skippedExisting: number;
             history: number;
@@ -4761,6 +4767,9 @@ export interface components {
         };
         PaperImportReportDto: {
             sheet: string;
+            /** @description Kho nhận tồn */
+            warehouseId: string;
+            warehouseName: string;
             /** @description Số dòng (loại giấy × khổ) đọc được */
             rows: number;
             materialsCreated: number;
@@ -4813,10 +4822,10 @@ export interface components {
             /** @description Nơi đến gõ tên mới: tự thêm vào danh mục (mặc định xưởng bế) */
             toPartnerName?: string | null;
             /**
-             * @description Loại đối tác khi thêm mới theo tên: gửi sửa thì nơi làm khuôn
+             * @description Thao tác khi tới một đối tác: CUT = bế khuôn (đang bế), REPAIR = gửi sửa (đang sửa). Không phụ thuộc loại đối tác
              * @enum {string|null}
              */
-            toPartnerKind?: "DIE_SHOP" | "DIE_MAKER" | null;
+            purpose?: "CUT" | "REPAIR" | null;
             /** Format: uuid */
             toLocationId?: string | null;
             /** @description Kệ gõ mã mới: tự thêm vào kho nhận */
@@ -8465,6 +8474,7 @@ export interface operations {
     Warehouse_importDies: {
         parameters: {
             query?: {
+                warehouseId?: string;
                 dryRun?: boolean;
             };
             header?: never;
@@ -8493,6 +8503,7 @@ export interface operations {
     Warehouse_importPaper: {
         parameters: {
             query?: {
+                warehouseId?: string;
                 dryRun?: boolean;
             };
             header?: never;

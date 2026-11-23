@@ -100,20 +100,18 @@ export class WarehousesService {
     return this.prisma.user.findMany({ where: { isActive: true }, select: { id: true, fullName: true }, orderBy: { fullName: 'asc' } });
   }
 
-  /** Kho đang dùng, kiểu theo số lượng; kèm danh sách thủ kho */
+  /** Kho đang dùng (mọi kho giữ được vật tư lẫn khuôn); kèm danh sách thủ kho */
   async stockWarehouse(tx: Tx | PrismaService, id: string): Promise<WarehouseWithKeepers> {
     const w = await tx.whWarehouse.findUnique({ where: { id }, include: { members: true } });
     if (!w) throw DomainError.notFound('WhWarehouse', id);
-    if (w.kind !== 'STOCK') throw DomainError.badRequest('WH_WAREHOUSE_NOT_STOCK', 'This warehouse keeps dies, not stock');
     if (!w.isActive) throw DomainError.badRequest('WH_WAREHOUSE_INACTIVE', 'This warehouse is not in use');
     return w;
   }
 
-  /** Kho khuôn đang dùng, kèm thủ kho */
+  /** Kho đang dùng, kèm thủ kho (dùng cho khuôn) */
   async dieWarehouse(tx: Tx | PrismaService, id: string): Promise<WarehouseWithKeepers> {
     const w = await tx.whWarehouse.findUnique({ where: { id }, include: { members: true } });
     if (!w) throw DomainError.notFound('WhWarehouse', id);
-    if (w.kind !== 'DIE') throw DomainError.badRequest('WH_WAREHOUSE_NOT_DIE', 'This warehouse does not keep dies');
     if (!w.isActive) throw DomainError.badRequest('WH_WAREHOUSE_INACTIVE', 'This warehouse is not in use');
     return w;
   }
