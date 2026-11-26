@@ -282,6 +282,10 @@ describe('Warehouse', () => {
     await requester.post('/warehouse/batches', { date: today, fromPartnerId: mlId, toPartnerId: hoa, dieIds: [dieId], purpose: 'REPAIR' }).expect(201);
     expect(await dieOf(keeper, dieId)).toMatchObject({ status: 'REPAIRING', place: 'Em Hòa' });
     await requester.post(`/warehouse/dies/${dieId}/actions`, { action: 'PASS', date: today }).expect(201);
+    // bế tại chỗ: khuôn làm ở đâu bế luôn ở đó, chỉ đổi trạng thái; chuyển kho / không nêu thao tác thì vẫn phải khác nơi
+    expect((await requester.post('/warehouse/batches', { date: today, fromPartnerId: hoa, toPartnerId: hoa, dieIds: [dieId] }).expect(400)).body.code).toBe('WH_BATCH_SAME_PLACE');
+    await requester.post('/warehouse/batches', { date: today, fromPartnerId: hoa, toPartnerId: hoa, dieIds: [dieId], purpose: 'CUT', reference: 'LSX 4' }).expect(201);
+    expect(await dieOf(keeper, dieId)).toMatchObject({ status: 'IN_USE', place: 'Em Hòa' });
     await requester.post('/warehouse/batches', { date: today, fromPartnerId: hoa, toPartnerId: mlId, dieIds: [dieId] }).expect(201);
     expect(await dieOf(keeper, dieId)).toMatchObject({ status: 'IN_USE', place: 'Mê Linh' });
 

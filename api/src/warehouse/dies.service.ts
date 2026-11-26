@@ -378,7 +378,7 @@ export class DiesService {
         tx,
         from,
         { warehouseId: dto.toWarehouseId ?? null, partnerId: dto.toPartnerId ?? null },
-        { date: dto.date, dieIds: ids, toLocationId: dto.toLocationId ?? null, reference: dto.reference ?? null, note: dto.note ?? null, repair: dto.purpose === 'REPAIR' },
+        { date: dto.date, dieIds: ids, toLocationId: dto.toLocationId ?? null, reference: dto.reference ?? null, note: dto.note ?? null, repair: dto.purpose === 'REPAIR', purpose: dto.purpose ?? undefined },
         actor,
       );
     });
@@ -393,11 +393,14 @@ export class DiesService {
     tx: Tx,
     from: End,
     to: End,
-    o: { date: string; dieIds: string[]; toLocationId?: string | null; reference?: string | null; note?: string | null; isNew?: boolean; repair?: boolean },
+    o: { date: string; dieIds: string[]; toLocationId?: string | null; reference?: string | null; note?: string | null; isNew?: boolean; repair?: boolean; purpose?: 'CUT' | 'REPAIR' },
     actor: AuthUser,
   ): Promise<string> {
     if (!!to.warehouseId === !!to.partnerId) throw DomainError.badRequest('WH_BATCH_TO_REQUIRED', 'Choose where the dies go: one warehouse or one workshop');
-    if ((from.warehouseId && from.warehouseId === to.warehouseId) || (from.partnerId && from.partnerId === to.partnerId)) {
+    // Bế / sửa tại chỗ: khuôn đang ở một đối tác thì bế (hoặc sửa) ngay tại đó được, chỉ đổi trạng thái.
+    // Chuyển kho thì nơi đến phải khác nơi đi.
+    const inPlace = !!from.partnerId && from.partnerId === to.partnerId && o.purpose !== undefined;
+    if ((from.warehouseId && from.warehouseId === to.warehouseId) || (from.partnerId && from.partnerId === to.partnerId && !inPlace)) {
       throw DomainError.badRequest('WH_BATCH_SAME_PLACE', 'Where the dies go must differ from where they are');
     }
     const fromKho = from.warehouseId ? await this.dieKho(tx, from.warehouseId) : null;

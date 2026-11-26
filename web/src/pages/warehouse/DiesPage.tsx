@@ -81,7 +81,7 @@ function DieList() {
   const sizeSearch = query.l !== undefined || query.w !== undefined || query.h !== undefined || /^\s*\d+([.,]\d+)?\s*[x×*]/i.test(query.q ?? '');
 
   return (
-    <Flex vertical gap={12}>
+    <Flex vertical gap={16}>
       <PageHead
         title="Kho khuôn"
         extra={
@@ -100,7 +100,8 @@ function DieList() {
               <Button type="primary" icon={<PlusOutlined />} onClick={() => setEditing('new')}>Tạo khuôn mới</Button>
             )}
           </Space>
-        }      >
+        }
+      >
         <DieTabs view="dies" />
       </PageHead>
       <Flex wrap gap={8} align="center">

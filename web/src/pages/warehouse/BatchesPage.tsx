@@ -196,7 +196,7 @@ type BatchForm = { date: Dayjs; from?: string; to?: string; toLocationId?: strin
 /** Bế khuôn / gửi sửa (tới một đối tác bất kỳ), chuyển kho (tới một kho). Trạng thái theo thao tác, không theo loại đối tác */
 export type MoveMode = 'cut' | 'kho' | 'fix';
 const MODE: Record<MoveMode, { title: string; to: string; hint: string; ok: string }> = {
-  cut: { title: 'Bế khuôn', to: 'Xưởng bế', ok: 'Bế khuôn', hint: 'Khuôn tới nơi bế, trạng thái Đang bế. Chỉ khuôn đã kiểm tra Đạt mới bế được.' },
+  cut: { title: 'Bế khuôn', to: 'Xưởng bế', ok: 'Bế khuôn', hint: 'Khuôn tới nơi bế (hoặc bế ngay tại đối tác đang giữ khuôn), trạng thái Đang bế. Chỉ khuôn đã kiểm tra Đạt mới bế được.' },
   kho: { title: 'Phiếu chuyển kho', to: 'Kho nhận', ok: 'Chuyển kho', hint: 'Khuôn sang kho nhận. Khuôn đang bế về kho thì thành Đạt, sẵn sàng; còn lại giữ nguyên trạng thái.' },
   fix: { title: 'Gửi sửa / làm lại', to: 'Nơi sửa khuôn', ok: 'Gửi sửa', hint: 'Khuôn không đạt tới nơi sửa, trạng thái Đang sửa. Sửa xong bấm Kiểm tra.' },
 };
@@ -232,7 +232,18 @@ export function BatchModal({ dies = [], mode, onClose }: { dies?: DieRow[]; mode
   const fromKho = from?.startsWith('k:') ? from.slice(2) : null;
   const toKho = to?.startsWith('k:') ? to.slice(2) : null;
   const group = mode === 'kho' ? 'Kho' : 'Đối tác';
-  const toOptions = places.options.filter((g) => g.label === group).map((g) => ({ ...g, options: g.options.filter((o) => o.value !== from) })).filter((g) => g.options.length);
+  // Khuôn đang ở một đối tác: bế / sửa ngay tại đó được (làm khuôn ở Mê Linh, bế luôn ở Mê Linh), không phải chuyển đi đâu
+  const here = mode !== 'kho' && from?.startsWith('x:');
+  const toOptions = places.options
+    .filter((g) => g.label === group)
+    .map((g) => ({
+      ...g,
+      options: g.options
+        .filter((o) => o.value !== from || here)
+        .map((o) => (o.value === from ? { ...o, label: `${o.label} (${mode === 'fix' ? 'sửa' : 'bế'} tại chỗ)` } : o))
+        .sort((a, b) => Number(b.value === from) - Number(a.value === from)),
+    }))
+    .filter((g) => g.options.length);
 
   const submit = (v: BatchForm) => {
     const f = v.from ?? presetFrom;
@@ -270,7 +281,7 @@ export function BatchModal({ dies = [], mode, onClose }: { dies?: DieRow[]; mode
   return (
     <Modal open width={860} title={MODE[mode].title} okText={MODE[mode].ok} cancelText="Đóng" onCancel={() => onClose()} onOk={() => form.submit()} okButtonProps={{ disabled: mixed }} confirmLoading={createBatch.isPending} destroyOnHidden>
       {mixed && <Alert type="error" style={{ marginBottom: 12 }} title="Các khuôn đã chọn đang ở nhiều nơi khác nhau. Mỗi lần chuyển chỉ đi từ một nơi." />}
-      <Form<BatchForm> form={form} layout="vertical" onFinish={submit} initialValues={{ date: dayjs(), from: presetFrom ?? (firstKho ? `k:${firstKho}` : undefined) }}>
+      <Form<BatchForm> form={form} layout="vertical" onFinish={submit} initialValues={{ date: dayjs(), from: presetFrom ?? (firstKho ? `k:${firstKho}` : undefined), to: mode !== 'kho' && presetFrom?.startsWith('x:') && dies.every((d) => d.status !== 'IN_USE') ? presetFrom : undefined }}>
         <Flex wrap gap={12}>
           <Form.Item name="date" label="Ngày" rules={[{ required: true }]}>
             <DatePicker format="DD/MM/YYYY" allowClear={false} disabledDate={(d) => d.isAfter(dayjs(), 'day')} />

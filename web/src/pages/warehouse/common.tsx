@@ -132,19 +132,24 @@ export function useWarehousePick(): { warehouse: Schemas['WarehouseDto'] | undef
 
 export function WarehousePicker({ value, list, onChange }: { value?: Schemas['WarehouseDto']; list: Schemas['WarehouseDto'][]; onChange: (code: string) => void }) {
   if (!list.length) return <Typography.Text type="secondary">Chưa có kho nào. Thêm kho ở Danh mục kho.</Typography.Text>;
+  // Giống hàng chọn nơi của Kho khuôn: tên · số vật tư đang có, cuộn ngang khi hẹp
   return (
-    <Segmented
-      value={value?.code}
-      onChange={(v) => onChange(String(v))}
-      options={list.map((w) => ({
-        value: w.code,
-        label: (
-          <Badge count={w.canConfirm ? w.pending : 0} size="small" offset={[8, -2]}>
-            <span style={{ padding: '0 4px' }}>{w.name}</span>
-          </Badge>
-        ),
-      }))}
-    />
+    <div style={{ overflowX: 'auto', maxWidth: '100%' }}>
+      <Segmented
+        value={value?.code}
+        onChange={(v) => onChange(String(v))}
+        options={list.map((w) => ({
+          value: w.code,
+          label: (
+            <Badge count={w.canConfirm ? w.pending : 0} size="small" offset={[8, -2]}>
+              <span style={{ padding: '0 4px' }}>
+                {w.name} · {w.materials}
+              </span>
+            </Badge>
+          ),
+        }))}
+      />
+    </div>
   );
 }
 
@@ -186,7 +191,8 @@ export function DieTabs({ view }: { view: DieView }) {
       <div style={{ overflowX: 'auto', maxWidth: '100%' }}>
         <Segmented value={place} onChange={(v) => go({ place: String(v) })} options={options.map((o) => ({ value: o.value, label: <span style={{ padding: '0 4px' }}>{o.label}</span> }))} />
       </div>
-      <Tabs activeKey={view} style={{ marginBottom: -8 }} onChange={(k) => go({ view: k })} items={DIE_VIEWS.map((v) => ({ key: v.key, label: v.label }))} />
+      {/* Cùng nhịp với Kho vật tư: chọn nơi cách thẻ 16px, nội dung thẻ cách thanh thẻ 16px (trang ngoài gap 16) */}
+      <Tabs activeKey={view} style={{ marginTop: 8, marginBottom: -16 }} onChange={(k) => go({ view: k })} items={DIE_VIEWS.map((v) => ({ key: v.key, label: v.label }))} />
     </>
   );
 }
@@ -194,7 +200,8 @@ export function DieTabs({ view }: { view: DieView }) {
 export function PageHead({ title, extra, children }: { title: string; extra?: ReactNode; children?: ReactNode }) {
   return (
     <Flex vertical gap={8}>
-      <Flex wrap gap={12} align="center" justify="space-between">
+      {/* minHeight bằng hàng nút: trang có nút hay không thì tiêu đề vẫn cùng vị trí */}
+      <Flex wrap gap={12} align="center" justify="space-between" style={{ minHeight: 40 }}>
         <Typography.Title level={3} style={{ margin: 0 }}>
           {title}
         </Typography.Title>

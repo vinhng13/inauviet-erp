@@ -109,7 +109,7 @@ function StockTable({ warehouse }: { warehouse: Warehouse }) {
         loading={isFetching}
         dataSource={rows}
         pagination={pager(rows?.length)}
-        locale={{ emptyText: 'Kho này chưa có vật tư. Thêm ở Danh mục kho → Vật tư (chọn kho có vật tư).' }}
+        locale={{ emptyText: 'Kho này chưa có vật tư. Bấm Nhập kho và chọn vật tư trong danh mục.' }}
         onRow={(r) => ({ onClick: () => setCard(r), style: { cursor: 'pointer' } })}
         columns={[
           { title: 'Nhóm', dataIndex: 'group', width: 110 },

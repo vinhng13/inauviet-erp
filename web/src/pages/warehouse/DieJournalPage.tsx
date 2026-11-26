@@ -57,7 +57,7 @@ export function WarehouseDieJournalPage() {
   for (const r of data ?? []) counts.set(r.actionLabel, (counts.get(r.actionLabel) ?? 0) + 1);
   const range: [Dayjs, Dayjs] = [dayjs(q.from), dayjs(q.to)];
   return (
-    <Flex vertical gap={12}>
+    <Flex vertical gap={16}>
       <PageHead title="Kho khuôn">
         <DieTabs view="journal" />
       </PageHead>
