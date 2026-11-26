@@ -1,16 +1,16 @@
 import { EditOutlined, InboxOutlined, MinusCircleOutlined, PlusOutlined } from '@ant-design/icons';
-import { Alert, App, AutoComplete, Button, Descriptions, Flex, Form, Input, InputNumber, Modal, Popconfirm, Select, Space, Switch, Table, Tabs, Tag, Typography, Upload } from 'antd';
+import { Alert, App, AutoComplete, Button, Descriptions, Flex, Form, Input, InputNumber, Modal, Popconfirm, Segmented, Select, Space, Switch, Table, Tabs, Tag, Typography, Upload } from 'antd';
 import { useState } from 'react';
 import type { Schemas } from '../../api/client';
-import { useLocations, usePartners, useSymbols, useWarehouseMutations, useWarehouses, useWhMaterials, useWhPeople } from '../../api/warehouse';
+import { useLocations, useSymbols, useWarehouseMutations, useWarehouses, useWhMaterials } from '../../api/warehouse';
 import { useCan } from '../../lib/access';
 import { errorMessage } from '../../lib/errors';
-import { cm, PageHead, PARTNER_KIND, qty, STATUS, type DieStatus } from './common';
+import { cm, OWNERSHIP, PageHead, qty, STATUS, type DieStatus } from './common';
 import { pager } from '../../lib/paging';
 
 /**
  * Danh mục riêng của kho. Các danh mục độc lập, không cần gắn trước với nhau: kho (kèm vị trí kệ, kệ bắt buộc thuộc một kho),
- * vật tư (quy cách, đơn vị tính), khuôn (ký hiệu), đối tác (loại chỉ để ghi nhớ); nhập tồn vật tư và bảng khuôn từ Excel.
+ * vật tư (quy cách, đơn vị tính), khuôn (ký hiệu); nhập tồn vật tư và bảng khuôn từ Excel. Kho gồm cả kho Âu Việt và kho ngoài.
  */
 export function WarehouseCatalogPage() {
   const can = useCan();
@@ -31,7 +31,6 @@ export function WarehouseCatalogPage() {
           },
           { key: 'materials', label: 'Vật tư', children: <Materials /> },
           { key: 'symbols', label: 'Khuôn', children: <Symbols /> },
-          { key: 'partners', label: 'Đối tác', children: <Partners /> },
           ...(can('warehouse.manage')
             ? [
                 { key: 'import-paper', label: 'Nhập tồn vật tư Excel', children: <ImportPaper /> },
@@ -44,6 +43,12 @@ export function WarehouseCatalogPage() {
   );
 }
 
+/** Kho trong ô chọn: nhóm Âu Việt / Kho ngoài */
+const groupKhos = (khos: Warehouse[]) =>
+  (['AU_VIET', 'EXTERNAL'] as const)
+    .map((o) => ({ label: OWNERSHIP[o].label, options: khos.filter((k) => k.ownership === o).map((k) => ({ value: k.id, label: k.name })) }))
+    .filter((g) => g.options.length);
+
 const ok = (message: { success: (s: string) => void }, close: () => void) => () => (message.success('Đã lưu'), close());
 
 type Material = Schemas['WhMaterialDto'];
@@ -53,23 +58,38 @@ function Warehouses() {
   const can = useCan();
   const { data, isFetching } = useWarehouses();
   const [editing, setEditing] = useState<Warehouse | 'new' | null>(null);
+  const [own, setOwn] = useState<'all' | Schemas['WhOwnership']>('all');
+  const [q, setQ] = useState('');
+  const text = q.trim().toLowerCase();
+  const rows = (data ?? []).filter((w) => (own === 'all' || w.ownership === own) && (!text || w.name.toLowerCase().includes(text) || w.code.toLowerCase().includes(text)));
+  const mayAdd = can('warehouse.manage') || can('warehouse.slip') || can('warehouse.dies');
   return (
     <Flex vertical gap={12}>
       <Typography.Text type="secondary">
-        Kho nào cũng giữ được cả vật tư lẫn khuôn. Mỗi kho có thủ kho riêng: phiếu vật tư của kho chỉ làm thay đổi tồn khi thủ kho của kho đó xác nhận (thủ kho tự lập thì có hiệu lực ngay). Kho chưa có thủ kho: ai có quyền lập phiếu cũng xác nhận được.
+        Một danh sách kho chung: kho của Âu Việt và kho ngoài (xưởng bế, nơi làm khuôn, kho thuê...). Kho nào cũng giữ được cả vật tư lẫn khuôn. Ở mọi ô chọn kho, gõ tên kho chưa có thì phần mềm tự thêm vào đây (Kho ngoài). Phiếu lưu là có hiệu lực ngay, không cần thủ kho xác nhận.
       </Typography.Text>
-      {can('warehouse.manage') && <Button type="primary" icon={<PlusOutlined />} style={{ alignSelf: 'flex-start' }} onClick={() => setEditing('new')}>Thêm kho</Button>}
+      <Flex wrap gap={12} align="center">
+        {mayAdd && <Button type="primary" icon={<PlusOutlined />} onClick={() => setEditing('new')}>Thêm kho</Button>}
+        <Segmented
+          value={own}
+          onChange={(v) => setOwn(v as typeof own)}
+          options={[{ value: 'all', label: 'Tất cả' }, { value: 'AU_VIET', label: OWNERSHIP.AU_VIET.label }, { value: 'EXTERNAL', label: OWNERSHIP.EXTERNAL.label }]}
+        />
+        <Input.Search id="kho-search" placeholder="Tên hoặc mã kho" allowClear onChange={(e) => setQ(e.target.value)} style={{ width: 220 }} />
+      </Flex>
       <Table<Warehouse>
         rowKey="id"
         size="small"
         loading={isFetching}
-        dataSource={data}
-        pagination={false}
+        dataSource={rows}
+        pagination={pager(rows.length)}
         columns={[
-          { title: 'Mã', dataIndex: 'code', width: 100, render: (v: string) => <Tag>{v}</Tag> },
+          { title: 'Mã', dataIndex: 'code', width: 150, render: (v: string) => <Tag>{v}</Tag> },
           { title: 'Tên kho', dataIndex: 'name', render: (v: string, w) => <span style={{ opacity: w.isActive ? 1 : 0.5 }}>{v}{!w.isActive && ' (ngừng dùng)'}</span> },
-          { title: 'Thủ kho', key: 'k', render: (_, w) => w.keepers.map((k) => k.fullName).join(', ') || <Typography.Text type="secondary">chưa chỉ định</Typography.Text> },
+          { title: 'Sở hữu', dataIndex: 'ownership', width: 110, render: (o: Schemas['WhOwnership']) => <Tag color={OWNERSHIP[o].color}>{OWNERSHIP[o].label}</Tag> },
+          { title: 'Điện thoại', dataIndex: 'phone', width: 130 },
           { title: 'Địa chỉ', dataIndex: 'address', ellipsis: true },
+          { title: 'Ghi chú', dataIndex: 'note', ellipsis: true },
           { key: 'e', width: 60, render: (_, w) => can('warehouse.manage') && <Button size="small" type="text" icon={<EditOutlined />} onClick={() => setEditing(w)} aria-label={`Sửa ${w.name}`} /> },
         ]}
       />
@@ -81,33 +101,45 @@ function Warehouses() {
 function WarehouseModal({ warehouse, onClose }: { warehouse: Warehouse | null; onClose: () => void }) {
   const { message } = App.useApp();
   const [form] = Form.useForm<Schemas['WarehouseInputDto']>();
-  const people = useWhPeople();
   const { saveWarehouse } = useWarehouseMutations();
   return (
     <Modal open title={warehouse ? `Sửa ${warehouse.name}` : 'Thêm kho'} okText="Lưu" cancelText="Đóng" onCancel={onClose} onOk={() => form.submit()} confirmLoading={saveWarehouse.isPending} destroyOnHidden>
-      <Form
+      <Form<Schemas['WarehouseInputDto']>
         form={form}
         layout="vertical"
-        initialValues={warehouse ? { ...warehouse, keeperIds: warehouse.keepers.map((k) => k.id) } : { isActive: true, keeperIds: [], sortOrder: 50 }}
+        initialValues={warehouse ? { ...warehouse } : { isActive: true, ownership: 'AU_VIET', sortOrder: 50 }}
         onFinish={(v) =>
           saveWarehouse.mutate(
-            { id: warehouse?.id, code: v.code.toUpperCase(), name: v.name, address: v.address || null, note: v.note || null, isActive: v.isActive, sortOrder: v.sortOrder, keeperIds: v.keeperIds ?? [] },
+            {
+              id: warehouse?.id,
+              code: v.code?.trim() ? v.code.trim().toUpperCase() : null,
+              name: v.name,
+              ownership: v.ownership,
+              address: v.address || null,
+              phone: v.phone || null,
+              note: v.note || null,
+              isActive: v.isActive,
+              sortOrder: v.sortOrder,
+            },
             { onSuccess: ok(message, onClose), onError: (e) => message.error(errorMessage(e)) },
           )
         }
       >
-        <Flex gap={12}>
-          <Form.Item name="code" label="Mã kho" rules={[{ required: true, pattern: /^[A-Za-z0-9]{2,10}$/, message: '2–10 chữ hoặc số' }]} extra="Dùng trong số phiếu, ví dụ XK-GIAY-…">
-            <Input style={{ width: 130 }} placeholder="GIAY" />
+        <Form.Item name="name" label="Tên kho" rules={[{ required: true, whitespace: true, message: 'Ghi tên kho' }]}>
+          <Input placeholder="Kho giấy, Xưởng Mê Linh..." />
+        </Form.Item>
+        <Flex gap={12} wrap>
+          <Form.Item name="ownership" label="Sở hữu" rules={[{ required: true }]}>
+            <Segmented options={[{ value: 'AU_VIET', label: OWNERSHIP.AU_VIET.label }, { value: 'EXTERNAL', label: OWNERSHIP.EXTERNAL.label }]} />
           </Form.Item>
-          <Form.Item name="name" label="Tên kho" rules={[{ required: true }]} style={{ flex: 1 }}>
-            <Input placeholder="Kho giấy" />
+          <Form.Item name="code" label="Mã kho" rules={[{ pattern: /^[A-Za-z0-9]{2,16}$/, message: '2–16 chữ hoặc số, không dấu' }]} extra={warehouse ? 'Dùng trong số phiếu' : 'Bỏ trống thì tự tạo từ tên'}>
+            <Input style={{ width: 170 }} placeholder="GIAY" />
           </Form.Item>
         </Flex>
-        <Form.Item name="address" label="Địa chỉ"><Input /></Form.Item>
-        <Form.Item name="keeperIds" label="Thủ kho (xác nhận phiếu)">
-          <Select mode="multiple" allowClear showSearch optionFilterProp="label" options={(people.data ?? []).map((p) => ({ value: p.id, label: p.fullName }))} />
-        </Form.Item>
+        <Flex gap={12} wrap>
+          <Form.Item name="phone" label="Điện thoại"><Input style={{ width: 170 }} /></Form.Item>
+          <Form.Item name="address" label="Địa chỉ" style={{ flex: 1, minWidth: 220 }}><Input /></Form.Item>
+        </Flex>
         <Flex gap={24}>
           <Form.Item name="sortOrder" label="Thứ tự hiển thị"><InputNumber min={0} style={{ width: 100 }} /></Form.Item>
           <Form.Item name="isActive" label="Đang dùng" valuePropName="checked"><Switch /></Form.Item>
@@ -304,69 +336,6 @@ function MaterialModal({ material, groups, onClose }: { material: Material | nul
   );
 }
 
-function Partners() {
-  const can = useCan();
-  const { message } = App.useApp();
-  const { data, isFetching } = usePartners();
-  const { savePartner } = useWarehouseMutations();
-  const [editing, setEditing] = useState<Schemas['PartnerDto'] | 'new' | null>(null);
-  const [form] = Form.useForm<Schemas['PartnerInputDto']>();
-  return (
-    <Flex vertical gap={12}>
-      <Typography.Text type="secondary">
-        Một danh sách đối tác chung: ô Nơi lấy hàng nhập kho, Nơi làm khuôn, Xưởng bế, Gửi sửa đều chọn được mọi đối tác (chưa có thì gõ tên mới khi lập phiếu). Loại chỉ để ghi nhớ, không giới hạn chỗ chọn.
-      </Typography.Text>
-      {can('warehouse.manage') && <Button type="primary" icon={<PlusOutlined />} style={{ alignSelf: 'flex-start' }} onClick={() => setEditing('new')}>Thêm đối tác</Button>}
-      <Table<Schemas['PartnerDto']>
-        rowKey="id"
-        size="small"
-        loading={isFetching}
-        dataSource={data}
-        pagination={false}
-        locale={{ emptyText: 'Chưa có đối tác (xưởng bế, nơi làm khuôn, nhà cung cấp giấy...)' }}
-        columns={[
-          { title: 'Tên', dataIndex: 'name', render: (v: string, p) => <span style={{ opacity: p.isActive ? 1 : 0.5 }}>{v}</span> },
-          { title: 'Loại (ghi nhớ)', dataIndex: 'kind', width: 150, render: (k: Schemas['WhPartnerKind']) => (k === 'OTHER' ? '' : PARTNER_KIND[k]) },
-          { title: 'Điện thoại', dataIndex: 'phone', width: 130 },
-          { title: 'Khuôn đang giữ', dataIndex: 'diesHeld', width: 130, align: 'right' },
-          { title: 'Ghi chú', dataIndex: 'note' },
-          { key: 'e', width: 60, render: (_, p) => can('warehouse.manage') && <Button size="small" type="text" icon={<EditOutlined />} onClick={() => setEditing(p)} aria-label={`Sửa ${p.name}`} /> },
-        ]}
-      />
-      {editing && (
-        <Modal
-          open
-          title={editing === 'new' ? 'Thêm đối tác' : `Sửa ${editing.name}`}
-          okText="Lưu"
-          cancelText="Đóng"
-          onCancel={() => setEditing(null)}
-          onOk={() => form.submit()}
-          confirmLoading={savePartner.isPending}
-          destroyOnHidden
-        >
-          <Form
-            form={form}
-            layout="vertical"
-            initialValues={editing === 'new' ? { kind: 'OTHER', isActive: true } : { ...editing }}
-            onFinish={(v) =>
-              savePartner.mutate(
-                { id: editing === 'new' ? undefined : editing.id, name: v.name, kind: v.kind, phone: v.phone || null, note: v.note || null, isActive: v.isActive },
-                { onSuccess: ok(message, () => setEditing(null)), onError: (e) => message.error(errorMessage(e)) },
-              )
-            }
-          >
-            <Form.Item name="name" label="Tên" rules={[{ required: true }]}><Input /></Form.Item>
-            <Form.Item name="kind" label="Loại (ghi nhớ)" extra="Không giới hạn chỗ chọn đối tác"><Select options={Object.entries(PARTNER_KIND).map(([value, label]) => ({ value, label }))} /></Form.Item>
-            <Form.Item name="phone" label="Điện thoại"><Input /></Form.Item>
-            <Form.Item name="note" label="Ghi chú"><Input /></Form.Item>
-            <Form.Item name="isActive" label="Đang hợp tác" valuePropName="checked"><Switch /></Form.Item>
-          </Form>
-        </Modal>
-      )}
-    </Flex>
-  );
-}
-
 function Locations() {
   const can = useCan();
   const { message } = App.useApp();
@@ -382,10 +351,10 @@ function Locations() {
   return (
     <Flex vertical gap={12}>
       <Typography.Title level={5} style={{ margin: 0 }}>Vị trí kệ</Typography.Title>
-      <Typography.Text type="secondary">Mỗi kệ bắt buộc thuộc một kho. Mã kệ nên theo dạng Tầng-Kệ-Ô, ví dụ T4-K02-O03, để thủ kho tìm khuôn nhanh.</Typography.Text>
+      <Typography.Text type="secondary">Mỗi kệ bắt buộc thuộc một kho. Mã kệ nên theo dạng Tầng-Kệ-Ô, ví dụ T4-K02-O03, để tìm khuôn nhanh.</Typography.Text>
       {can('warehouse.manage') && (
         <Space.Compact style={{ maxWidth: 520 }}>
-          <Select id="location-kho" value={khoId} onChange={setKho} style={{ width: 190 }} options={khos.map((k) => ({ value: k.id, label: k.name }))} aria-label="Kho của kệ" />
+          <Select id="location-kho" showSearch optionFilterProp="label" value={khoId} onChange={setKho} style={{ width: 190 }} options={groupKhos(khos)} aria-label="Kho của kệ" />
           <Input id="location-code" placeholder="Mã kệ mới" value={code} onChange={(e) => setCode(e.target.value)} />
           <Button
             type="primary"
@@ -487,12 +456,12 @@ function ImportDies() {
   return (
     <Flex vertical gap={12} style={{ maxWidth: 900 }}>
       <Typography.Paragraph type="secondary" style={{ margin: 0 }}>
-        Chọn kho mặc định và file Excel quản lý khuôn đang dùng (sheet DANH_SACH_KHUON; NHAP_LIEU được giữ làm lịch sử). Khuôn TRONG KHO vào kho mặc định; cột nơi ghi tên một kho (vd Xuân Đỉnh) thì vào kho đó. Kệ tạo ở đúng kho của khuôn;
-        đối tác mới không gán loại. Bấm Xem trước để kiểm tra, rồi Nhập. Chạy lại không tạo trùng: mã đã có sẽ bỏ qua.
+        Chọn kho mặc định và file Excel quản lý khuôn đang dùng (sheet DANH_SACH_KHUON; NHAP_LIEU được giữ làm lịch sử). Khuôn TRONG KHO vào kho mặc định; cột nơi ghi tên một kho (vd Xuân Đỉnh, Mê Linh) thì vào kho đó. Kệ chỉ tạo ở kho Âu Việt;
+        tên nơi chưa có trong danh sách kho thì phần mềm tự thêm thành Kho ngoài. Bấm Xem trước để kiểm tra, rồi Nhập. Chạy lại không tạo trùng: mã đã có sẽ bỏ qua.
       </Typography.Paragraph>
       <Flex align="center" gap={8}>
         <Typography.Text>Kho mặc định</Typography.Text>
-        <Select id="import-die-kho" value={khoId} onChange={(v) => (setKho(v), setReport(null))} style={{ width: 240 }} options={khos.map((k) => ({ value: k.id, label: k.name }))} />
+        <Select id="import-die-kho" showSearch optionFilterProp="label" value={khoId} onChange={(v) => (setKho(v), setReport(null))} style={{ width: 240 }} options={groupKhos(khos)} />
       </Flex>
       <Upload.Dragger
         accept=".xlsx"
@@ -526,7 +495,7 @@ function ImportDies() {
             column={1}
             items={[
               { label: 'Theo trạng thái', children: Object.entries(report.byStatus).map(([s, n]) => `${STATUS[s as DieStatus]?.label ?? s}: ${n}`).join(' · ') || '—' },
-              { label: 'Đối tác sẽ tạo', children: report.partnersCreated.join(', ') || '—' },
+              { label: 'Kho ngoài sẽ tạo', children: report.warehousesCreated.join(', ') || '—' },
               { label: 'Kệ sẽ tạo', children: report.locationsCreated.join(', ') || '—' },
             ]}
           />
@@ -548,7 +517,7 @@ function ImportDies() {
   );
 }
 
-/** Nhập tồn vật tư từ Excel vào một kho (bảng "THEO DÕI GIẤY TỒN" hoặc bảng vật tư chung): danh mục + phiếu điều chỉnh đưa tồn về đúng bảng, chờ xác nhận */
+/** Nhập tồn vật tư từ Excel vào một kho (bảng "THEO DÕI GIẤY TỒN" hoặc bảng vật tư chung): danh mục + phiếu điều chỉnh đưa tồn về đúng bảng, có hiệu lực ngay */
 function ImportPaper() {
   const { message } = App.useApp();
   const { importPaper } = useWarehouseMutations();
@@ -568,7 +537,7 @@ function ImportPaper() {
         onSuccess: (r) => {
           setReport(r);
           setDry(dryRun);
-          if (!dryRun) message.success(r.slipCode ? `Đã nhập; phiếu ${r.slipCode} chờ thủ kho xác nhận` : 'Tồn đã đúng bảng, không cần phiếu');
+          if (!dryRun) message.success(r.slipCode ? `Đã nhập; phiếu ${r.slipCode} đã cập nhật tồn` : 'Tồn đã đúng bảng, không cần phiếu');
         },
         onError: (e) => message.error(errorMessage(e)),
       },
@@ -577,12 +546,12 @@ function ImportPaper() {
     <Flex vertical gap={12} style={{ maxWidth: 1100 }}>
       <Typography.Paragraph type="secondary" style={{ margin: 0 }}>
         Chọn kho và bảng tồn (Google Sheets: Tệp → Tải xuống → Microsoft Excel). Cột đọc được: <b>Tên vật tư</b> (hoặc Loại giấy), <b>TỒN</b>; không bắt buộc: Mã VT, Nhóm, Khổ / Quy cách, ĐVT. Vật tư tìm theo tên trong danh
-        mục chung, chưa có thì tạo (ĐVT trống = tờ; nhóm trống thì suy từ Mã VT). Phần mềm lập một phiếu điều chỉnh ở kho đã chọn đưa tồn về đúng số trong bảng; thủ kho của kho đó vào Kho vật tư → Phiếu chờ xác nhận, xem lại
-        và bấm Xác nhận. Nhập lại: phiếu theo bảng trước của cùng kho còn chờ sẽ được thay; đã xác nhận rồi thì phiếu mới chỉ ghi phần chênh. Dòng chưa đếm chỉ tạo quy cách, không đổi tồn.
+        mục chung, chưa có thì tạo (ĐVT trống = tờ; nhóm trống thì suy từ Mã VT). Phần mềm lập một phiếu điều chỉnh ở kho đã chọn đưa tồn về đúng số trong bảng, có hiệu lực ngay (sai thì mở phiếu và Huỷ phiếu).
+        Nhập lại: phiếu mới chỉ ghi phần chênh. Dòng chưa đếm chỉ tạo quy cách, không đổi tồn.
       </Typography.Paragraph>
       <Flex align="center" gap={8}>
         <Typography.Text>Nhập vào kho</Typography.Text>
-        <Select id="import-stock-kho" value={khoId} onChange={(v) => (setKho(v), setReport(null))} style={{ width: 240 }} options={khos.map((k) => ({ value: k.id, label: k.name }))} />
+        <Select id="import-stock-kho" showSearch optionFilterProp="label" value={khoId} onChange={(v) => (setKho(v), setReport(null))} style={{ width: 240 }} options={groupKhos(khos)} />
       </Flex>
       <Upload.Dragger
         accept=".xlsx"
@@ -607,7 +576,7 @@ function ImportPaper() {
         <Flex vertical gap={12}>
           <Alert
             type={dry ? 'info' : 'success'}
-            title={dry ? `Xem trước sheet "${report.sheet}" — chưa ghi gì` : report.slipCode ? `Đã nhập. Phiếu ${report.slipCode} chờ thủ kho ${report.warehouseName} xác nhận (Kho vật tư → Phiếu chờ xác nhận).` : 'Đã nhập danh mục; tồn đã đúng bảng'}
+            title={dry ? `Xem trước sheet "${report.sheet}" — chưa ghi gì` : report.slipCode ? `Đã nhập. Phiếu ${report.slipCode}: tồn ${report.warehouseName} đã đúng bảng.` : 'Đã nhập danh mục; tồn đã đúng bảng'}
             description={`Kho: ${report.warehouseName}. ${report.rows} dòng vật tư × quy cách; ${report.materialsCreated} vật tư mới, ${report.specsCreated} quy cách mới; ${report.counted} quy cách có số tồn, tổng ${report.totalQty.toLocaleString('vi-VN')}; ${report.adjusted} quy cách cần điều chỉnh, ${report.unchanged} đã đúng${report.replacedSlips.length ? `; ${dry ? 'sẽ thay' : 'đã thay'} phiếu chờ ${report.replacedSlips.join(', ')}` : ''}.`}
           />
           {report.issues.length > 0 && (

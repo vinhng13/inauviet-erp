@@ -11,38 +11,34 @@ export const MOVE_ACTIONS: MoveAction[] = ['PASS', 'DEFECT', 'DISPOSE', 'MOVE'];
 interface Transition {
   from: WhDieStatus[];
   to: WhDieStatus | 'SAME';
-  /** where the die must be: in a kho, at a workshop, or either */
-  at: 'KHO' | 'PARTNER' | 'ANY';
 }
 
 export const TRANSITIONS: Record<MoveAction, Transition> = {
-  PASS: { from: ['MAKING', 'REPAIRING', 'CHECKING', 'DEFECT'], to: 'READY', at: 'ANY' }, // kiểm tra: đạt
-  DEFECT: { from: ['MAKING', 'REPAIRING', 'CHECKING', 'READY', 'IN_USE'], to: 'DEFECT', at: 'ANY' }, // kiểm tra: không đạt / báo lỗi
-  DISPOSE: { from: ['READY', 'DEFECT', 'BROKEN', 'CHECKING'], to: 'DISPOSED', at: 'KHO' },
-  MOVE: { from: ['READY', 'CHECKING', 'DEFECT'], to: 'SAME', at: 'KHO' }, // đổi kệ trong kho
+  PASS: { from: ['MAKING', 'REPAIRING', 'CHECKING', 'DEFECT'], to: 'READY' }, // kiểm tra: đạt
+  DEFECT: { from: ['MAKING', 'REPAIRING', 'CHECKING', 'READY', 'IN_USE'], to: 'DEFECT' }, // kiểm tra: không đạt / báo lỗi
+  DISPOSE: { from: ['READY', 'DEFECT', 'BROKEN', 'CHECKING'], to: 'DISPOSED' },
+  MOVE: { from: ['READY', 'CHECKING', 'DEFECT'], to: 'SAME' }, // đổi kệ (kho có kệ)
 };
 
-export function allowedActions(status: WhDieStatus, atPartner: boolean, pending: boolean): MoveAction[] {
+/** Thao tác tại chỗ được phép theo trạng thái (kho nào cũng như nhau: Âu Việt hay kho ngoài) */
+export function allowedActions(status: WhDieStatus, pending: boolean): MoveAction[] {
   if (pending) return [];
-  return MOVE_ACTIONS.filter((a) => {
-    const t = TRANSITIONS[a];
-    return t.from.includes(status) && (t.at === 'ANY' || (t.at === 'PARTNER') === atPartner);
-  });
+  return MOVE_ACTIONS.filter((a) => TRANSITIONS[a].from.includes(status));
 }
 
 /** Chỉ khuôn đã kiểm đạt (hoặc đang bế ở xưởng khác) mới đi bế được */
 export const CAN_GO_CUT: WhDieStatus[] = ['READY', 'IN_USE'];
 
 /**
- * Trạng thái khuôn sau khi chuyển, theo nơi đến và thao tác (không theo loại đối tác):
- * - tới kho: khuôn đang bế về kho thì sẵn sàng, còn lại giữ nguyên;
- * - gửi sửa tới một đối tác: đang làm vẫn đang làm, còn lại là đang sửa;
- * - bế khuôn tại một đối tác: đang bế.
+ * Trạng thái khuôn sau khi chuyển, theo thao tác (không theo nơi đến):
+ * - bế khuôn: đang bế;
+ * - gửi sửa: đang làm vẫn đang làm, còn lại là đang sửa;
+ * - chuyển kho: khuôn đang bế thì về sẵn sàng, còn lại giữ nguyên.
  */
-export function statusAfterMove(cur: WhDieStatus, o: { toKho: boolean; repair: boolean }): WhDieStatus {
-  if (o.toKho) return cur === 'IN_USE' ? 'READY' : cur;
-  if (o.repair) return cur === 'MAKING' ? 'MAKING' : 'REPAIRING';
-  return 'IN_USE';
+export function statusAfterMove(cur: WhDieStatus, purpose: 'CUT' | 'REPAIR' | null | undefined): WhDieStatus {
+  if (purpose === 'CUT') return 'IN_USE';
+  if (purpose === 'REPAIR') return cur === 'MAKING' ? 'MAKING' : 'REPAIRING';
+  return cur === 'IN_USE' ? 'READY' : cur;
 }
 
 export const STATUS_LABEL: Record<WhDieStatus, string> = {
@@ -175,10 +171,9 @@ export function fmtCm(v: number): string {
 }
 
 /** Nhãn một dòng lịch sử: lần chuyển khuôn gọi theo nơi đến (bế khuôn, chuyển kho, gửi sửa) */
-export function moveLabel(action: WhDieAction, toStatus: WhDieStatus | null, toKho: boolean): string {
+export function moveLabel(action: WhDieAction, toStatus: WhDieStatus | null): string {
   if (action !== 'TRANSFER') return ACTION_LABEL[action];
-  if (toKho) return 'Chuyển kho';
   if (toStatus === 'IN_USE') return 'Bế khuôn';
   if (toStatus === 'REPAIRING') return 'Gửi sửa';
-  return ACTION_LABEL[action];
+  return 'Chuyển kho';
 }

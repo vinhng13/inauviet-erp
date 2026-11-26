@@ -10,42 +10,29 @@ import type {
   LocationInputDto,
   WhMaterialDto,
   WhMaterialInputDto,
-  PartnerDto,
-  PartnerInputDto,
   SymbolDto,
   SymbolInputDto,
 } from './warehouse.dto';
 
 const unique = (e: unknown) => e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002';
 
-/** Danh mục riêng của Kho: đối tác, vị trí, ký hiệu khuôn, vật tư và khổ, chốt tồn tháng. */
+/** Danh mục riêng của Kho: vị trí kệ, ký hiệu khuôn, vật tư và khổ, nơi lấy hàng đã ghi. */
 @Injectable()
 export class WhCatalogService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async partners(): Promise<PartnerDto[]> {
-    const rows = await this.prisma.whPartner.findMany({
-      orderBy: [{ isActive: 'desc' }, { name: 'asc' }],
-      include: { _count: { select: { diesHeld: true } } },
-    });
-    return rows.map((p) => ({ id: p.id, name: p.name, kind: p.kind, phone: p.phone, note: p.note, isActive: p.isActive, diesHeld: p._count.diesHeld }));
-  }
-
-  async savePartner(id: string | null, dto: PartnerInputDto): Promise<void> {
-    const data = { name: dto.name.trim(), kind: dto.kind ?? 'OTHER', phone: cleanText(dto.phone), note: cleanText(dto.note), isActive: dto.isActive ?? true };
-    try {
-      if (id) await this.prisma.whPartner.update({ where: { id }, data });
-      else await this.prisma.whPartner.create({ data });
-    } catch (e) {
-      if (unique(e)) throw DomainError.conflict('WH_PARTNER_EXISTS', 'A partner with this name exists');
-      throw e;
-    }
+  /** Nơi lấy hàng đã ghi trên phiếu nhập (chữ), mới dùng trước */
+  async suppliers(): Promise<string[]> {
+    const rows = await this.prisma.$queryRaw<Array<{ name: string }>>`
+      SELECT "supplierName" AS name FROM "WhSlip" WHERE "supplierName" IS NOT NULL
+      GROUP BY "supplierName" ORDER BY MAX("createdAt") DESC LIMIT 200`;
+    return rows.map((r) => r.name);
   }
 
   async locations(): Promise<LocationDto[]> {
     const rows = await this.prisma.whLocation.findMany({
       orderBy: [{ isActive: 'desc' }, { warehouse: { sortOrder: 'asc' } }, { code: 'asc' }],
-      include: { warehouse: { select: { name: true } }, _count: { select: { dies: { where: { holderId: null, status: { not: 'DISPOSED' } } } } } },
+      include: { warehouse: { select: { name: true } }, _count: { select: { dies: { where: { status: { not: 'DISPOSED' } } } } } },
     });
     return rows.map((l) => ({ id: l.id, warehouseId: l.warehouseId, warehouseName: l.warehouse.name, code: l.code, note: l.note, isActive: l.isActive, dies: l._count.dies }));
   }

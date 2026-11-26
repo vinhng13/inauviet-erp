@@ -193,17 +193,17 @@ export function BatchDrawer({ id, onClose }: { id: string; onClose: () => void }
 
 type BatchForm = { date: Dayjs; from?: string; to?: string; toLocationId?: string; reference?: string; note?: string; newDies?: Array<{ symbolCode?: string; productName?: string; size?: string }> };
 
-/** Bế khuôn / gửi sửa (tới một đối tác bất kỳ), chuyển kho (tới một kho). Trạng thái theo thao tác, không theo loại đối tác */
+/** Bế khuôn / gửi sửa / chuyển kho: tới một kho bất kỳ (Âu Việt hoặc kho ngoài). Trạng thái theo thao tác, không theo loại kho */
 export type MoveMode = 'cut' | 'kho' | 'fix';
 const MODE: Record<MoveMode, { title: string; to: string; hint: string; ok: string }> = {
-  cut: { title: 'Bế khuôn', to: 'Xưởng bế', ok: 'Bế khuôn', hint: 'Khuôn tới nơi bế (hoặc bế ngay tại đối tác đang giữ khuôn), trạng thái Đang bế. Chỉ khuôn đã kiểm tra Đạt mới bế được.' },
+  cut: { title: 'Bế khuôn', to: 'Bế ở', ok: 'Bế khuôn', hint: 'Khuôn tới nơi bế (hoặc bế ngay tại kho đang giữ khuôn), trạng thái Đang bế. Chỉ khuôn đã kiểm tra Đạt mới bế được.' },
   kho: { title: 'Phiếu chuyển kho', to: 'Kho nhận', ok: 'Chuyển kho', hint: 'Khuôn sang kho nhận. Khuôn đang bế về kho thì thành Đạt, sẵn sàng; còn lại giữ nguyên trạng thái.' },
-  fix: { title: 'Gửi sửa / làm lại', to: 'Nơi sửa khuôn', ok: 'Gửi sửa', hint: 'Khuôn không đạt tới nơi sửa, trạng thái Đang sửa. Sửa xong bấm Kiểm tra.' },
+  fix: { title: 'Gửi sửa / làm lại', to: 'Sửa ở', ok: 'Gửi sửa', hint: 'Khuôn không đạt tới nơi sửa (hoặc sửa ngay tại kho đang giữ khuôn), trạng thái Đang sửa. Sửa xong bấm Kiểm tra.' },
 };
 
 /**
- * Chuyển khuôn: từ nơi khuôn đang ở (kho, xưởng bế, nơi làm khuôn) tới bất kỳ nơi nào, có hiệu lực ngay khi lưu.
- * `dies` chọn sẵn (từ danh sách hoặc hồ sơ khuôn) thì nơi đi cố định theo khuôn. Từ một kho có thể thêm khuôn chưa có mã.
+ * Chuyển khuôn: từ kho khuôn đang ở tới bất kỳ kho nào (gõ tên kho mới thì tự thêm thành Kho ngoài), có hiệu lực ngay khi lưu.
+ * `dies` chọn sẵn (từ danh sách hoặc hồ sơ khuôn) thì nơi đi cố định theo khuôn. Từ một kho Âu Việt có thể thêm khuôn chưa có mã.
  */
 export function BatchModal({ dies = [], mode, onClose }: { dies?: DieRow[]; mode: MoveMode; onClose: (b?: Batch) => void }) {
   const { message } = App.useApp();
@@ -217,8 +217,8 @@ export function BatchModal({ dies = [], mode, onClose }: { dies?: DieRow[]; mode
   const mixed = preset && dies.some((d) => placeKey(d) !== presetFrom);
   const watchedFrom = Form.useWatch('from', form);
   const from = watchedFrom && watchedFrom.length > 2 ? watchedFrom : presetFrom;
-  // Mặc định đi từ kho khuôn đầu tiên (khi danh sách kho đã tải)
-  const firstKho = places.khos[0]?.id;
+  // Mặc định đi từ kho Âu Việt đang giữ nhiều khuôn nhất (khi danh sách kho đã tải)
+  const firstKho = ([...places.khos].sort((a, b) => Number(b.ownership === 'AU_VIET') - Number(a.ownership === 'AU_VIET') || b.dies - a.dies)[0])?.id;
   useEffect(() => {
     if (!preset && firstKho && !form.getFieldValue('from')) form.setFieldValue('from', `k:${firstKho}`);
   }, [firstKho, preset, form]);
@@ -229,21 +229,16 @@ export function BatchModal({ dies = [], mode, onClose }: { dies?: DieRow[]; mode
   const candidates = useDies({ place: from, q: q.trim() || undefined }, !preset && !!from);
 
   const pool = (preset ? dies : (candidates.data?.items ?? [])).filter((d) => !d.pendingBatchId || selected.includes(d.id));
-  const fromKho = from?.startsWith('k:') ? from.slice(2) : null;
-  const toKho = to?.startsWith('k:') ? to.slice(2) : null;
-  const group = mode === 'kho' ? 'Kho' : 'Đối tác';
-  // Khuôn đang ở một đối tác: bế / sửa ngay tại đó được (làm khuôn ở Mê Linh, bế luôn ở Mê Linh), không phải chuyển đi đâu
-  const here = mode !== 'kho' && from?.startsWith('x:');
-  const toOptions = places.options
-    .filter((g) => g.label === group)
-    .map((g) => ({
-      ...g,
-      options: g.options
-        .filter((o) => o.value !== from || here)
-        .map((o) => (o.value === from ? { ...o, label: `${o.label} (${mode === 'fix' ? 'sửa' : 'bế'} tại chỗ)` } : o))
-        .sort((a, b) => Number(b.value === from) - Number(a.value === from)),
-    }))
-    .filter((g) => g.options.length);
+  const kho = (key?: string) => (key?.startsWith('k:') ? places.khos.find((k) => k.id === key.slice(2)) : undefined);
+  const fromKho = kho(from)?.ownership === 'AU_VIET' ? from!.slice(2) : null;
+  const toKho = to?.startsWith('k:') && to !== from && kho(to)?.ownership === 'AU_VIET' ? to.slice(2) : null;
+  // Bế / sửa ngay tại kho đang giữ khuôn được (làm khuôn ở Mê Linh, bế luôn ở Mê Linh), không phải chuyển đi đâu
+  const here = mode !== 'kho';
+  // Nhóm "Tại chỗ" đứng đầu (bế / sửa ngay tại kho đang giữ khuôn), rồi các kho khác theo sở hữu
+  const toOptions = [
+    ...(here && from?.startsWith('k:') ? [{ label: 'Tại chỗ', options: [{ value: from, label: `${places.name(from)} (${mode === 'fix' ? 'sửa' : 'bế'} tại chỗ)` }] }] : []),
+    ...places.options.map((g) => ({ ...g, options: g.options.filter((o) => o.value !== from) })),
+  ].filter((g) => g.options.length);
 
   const submit = (v: BatchForm) => {
     const f = v.from ?? presetFrom;
@@ -256,14 +251,12 @@ export function BatchModal({ dies = [], mode, onClose }: { dies?: DieRow[]; mode
     createBatch.mutate(
       {
         date: v.date.format('YYYY-MM-DD'),
-        fromWarehouseId: f.startsWith('k:') ? f.slice(2) : null,
-        fromPartnerId: f.startsWith('x:') ? f.slice(2) : null,
+        fromWarehouseId: f.slice(2),
         toWarehouseId: v.to.startsWith('k:') ? v.to.slice(2) : null,
-        toPartnerId: v.to.startsWith('x:') ? v.to.slice(2) : null,
-        toPartnerName: v.to.startsWith('n:') ? v.to.slice(2).trim() : null,
+        toWarehouseName: v.to.startsWith('n:') ? v.to.slice(2).trim() : null,
         purpose: mode === 'fix' ? 'REPAIR' : mode === 'cut' ? 'CUT' : null,
-        toLocationId: v.toLocationId && !isNew(v.toLocationId) ? v.toLocationId : null,
-        toLocationCode: newName(v.toLocationId) || null,
+        toLocationId: toKho && v.toLocationId && !isNew(v.toLocationId) ? v.toLocationId : null,
+        toLocationCode: (toKho && newName(v.toLocationId)) || null,
         dieIds: selected,
         newDies: lines.map((n) => ({ symbolCode: n.symbolCode!, productName: n.productName!.trim(), size: n.size?.trim() || null })),
         reference: v.reference?.trim() || null,
@@ -281,7 +274,7 @@ export function BatchModal({ dies = [], mode, onClose }: { dies?: DieRow[]; mode
   return (
     <Modal open width={860} title={MODE[mode].title} okText={MODE[mode].ok} cancelText="Đóng" onCancel={() => onClose()} onOk={() => form.submit()} okButtonProps={{ disabled: mixed }} confirmLoading={createBatch.isPending} destroyOnHidden>
       {mixed && <Alert type="error" style={{ marginBottom: 12 }} title="Các khuôn đã chọn đang ở nhiều nơi khác nhau. Mỗi lần chuyển chỉ đi từ một nơi." />}
-      <Form<BatchForm> form={form} layout="vertical" onFinish={submit} initialValues={{ date: dayjs(), from: presetFrom ?? (firstKho ? `k:${firstKho}` : undefined), to: mode !== 'kho' && presetFrom?.startsWith('x:') && dies.every((d) => d.status !== 'IN_USE') ? presetFrom : undefined }}>
+      <Form<BatchForm> form={form} layout="vertical" onFinish={submit} initialValues={{ date: dayjs(), from: presetFrom ?? (firstKho ? `k:${firstKho}` : undefined), to: mode !== 'kho' && preset && dies[0].external && dies.every((d) => d.status !== 'IN_USE') ? presetFrom : undefined }}>
         <Flex wrap gap={12}>
           <Form.Item name="date" label="Ngày" rules={[{ required: true }]}>
             <DatePicker format="DD/MM/YYYY" allowClear={false} disabledDate={(d) => d.isAfter(dayjs(), 'day')} />
@@ -290,19 +283,9 @@ export function BatchModal({ dies = [], mode, onClose }: { dies?: DieRow[]; mode
             <Select id="batch-from" showSearch optionFilterProp="label" disabled={preset} options={places.options} onChange={() => (setSelected([]), form.setFieldValue('newDies', []))} />
           </Form.Item>
           <Form.Item name="to" label={MODE[mode].to} rules={[{ required: true, message: 'Chọn nơi đến' }]} style={{ minWidth: 240 }}>
-            {mode === 'kho' ? (
-              <Select id="batch-to" showSearch optionFilterProp="label" placeholder="Chọn kho" options={toOptions} onChange={() => form.setFieldValue('toLocationId', undefined)} />
-            ) : (
-              <CreatableSelect
-                id="batch-to"
-                newPrefix="n:"
-                addLabel="Thêm đối tác"
-                placeholder="Chọn hoặc gõ tên mới"
-                options={toOptions}
-              />
-            )}
+            <CreatableSelect id="batch-to" newPrefix="n:" addLabel="Thêm kho" placeholder="Chọn kho hoặc gõ tên mới" options={toOptions} onChange={() => form.setFieldValue('toLocationId', undefined)} />
           </Form.Item>
-          {mode === 'kho' && toKho && (
+          {toKho && (
             <Form.Item name="toLocationId" label="Cất ở kệ">
               <CreatableSelect allowClear addLabel="Thêm kệ" style={{ width: 160 }} options={(locations.data ?? []).filter((l) => l.isActive && l.warehouseId === toKho).map((l) => ({ value: l.id, label: l.code }))} />
             </Form.Item>

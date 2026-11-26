@@ -107,7 +107,6 @@ model User {
   whDieBatchesOut   WhDieBatch[]        @relation("DieBatchOutBy")
   whDieBatchesIn    WhDieBatch[]        @relation("DieBatchInBy")
   whDieCounts       WhDieCount[]
-  whWarehouses      WhWarehouseMember[]
   whMonthLocks      WhMonthLock[]
 
   @@index([roleId])
@@ -875,33 +874,6 @@ model Message {
 
 // ───────────── Kho (phân hệ độc lập: không khoá ngoại sang bảng CRM / Kế toán) ─────────────
 
-enum WhPartnerKind {
-  DIE_MAKER // nơi làm khuôn
-  DIE_SHOP // xưởng bế ngoài
-  SUPPLIER // nhà cung cấp giấy, vật tư
-  OTHER
-}
-
-/// Đối tác của Kho: nơi làm khuôn, xưởng bế ngoài, nhà cung cấp. Danh mục riêng, không dùng chung với Kế toán.
-model WhPartner {
-  id        String        @id @default(uuid()) @db.Uuid
-  name      String        @unique
-  kind      WhPartnerKind
-  phone     String?
-  note      String?
-  isActive  Boolean       @default(true)
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
-
-  slips       WhSlip[]
-  diesMade    WhDie[]      @relation("DieMaker")
-  diesHeld    WhDie[]      @relation("DieHolder")
-  dieMoves    WhDieMove[]
-  dieBatches  WhDieBatch[]
-  batchesFrom WhDieBatch[] @relation("DieBatchFromPartner")
-  batchesTo   WhDieBatch[] @relation("DieBatchToPartner")
-}
-
 /// Vị trí lưu trong một kho khuôn (tầng / kệ / ô), ví dụ "T4-K02-O03" hoặc "Tầng 4".
 model WhLocation {
   id          String   @id @default(uuid()) @db.Uuid
@@ -980,19 +952,25 @@ enum WhWarehouseKind {
   DIE // quản lý từng khuôn
 }
 
+enum WhOwnership {
+  AU_VIET // kho của Âu Việt
+  EXTERNAL // kho ngoài: xưởng bế, nơi làm khuôn, nơi gửi hàng
+}
+
 model WhWarehouse {
   id        String          @id @default(uuid()) @db.Uuid
   code      String          @unique // GIAY, BAT, OFFSET… dùng trong số phiếu
   name      String
   address   String?
-  kind      WhWarehouseKind @default(STOCK)
+  kind      WhWarehouseKind @default(STOCK) // cũ, không còn dùng: kho nào cũng giữ được vật tư lẫn khuôn
+  ownership WhOwnership     @default(AU_VIET) // Âu Việt / kho ngoài (xưởng bế, nơi làm khuôn…)
+  phone     String?
   note      String?
   isActive  Boolean         @default(true)
   sortOrder Int             @default(0)
   createdAt DateTime        @default(now())
   updatedAt DateTime        @updatedAt
 
-  members     WhWarehouseMember[]
   materials   WhWarehouseMaterial[]
   stocks      WhStock[]
   slips       WhSlip[]
@@ -1005,17 +983,8 @@ model WhWarehouse {
   batchesFrom WhDieBatch[]          @relation("DieBatchFromWarehouse")
   batchesTo   WhDieBatch[]          @relation("DieBatchToWarehouse")
   batchesCtl  WhDieBatch[]          @relation("DieBatchControl")
-}
-
-/// Thủ kho của kho: xác nhận phiếu nhập / xuất / chuyển của kho này. Kho chưa có thủ kho thì ai có quyền lập phiếu cũng xác nhận được.
-model WhWarehouseMember {
-  warehouseId String @db.Uuid
-  userId      String @db.Uuid
-
-  warehouse WhWarehouse @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
-  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@id([warehouseId, userId])
+  diesMade    WhDie[]               @relation("DieMaker")
+  dieMoves    WhDieMove[]
 }
 
 /// Vật tư nào có ở kho nào (kho – vật tư)
@@ -1088,7 +1057,7 @@ model WhSlip {
   confirmedAt   DateTime?
   confirmedById String?      @db.Uuid
   rejectReason  String?
-  partnerId     String?      @db.Uuid // nhà cung cấp (phiếu nhập)
+  supplierName  String? // nơi lấy hàng (phiếu nhập): chữ ghi thêm, không bắt buộc, không tính tồn
   receiver      String? // người nhận (phiếu xuất)
   purpose       String?
   reference     String? // số lệnh / đơn tham chiếu, gõ tay, không đối chiếu CRM
@@ -1101,7 +1070,6 @@ model WhSlip {
   voidedById    String?      @db.Uuid
 
   warehouse   WhWarehouse  @relation(fields: [warehouseId], references: [id])
-  partner     WhPartner?   @relation(fields: [partnerId], references: [id])
   count       WhCount?     @relation(fields: [countId], references: [id])
   createdBy   User         @relation("WhSlipCreatedBy", fields: [createdById], references: [id])
   voidedBy    User?        @relation("WhSlipVoidedBy", fields: [voidedById], references: [id])
@@ -1238,9 +1206,8 @@ model WhDie {
   makerId        String?        @db.Uuid
   owner          WhDieOwner     @default(AU_VIET)
   status         WhDieStatus    @default(READY)
-  warehouseId    String         @db.Uuid // kho quản lý; khuôn ở kho này khi holderId null
+  warehouseId    String         @db.Uuid // kho đang giữ khuôn (Âu Việt hoặc kho ngoài)
   locationId     String?        @db.Uuid // kệ trong kho
-  holderId       String?        @db.Uuid // xưởng ngoài đang giữ; null = ở kho
   pendingBatchId String?        @db.Uuid // phiếu giao nhận đang chờ xác nhận
   expectedBackOn DateTime?      @db.Date
   costVnd        BigInt?
@@ -1253,8 +1220,7 @@ model WhDie {
   updatedAt      DateTime       @updatedAt
 
   symbol       WhDieSymbol      @relation(fields: [symbolCode], references: [code])
-  maker        WhPartner?       @relation("DieMaker", fields: [makerId], references: [id])
-  holder       WhPartner?       @relation("DieHolder", fields: [holderId], references: [id])
+  maker        WhWarehouse?     @relation("DieMaker", fields: [makerId], references: [id])
   warehouse    WhWarehouse      @relation(fields: [warehouseId], references: [id])
   pendingBatch WhDieBatch?      @relation("DiePending", fields: [pendingBatchId], references: [id], onDelete: SetNull)
   batchItems   WhDieBatchItem[]
@@ -1298,7 +1264,7 @@ model WhDieMove {
   toStatus       WhDieStatus?
   fromPlace      String? // nơi trước thao tác
   place          String? // nơi sau thao tác, dạng chữ để lịch sử không đổi khi danh mục đổi tên
-  partnerId      String?      @db.Uuid
+  warehouseId    String?      @db.Uuid // kho khuôn tới (hoặc đang ở)
   locationId     String?      @db.Uuid
   reference      String? // số lệnh / đơn tham chiếu
   expectedBackOn DateTime?    @db.Date
@@ -1308,7 +1274,7 @@ model WhDieMove {
   createdAt      DateTime     @default(now())
 
   die      WhDie       @relation(fields: [dieId], references: [id], onDelete: Cascade)
-  partner  WhPartner?  @relation(fields: [partnerId], references: [id])
+  warehouse WhWarehouse? @relation(fields: [warehouseId], references: [id])
   location WhLocation? @relation(fields: [locationId], references: [id])
   batch    WhDieBatch? @relation(fields: [batchId], references: [id])
   user     User?       @relation(fields: [userId], references: [id])
@@ -1341,11 +1307,8 @@ model WhDieBatch {
   code               String           @unique // GN-YYMM-NNNN
   kind               WhBatchKind? // phiếu cũ trước khi có xác nhận
   date               DateTime         @db.Date
-  partnerId          String?          @db.Uuid // phiếu cũ
   fromWarehouseId    String?          @db.Uuid
-  fromPartnerId      String?          @db.Uuid
   toWarehouseId      String?          @db.Uuid
-  toPartnerId        String?          @db.Uuid
   toLocationId       String?          @db.Uuid // kệ đề xuất khi nhận
   controlWarehouseId String?          @db.Uuid // kho có thủ kho xác nhận xuất
   status             WhDieBatchStatus @default(OPEN)
@@ -1363,11 +1326,8 @@ model WhDieBatch {
   createdById        String           @db.Uuid
   createdAt          DateTime         @default(now())
 
-  partner       WhPartner?       @relation(fields: [partnerId], references: [id])
   fromWarehouse WhWarehouse?     @relation("DieBatchFromWarehouse", fields: [fromWarehouseId], references: [id])
-  fromPartner   WhPartner?       @relation("DieBatchFromPartner", fields: [fromPartnerId], references: [id])
   toWarehouse   WhWarehouse?     @relation("DieBatchToWarehouse", fields: [toWarehouseId], references: [id])
-  toPartner     WhPartner?       @relation("DieBatchToPartner", fields: [toPartnerId], references: [id])
   toLocation    WhLocation?      @relation(fields: [toLocationId], references: [id])
   control       WhWarehouse?     @relation("DieBatchControl", fields: [controlWarehouseId], references: [id])
   outBy         User?            @relation("DieBatchOutBy", fields: [outById], references: [id])

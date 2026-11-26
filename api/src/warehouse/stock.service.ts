@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger, type OnApplicationBootstrap } from '@nestjs/common';
 import type { AuthUser } from '../auth/auth.types';
 import { DomainError } from '../common/errors/domain-error';
 import { formatDateOnly, todayInZone } from '../common/utils/dates';
@@ -24,11 +24,10 @@ import type {
   TransferInputDto,
 } from './warehouse.dto';
 import { WarehousesService } from './warehouses.service';
-import { canConfirmIn, itemLabel, n, nn, partnerIdOrCreate } from './wh-common';
+import { itemLabel, n, nn, warehouseIdOrCreate } from './wh-common';
 
 const slipInclude = {
-  warehouse: { include: { members: true } },
-  partner: { select: { name: true } },
+  warehouse: true,
   createdBy: { select: { fullName: true } },
   confirmedBy: { select: { fullName: true } },
   lines: { include: { spec: { include: { material: true } } } },
@@ -46,11 +45,13 @@ type ResolvedLine = { specId: string; qty: number; unitName: string | null; unit
 
 /**
  * Tồn theo kho và quy cách, phiếu nhập / xuất / nhập lại / chuyển kho / điều chỉnh, thẻ kho, kiểm kê, báo cáo.
- * Phiếu lập xong ở trạng thái chờ xác nhận; tồn chỉ đổi khi thủ kho của kho xác nhận. Tồn không bao giờ âm.
- * Không tạo bút toán, không phụ thuộc kỳ kế toán.
+ * Không có thủ kho: phiếu có hiệu lực ngay khi lưu (chuyển kho: hàng rời kho đi và vào kho nhận cùng lúc).
+ * Tồn không bao giờ âm. Không tạo bút toán, không phụ thuộc kỳ kế toán.
  */
 @Injectable()
-export class StockService {
+export class StockService implements OnApplicationBootstrap {
+  private readonly log = new Logger(StockService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly numbering: NumberingService,
@@ -60,6 +61,37 @@ export class StockService {
 
   today(): string {
     return todayInZone(this.env.APP_TIMEZONE);
+  }
+
+  /**
+   * Phiếu còn chờ xác nhận từ trước khi bỏ thủ kho: cho hiệu lực luôn (theo thứ tự lập).
+   * Phiếu nào làm tồn âm thì huỷ, ghi lý do.
+   */
+  async onApplicationBootstrap(): Promise<void> {
+    try {
+      await this.settleLegacyPending();
+    } catch (e) {
+      this.log.error(`Could not settle pending slips: ${(e as Error).message}`);
+    }
+  }
+
+  async settleLegacyPending(): Promise<number> {
+    const pending = await this.prisma.whSlip.findMany({ where: { status: 'PENDING' }, orderBy: [{ createdAt: 'asc' }], select: { id: true, kind: true, transferId: true, createdById: true } });
+    let done = 0;
+    // phía đi của phiếu chuyển trước phía đến
+    pending.sort((a, b) => Number(a.kind === 'TRANSFER_IN') - Number(b.kind === 'TRANSFER_IN'));
+    for (const p of pending) {
+      try {
+        await this.prisma.$transaction((tx) => this.apply(tx, p.id, p.createdById));
+        done++;
+      } catch (e) {
+        if (!(e instanceof DomainError)) throw e;
+        const ids = p.transferId ? (await this.prisma.whSlip.findMany({ where: { transferId: p.transferId, status: 'PENDING' }, select: { id: true } })).map((x) => x.id) : [p.id];
+        await this.prisma.whSlip.updateMany({ where: { id: { in: ids }, status: 'PENDING' }, data: { status: 'CANCELLED', rejectReason: `Huỷ khi bỏ bước xác nhận: ${e.message}` } });
+      }
+    }
+    if (pending.length) this.log.log(`Settled ${done} of ${pending.length} pending slips`);
+    return done;
   }
 
   // ───────────── Tồn ─────────────
@@ -96,7 +128,8 @@ export class StockService {
         SELECT s."warehouseId", l."specId", SUM(l."qty")::float8 AS qty
         FROM "WhSlipLine" l JOIN "WhSlip" s ON s."id" = l."slipId"
         WHERE s."status" = 'PENDING' AND s."kind" IN ('ISSUE', 'TRANSFER_OUT')
-        GROUP BY s."warehouseId", l."specId"`,
+        GROUP BY s."warehouseId", l."specId"`, // chỉ còn phiếu cũ chưa xử lý
+
     ]);
     return rows.map((st) => this.itemDto(st, prices, pending));
   }
@@ -169,7 +202,7 @@ export class StockService {
         { reference: { contains: t, mode: 'insensitive' } },
         { receiver: { contains: t, mode: 'insensitive' } },
         { purpose: { contains: t, mode: 'insensitive' } },
-        { partner: { name: { contains: t, mode: 'insensitive' } } },
+        { supplierName: { contains: t, mode: 'insensitive' } },
       ];
     }
     const rows = await this.prisma.whSlip.findMany({ where, include: slipInclude, orderBy: [{ date: 'desc' }, { createdAt: 'desc' }], take: 500 });
@@ -237,14 +270,13 @@ export class StockService {
     const id = await this.prisma.$transaction(async (tx) => {
       const w = await this.warehouses.stockWarehouse(tx, dto.warehouseId);
       const lines = await this.resolveLines(tx, w.id, dto.lines, dto.kind === 'RECEIPT');
-      const partnerId = dto.kind === 'RECEIPT' ? await partnerIdOrCreate(tx, dto.partnerId, dto.partnerName, 'SUPPLIER') : null;
       const slip = await tx.whSlip.create({
         data: {
           code: await this.numbering.nextWarehouse(tx, PREFIX[dto.kind], w.code, dateField(dto.date, 'date')),
           warehouseId: w.id,
           kind: dto.kind,
           date: dateField(dto.date, 'date'),
-          partnerId,
+          supplierName: dto.kind === 'RECEIPT' ? (cleanText(dto.supplierName)?.replace(/\s+/g, ' ') ?? null) : null,
           receiver: cleanText(dto.receiver),
           purpose: cleanText(dto.purpose),
           reference: cleanText(dto.reference),
@@ -253,7 +285,7 @@ export class StockService {
           lines: { create: lines },
         },
       });
-      if (dto.confirm && this.warehouses.canConfirm(actor, w)) await this.confirmIn(tx, slip.id, actor);
+      await this.apply(tx, slip.id, actor.id);
       return slip.id;
     });
     return this.slip(id, actor);
@@ -261,10 +293,12 @@ export class StockService {
 
   /** Phiếu chuyển kho: một phiếu đi (kho A) và một phiếu đến (kho B), chung transferId */
   async createTransfer(dto: TransferInputDto, actor: AuthUser): Promise<SlipDto> {
-    if (dto.fromWarehouseId === dto.toWarehouseId) throw DomainError.badRequest('WH_TRANSFER_SAME', 'Choose two different warehouses');
     const id = await this.prisma.$transaction(async (tx) => {
+      const toId = await warehouseIdOrCreate(tx, dto.toWarehouseId, dto.toWarehouseName);
+      if (!toId) throw DomainError.badRequest('WH_TRANSFER_TO_REQUIRED', 'Choose the receiving warehouse');
+      if (dto.fromWarehouseId === toId) throw DomainError.badRequest('WH_TRANSFER_SAME', 'Choose two different warehouses');
       const from = await this.warehouses.stockWarehouse(tx, dto.fromWarehouseId);
-      const to = await this.warehouses.stockWarehouse(tx, dto.toWarehouseId);
+      const to = await this.warehouses.stockWarehouse(tx, toId);
       const lines = await this.resolveLines(tx, from.id, dto.lines, false);
       // Kho nhận chưa có vật tư thì thêm vào (kho – vật tư và dòng tồn)
       const specs = await tx.whSpec.findMany({ where: { id: { in: lines.map((l) => l.specId) } } });
@@ -289,7 +323,7 @@ export class StockService {
           lines: { create: lines },
         },
       });
-      await tx.whSlip.create({
+      const inn = await tx.whSlip.create({
         data: {
           ...common,
           code: await this.numbering.nextWarehouse(tx, 'CK', to.code, date),
@@ -299,67 +333,21 @@ export class StockService {
           lines: { create: lines },
         },
       });
-      if (dto.confirm && this.warehouses.canConfirm(actor, from)) await this.confirmIn(tx, out.id, actor);
+      await this.apply(tx, out.id, actor.id);
+      await this.apply(tx, inn.id, actor.id);
       return out.id;
     });
     return this.slip(id, actor);
   }
 
-  async confirmSlip(id: string, actor: AuthUser): Promise<SlipDto> {
-    await this.prisma.$transaction((tx) => this.confirmIn(tx, id, actor));
-    return this.slip(id, actor);
-  }
-
-  /** Thủ kho xác nhận: tồn thay đổi tại đây */
-  private async confirmIn(tx: Tx, id: string, actor: AuthUser): Promise<void> {
-    const s = await tx.whSlip.findUnique({ where: { id }, include: { warehouse: { include: { members: true } }, lines: { include: { spec: { include: { material: true } } } } } });
+  /** Cho phiếu hiệu lực: đổi tồn. Gọi ngay khi lập phiếu (và cho phiếu cũ còn chờ) */
+  async apply(tx: Tx, id: string, byId: string): Promise<void> {
+    const s = await tx.whSlip.findUnique({ where: { id }, include: { lines: { include: { spec: { include: { material: true } } } } } });
     if (!s) throw DomainError.notFound('WhSlip', id);
-    if (s.status !== 'PENDING') throw DomainError.conflict('WH_SLIP_NOT_PENDING', 'This slip is no longer waiting for confirmation');
-    if (!this.warehouses.canConfirm(actor, s.warehouse)) throw DomainError.forbidden('WH_NOT_KEEPER', 'Only the storekeeper of this warehouse can confirm');
-    if (s.kind === 'TRANSFER_IN') {
-      const out = await tx.whSlip.findFirst({ where: { transferId: s.transferId, kind: 'TRANSFER_OUT' } });
-      if (out?.status !== 'CONFIRMED') throw DomainError.conflict('WH_TRANSFER_NOT_SENT', 'The sending warehouse has not confirmed this transfer yet');
-    }
-    // Chiếm quyền xác nhận trước khi đổi tồn: hai người bấm cùng lúc chỉ một người được
-    const claimed = await tx.whSlip.updateMany({ where: { id, status: 'PENDING' }, data: { status: 'CONFIRMED', confirmedAt: new Date(), confirmedById: actor.id } });
-    if (!claimed.count) throw DomainError.conflict('WH_SLIP_NOT_PENDING', 'This slip is no longer waiting for confirmation');
+    // Chiếm phiếu trước khi đổi tồn: chạy hai lần cùng lúc chỉ một lần có tác dụng
+    const claimed = await tx.whSlip.updateMany({ where: { id, status: 'PENDING' }, data: { status: 'CONFIRMED', confirmedAt: new Date(), confirmedById: byId } });
+    if (!claimed.count) throw DomainError.conflict('WH_SLIP_NOT_PENDING', 'This slip has already taken effect');
     for (const l of s.lines) await this.applyQty(tx, s.warehouseId, l.specId, SIGN[s.kind] * n(l.qty), l.spec);
-  }
-
-  async rejectSlip(id: string, reason: string, actor: AuthUser): Promise<SlipDto> {
-    await this.prisma.$transaction(async (tx) => {
-      const s = await tx.whSlip.findUnique({ where: { id }, include: { warehouse: { include: { members: true } } } });
-      if (!s) throw DomainError.notFound('WhSlip', id);
-      if (s.status !== 'PENDING') throw DomainError.conflict('WH_SLIP_NOT_PENDING', 'This slip is no longer waiting for confirmation');
-      if (!this.warehouses.canConfirm(actor, s.warehouse)) throw DomainError.forbidden('WH_NOT_KEEPER', 'Only the storekeeper of this warehouse can reject');
-      const ids = await this.transferIdsForClose(tx, s);
-      await tx.whSlip.updateMany({ where: { id: { in: ids }, status: 'PENDING' }, data: { status: 'REJECTED', rejectReason: reason.trim(), confirmedAt: new Date(), confirmedById: actor.id } });
-    });
-    return this.slip(id, actor);
-  }
-
-  async cancelSlip(id: string, actor: AuthUser): Promise<SlipDto> {
-    await this.prisma.$transaction(async (tx) => {
-      const s = await tx.whSlip.findUnique({ where: { id }, include: { warehouse: { include: { members: true } } } });
-      if (!s) throw DomainError.notFound('WhSlip', id);
-      if (s.status !== 'PENDING') throw DomainError.conflict('WH_SLIP_NOT_PENDING', 'Only slips waiting for confirmation can be cancelled');
-      if (s.createdById !== actor.id && !this.warehouses.canConfirm(actor, s.warehouse)) {
-        throw DomainError.forbidden('WH_NOT_OWNER', 'Only the person who made the slip, or the storekeeper, can cancel it');
-      }
-      const ids = await this.transferIdsForClose(tx, s);
-      await tx.whSlip.updateMany({ where: { id: { in: ids }, status: 'PENDING' }, data: { status: 'CANCELLED' } });
-    });
-    return this.slip(id, actor);
-  }
-
-  /** Closing one side of a transfer closes both, as long as nothing has left the sending warehouse */
-  private async transferIdsForClose(tx: Tx, s: { id: string; transferId: string | null }): Promise<string[]> {
-    if (!s.transferId) return [s.id];
-    const pair = await tx.whSlip.findMany({ where: { transferId: s.transferId } });
-    if (pair.some((p) => p.kind === 'TRANSFER_OUT' && p.status === 'CONFIRMED')) {
-      throw DomainError.conflict('WH_TRANSFER_SENT', 'The goods have left the sending warehouse; the sending storekeeper can void the transfer instead');
-    }
-    return pair.map((p) => p.id);
   }
 
   /** Changes on-hand quantity atomically; refuses to go below zero */
@@ -380,14 +368,19 @@ export class StockService {
     }
   }
 
-  /** Huỷ phiếu đã xác nhận: trả lại tồn. Phiếu chuyển kho huỷ cả hai phía. */
+  /** Người lập phiếu, hoặc người có quyền quản lý kho, được huỷ phiếu */
+  private canVoid(actor: AuthUser, s: { createdById: string }): boolean {
+    return actor.isAdmin || actor.permissions.has('warehouse.manage') || s.createdById === actor.id;
+  }
+
+  /** Huỷ phiếu: trả lại tồn. Phiếu chuyển kho huỷ cả hai phía. */
   async voidSlip(id: string, reason: string, actor: AuthUser): Promise<SlipDto> {
     await this.prisma.$transaction(async (tx) => {
-      const s = await tx.whSlip.findUnique({ where: { id }, include: { warehouse: { include: { members: true } } } });
+      const s = await tx.whSlip.findUnique({ where: { id } });
       if (!s) throw DomainError.notFound('WhSlip', id);
       if (s.voidedAt) throw DomainError.conflict('WH_SLIP_VOIDED', 'This slip is already void');
-      if (s.status !== 'CONFIRMED') throw DomainError.conflict('WH_SLIP_NOT_CONFIRMED', 'Only confirmed slips can be voided; cancel or reject the others');
-      if (!this.warehouses.canConfirm(actor, s.warehouse)) throw DomainError.forbidden('WH_NOT_KEEPER', 'Only the storekeeper of this warehouse can void');
+      if (s.status !== 'CONFIRMED') throw DomainError.conflict('WH_SLIP_NOT_CONFIRMED', 'This slip never took effect');
+      if (!this.canVoid(actor, s)) throw DomainError.forbidden('WH_NOT_OWNER', 'Only the person who made the slip, or a warehouse manager, can void it');
       const all = s.transferId ? await tx.whSlip.findMany({ where: { transferId: s.transferId } }) : [s];
       // Phía nhận trước (lấy hàng ra khỏi kho nhận), rồi trả về kho đi
       all.sort((a) => (a.kind === 'TRANSFER_IN' ? -1 : 1));
@@ -418,7 +411,7 @@ export class StockService {
     const item = (await this.items(st.warehouseId, true)).find((i) => i.id === stockId)!;
     const lines = await this.prisma.whSlipLine.findMany({
       where: { specId: st.specId, slip: { warehouseId: st.warehouseId, status: 'CONFIRMED', voidedAt: null } },
-      include: { slip: { include: { partner: { select: { name: true } } } } },
+      include: { slip: true },
       orderBy: [{ slip: { date: 'asc' } }, { slip: { confirmedAt: 'asc' } }],
     });
     let balance = 0;
@@ -430,7 +423,7 @@ export class StockService {
         slipId: l.slipId,
         code: l.slip.code,
         kind: l.slip.kind,
-        partyText: l.slip.partner?.name ?? l.slip.receiver ?? l.slip.purpose,
+        partyText: l.slip.supplierName ?? l.slip.receiver ?? l.slip.purpose,
         reference: l.slip.reference,
         inQty: signed > 0 ? signed : 0,
         outQty: signed < 0 ? -signed : 0,
@@ -441,8 +434,6 @@ export class StockService {
   }
 
   private slipDto(s: SlipRow, actor: AuthUser, other: SlipRow | null): SlipDto {
-    const canConfirm = s.status === 'PENDING' && canConfirmIn(actor, s.warehouse.members.map((m) => m.userId))
-      && !(s.kind === 'TRANSFER_IN' && other?.status !== 'CONFIRMED');
     return {
       id: s.id,
       code: s.code,
@@ -452,8 +443,7 @@ export class StockService {
       kind: s.kind,
       status: s.status,
       date: formatDateOnly(s.date)!,
-      partnerId: s.partnerId,
-      partnerName: s.partner?.name ?? null,
+      supplierName: s.supplierName,
       receiver: s.receiver,
       purpose: s.purpose,
       reference: s.reference,
@@ -469,9 +459,7 @@ export class StockService {
       counterpart: other
         ? { id: other.id, code: other.code, warehouseId: other.warehouseId, warehouseCode: other.warehouse.code, warehouseName: other.warehouse.name, status: other.status }
         : null,
-      canConfirm,
-      canCancel: s.status === 'PENDING' && (s.createdById === actor.id || canConfirmIn(actor, s.warehouse.members.map((m) => m.userId)))
-        && !(s.transferId && (s.kind === 'TRANSFER_IN' ? other?.status === 'CONFIRMED' : false)),
+      canVoid: s.status === 'CONFIRMED' && !s.voidedAt && this.canVoid(actor, s),
       lines: s.lines.map((l) => ({
         id: l.id,
         specId: l.specId,

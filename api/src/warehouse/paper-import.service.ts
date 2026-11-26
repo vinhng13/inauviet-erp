@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import type { AuthUser } from '../auth/auth.types';
 import { DomainError } from '../common/errors/domain-error';
 import { dateField } from '../common/utils/input';
+import { StockService } from './stock.service';
 import { NumberingService } from '../numbering/numbering.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { fmtCm, parseSheetSize } from './die-rules';
@@ -43,7 +44,7 @@ interface Row {
  * Nhập tồn vật tư từ Excel vào một kho do người dùng chọn (mặc định Kho giấy). Đọc được bảng "THEO DÕI GIẤY TỒN"
  * (Mã VT, Loại giấy, Khổ giấy, TỒN) và bảng vật tư chung (Tên vật tư, Nhóm, Khổ / Quy cách, ĐVT, TỒN).
  * Vật tư tìm theo tên trong danh mục chung (không đổi đơn vị của vật tư đã có); chưa có thì tạo với ĐVT trong file
- * (trống = tờ). Rồi lập một phiếu điều chỉnh (chờ xác nhận) ở kho đã chọn, đưa tồn từng
+ * (trống = tờ). Rồi lập một phiếu điều chỉnh ở kho đã chọn (có hiệu lực ngay), đưa tồn từng
  * quy cách về đúng số trong bảng: dòng = số trong bảng − tồn đã xác nhận. Lần đầu là phiếu "Tồn đầu". Chạy lại với bảng mới:
  * phiếu theo bảng trước còn chờ thì bị thay thế; đã xác nhận rồi thì phiếu mới chỉ ghi phần chênh. Dòng chưa có số tồn
  * (chưa đếm) chỉ tạo quy cách, không đổi tồn; quy cách có tồn trên phần mềm mà không có trong bảng thì giữ nguyên.
@@ -53,6 +54,7 @@ export class PaperImportService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly numbering: NumberingService,
+    private readonly stock: StockService,
   ) {}
 
   async run(buf: Buffer | undefined, dryRun: boolean, actor: AuthUser, today: string, warehouse?: string): Promise<PaperImportReportDto> {
@@ -278,11 +280,13 @@ export class PaperImportService {
             status: 'PENDING',
             date,
             purpose: anyConfirmed ? 'Điều chỉnh theo bảng tồn vật tư' : 'Tồn đầu',
-            note: `${NOTE_PREFIX} "${sheetName}": đưa tồn về đúng số trong bảng. Thủ kho xem lại rồi xác nhận.`,
+            note: `${NOTE_PREFIX} "${sheetName}": đưa tồn về đúng số trong bảng.`,
             createdById: actor.id,
             lines: { create: lines },
           },
         });
+        // Có hiệu lực ngay như mọi phiếu
+        await this.stock.apply(tx, slip.id, actor.id);
         report.slipCode = slip.code;
       },
       { timeout: 60_000 },

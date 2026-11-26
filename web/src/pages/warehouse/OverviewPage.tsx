@@ -8,7 +8,7 @@ import { formatDate } from '../../lib/format';
 import { DieStatusTag, PageHead, qty, SLIP, STATUS, type DieStatus } from './common';
 import { pager } from '../../lib/paging';
 
-/** Tổng quan kho: vật tư dưới mức tối thiểu, khuôn đang ở đâu, đang làm, chờ kiểm, cần xác nhận */
+/** Tổng quan kho: kho Âu Việt và kho ngoài đang giữ hàng, vật tư dưới mức tối thiểu, khuôn đang ở đâu, đang làm, chờ kiểm */
 export function WarehouseOverviewPage() {
   const { data, isLoading, error } = useWhOverview();
   const navigate = useNavigate();
@@ -23,96 +23,73 @@ export function WarehouseOverviewPage() {
   return (
     <Flex vertical gap={16}>
       <PageHead title="Tổng quan kho" />
-      <Row gutter={[12, 12]}>
-        {data.warehouses.map((w) => (
-          <Col key={w.id} xs={12} md={6}>
-            <Card size="small" hoverable onClick={() => navigate(w.dies > 0 && w.materials === 0 ? `/warehouse/dies?place=k:${w.id}` : `/warehouse/stock?kho=${w.code}`)}>
-              <Typography.Text strong>{w.name}</Typography.Text>
-              <div style={{ fontSize: 12, opacity: 0.75 }}>Thủ kho: {w.keepers.map((k) => k.fullName).join(', ') || 'chưa chỉ định'}</div>
-              <Flex gap={6} wrap style={{ marginTop: 6 }}>
-                {w.materials > 0 && <Tag>{w.materials} vật tư</Tag>}
-                {w.dies > 0 && <Tag>{w.dies} khuôn trong kho</Tag>}
-                {w.pending > 0 && <Tag color="gold">{w.pending} phiếu chờ xác nhận</Tag>}
-                {w.low > 0 && <Tag color="red">{w.low} dưới tối thiểu</Tag>}
-                {w.materials === 0 && w.dies === 0 && <Tag>Chưa có hàng</Tag>}
-              </Flex>
-            </Card>
-          </Col>
-        ))}
-      </Row>
-      {(data.toConfirm.length > 0 || data.inTransit.length > 0 || data.dieToConfirm.length > 0 || data.dieInTransit.length > 0) && (
+      {(['AU_VIET', 'EXTERNAL'] as const).map((o) => {
+        // Kho Âu Việt luôn hiện; kho ngoài chỉ hiện khi đang có hàng
+        const list = data.warehouses.filter((w) => w.isActive && w.ownership === o && (o === 'AU_VIET' || w.materials > 0 || w.dies > 0));
+        if (!list.length) return null;
+        return (
+          <Flex key={o} vertical gap={8}>
+            <Typography.Text strong>{o === 'AU_VIET' ? 'Kho Âu Việt' : 'Kho ngoài đang giữ hàng'}</Typography.Text>
+            <Row gutter={[12, 12]}>
+              {list.map((w) => (
+                <Col key={w.id} xs={12} md={6}>
+                  <Card size="small" hoverable onClick={() => navigate(w.dies > 0 && w.materials === 0 ? `/warehouse/dies?place=k:${w.id}` : `/warehouse/stock?kho=${w.code}`)}>
+                    <Typography.Text strong>{w.name}</Typography.Text>
+                    {w.address && <div style={{ fontSize: 12, opacity: 0.75 }}>{w.address}</div>}
+                    <Flex gap={6} wrap style={{ marginTop: 6 }}>
+                      {w.materials > 0 && <Tag>{w.materials} vật tư</Tag>}
+                      {w.dies > 0 && <Tag>{w.dies} khuôn</Tag>}
+                      {w.low > 0 && <Tag color="red">{w.low} dưới tối thiểu</Tag>}
+                      {w.materials === 0 && w.dies === 0 && <Tag>Chưa có hàng</Tag>}
+                    </Flex>
+                  </Card>
+                </Col>
+              ))}
+            </Row>
+          </Flex>
+        );
+      })}
+      {(data.dieToConfirm.length > 0 || data.dieInTransit.length > 0) && (
         <Row gutter={[16, 16]}>
-          {data.toConfirm.length + data.dieToConfirm.length > 0 && (
+          {data.dieToConfirm.length > 0 && (
             <Col xs={24} lg={12}>
-              <Card size="small" title={`Phiếu chờ bạn xác nhận (${data.toConfirm.length + data.dieToConfirm.length})`}>
-                {data.dieToConfirm.length > 0 && (
-                  <List
-                    size="small"
-                    dataSource={data.dieToConfirm}
-                    renderItem={(b) => (
-                      <List.Item
-                        extra={
-                          <Link style={{ marginInlineStart: 12 }} to={`/warehouse/dies?view=moves&open=${b.id}`}>
-                            Mở
-                          </Link>
-                        }
-                      >
-                        <Tag color="volcano">Khuôn</Tag> {b.code} · {b.fromName} → {b.toName} · {b.dies.map((d) => d.code).join(', ')}
-                      </List.Item>
-                    )}
-                  />
-                )}
-                {data.toConfirm.length > 0 && (
-                  <List
-                    size="small"
-                    dataSource={data.toConfirm}
-                    renderItem={(s) => (
-                      <List.Item
-                        extra={
-                          <Link style={{ marginInlineStart: 12 }} to={`/warehouse/stock?kho=${s.warehouseCode}&tab=pending`}>
-                            Mở
-                          </Link>
-                        }
-                      >
-                        <Tag color={SLIP[s.kind].color}>{SLIP[s.kind].label}</Tag> {s.code} · {s.warehouseName} · {s.createdBy}
-                      </List.Item>
-                    )}
-                  />
-                )}
+              <Card size="small" title={`Phiếu khuôn cũ còn chờ xác nhận (${data.dieToConfirm.length})`}>
+                <List
+                  size="small"
+                  dataSource={data.dieToConfirm}
+                  renderItem={(b) => (
+                    <List.Item
+                      extra={
+                        <Link style={{ marginInlineStart: 12 }} to={`/warehouse/dies?view=moves&open=${b.id}`}>
+                          Mở
+                        </Link>
+                      }
+                    >
+                      <Tag color="volcano">Khuôn</Tag> {b.code} · {b.fromName} → {b.toName} · {b.dies.map((d) => d.code).join(', ')}
+                    </List.Item>
+                  )}
+                />
               </Card>
             </Col>
           )}
-          {data.inTransit.length + data.dieInTransit.length > 0 && (
+          {data.dieInTransit.length > 0 && (
             <Col xs={24} lg={12}>
-              <Card size="small" title={`Hàng đang chuyển giữa các kho (${data.inTransit.length + data.dieInTransit.length})`}>
-                {data.dieInTransit.length > 0 && (
-                  <List
-                    size="small"
-                    dataSource={data.dieInTransit}
-                    renderItem={(b) => (
-                      <List.Item
-                        extra={
-                          <Link style={{ marginInlineStart: 12 }} to={`/warehouse/dies?view=moves&open=${b.id}`}>
-                            Mở
-                          </Link>
-                        }
-                      >
-                        Khuôn · {b.fromName} → {b.toName} · {b.dies.map((d) => d.code).join(', ')}
-                      </List.Item>
-                    )}
-                  />
-                )}
-                {data.inTransit.length > 0 && (
-                  <List
-                    size="small"
-                    dataSource={data.inTransit}
-                    renderItem={(s) => (
-                      <List.Item>
-                        {s.counterpart?.warehouseName} → {s.warehouseName} · {s.code} · {s.lines.map((l) => `${l.label} ${qty(l.qty)}`).join(', ')}
-                      </List.Item>
-                    )}
-                  />
-                )}
+              <Card size="small" title={`Khuôn đang chuyển (phiếu cũ) (${data.dieInTransit.length})`}>
+                <List
+                  size="small"
+                  dataSource={data.dieInTransit}
+                  renderItem={(b) => (
+                    <List.Item
+                      extra={
+                        <Link style={{ marginInlineStart: 12 }} to={`/warehouse/dies?view=moves&open=${b.id}`}>
+                          Mở
+                        </Link>
+                      }
+                    >
+                      Khuôn · {b.fromName} → {b.toName} · {b.dies.map((d) => d.code).join(', ')}
+                    </List.Item>
+                  )}
+                />
               </Card>
             </Col>
           )}
@@ -120,9 +97,9 @@ export function WarehouseOverviewPage() {
       )}
       <Flex wrap gap={6} align="center">
         <Typography.Text strong>Khuôn theo nơi:</Typography.Text>
-        {data.diePlaces.map((p) => (
+        {data.diePlaces.filter((p) => p.ownership === 'AU_VIET' || p.dies > 0).map((p) => (
           <Link key={p.key} to={`/warehouse/dies?place=${p.key}`}>
-            <Tag color={p.kind === 'KHO' ? 'green' : 'blue'}>
+            <Tag color={p.ownership === 'AU_VIET' ? 'green' : 'orange'}>
               {p.name}: {p.dies}
             </Tag>
           </Link>
@@ -167,15 +144,15 @@ export function WarehouseOverviewPage() {
       </Flex>
       <Row gutter={[16, 16]}>
         <Col xs={24} lg={12}>
-          <Card size="small" title="Khuôn đang ở ngoài (xưởng bế, nơi làm khuôn)">
+          <Card size="small" title="Khuôn đang ở kho ngoài (xưởng bế, nơi làm khuôn...)">
             <Table
-              rowKey="holderId"
+              rowKey="warehouseId"
               size="small"
               pagination={false}
-              dataSource={data.atPartners}
-              locale={{ emptyText: 'Không có khuôn nào ở ngoài' }}
+              dataSource={data.outside}
+              locale={{ emptyText: 'Không có khuôn nào ở kho ngoài' }}
               columns={[
-                { title: 'Nơi', dataIndex: 'name', render: (v: string, r) => <Link to={`/warehouse/dies?place=x:${r.holderId}`}>{v}</Link> },
+                { title: 'Kho', dataIndex: 'name', render: (v: string, r) => <Link to={`/warehouse/dies?place=k:${r.warehouseId}`}>{v}</Link> },
                 { title: 'Số khuôn', key: 'n', align: 'right', width: 100, render: (_, r) => r.inUse + r.kept },
               ]}
             />
@@ -230,7 +207,7 @@ export function WarehouseOverviewPage() {
                 { title: 'Loại', dataIndex: 'kind', width: 110, render: (k: keyof typeof SLIP) => <Tag color={SLIP[k].color}>{SLIP[k].label}</Tag> },
                 { title: 'Kho', dataIndex: 'warehouseCode', width: 90 },
                 { title: 'Vật tư', key: 'l', ellipsis: true, render: (_, r) => r.lines.map((l) => `${l.label} ${qty(l.qty)}`).join(', ') },
-                { title: 'Người nhận / NCC', key: 'p', width: 180, render: (_, r) => r.receiver ?? r.partnerName ?? '' },
+                { title: 'Người nhận / nơi lấy hàng', key: 'p', width: 180, render: (_, r) => r.receiver ?? r.supplierName ?? '' },
               ]}
             />
           </Card>

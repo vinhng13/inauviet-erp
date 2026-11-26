@@ -3,21 +3,21 @@ import { excelDate } from './xlsx-reader';
 
 describe('die rules', () => {
   it('only allows in-place actions that fit the status and where the die is', () => {
-    expect(allowedActions('MAKING', true, false)).toEqual(['PASS', 'DEFECT']); // kiểm tra tại nơi làm khuôn
-    expect(allowedActions('DEFECT', true, false)).toEqual(['PASS']); // làm lại xong, kiểm tra lại
-    expect(allowedActions('READY', false, false)).toEqual(['DEFECT', 'DISPOSE', 'MOVE']);
-    expect(allowedActions('IN_USE', true, false)).toEqual(['DEFECT']);
-    expect(allowedActions('READY', false, true)).toEqual([]);
-    expect(allowedActions('DISPOSED', false, false)).toEqual([]);
+    expect(allowedActions('MAKING', false)).toEqual(['PASS', 'DEFECT']); // kiểm tra tại nơi làm khuôn
+    expect(allowedActions('DEFECT', false)).toEqual(['PASS', 'DISPOSE', 'MOVE']); // làm lại xong, kiểm tra lại
+    expect(allowedActions('READY', false)).toEqual(['DEFECT', 'DISPOSE', 'MOVE']);
+    expect(allowedActions('IN_USE', false)).toEqual(['DEFECT']);
+    expect(allowedActions('READY', true)).toEqual([]);
+    expect(allowedActions('DISPOSED', false)).toEqual([]);
     expect(TRANSITIONS.PASS.to).toBe('READY');
   });
 
   it('sets the status from where a die is moved to', () => {
-    expect(statusAfterMove('READY', { toKho: false, repair: false })).toBe('IN_USE'); // bế khuôn
-    expect(statusAfterMove('IN_USE', { toKho: true, repair: false })).toBe('READY'); // bế xong về kho
-    expect(statusAfterMove('READY', { toKho: true, repair: false })).toBe('READY'); // kho → kho
-    expect(statusAfterMove('DEFECT', { toKho: false, repair: true })).toBe('REPAIRING'); // gửi sửa
-    expect(statusAfterMove('MAKING', { toKho: false, repair: true })).toBe('MAKING');
+    expect(statusAfterMove('READY', 'CUT')).toBe('IN_USE'); // bế khuôn
+    expect(statusAfterMove('IN_USE', null)).toBe('READY'); // bế xong về kho
+    expect(statusAfterMove('READY', null)).toBe('READY'); // kho → kho
+    expect(statusAfterMove('DEFECT', 'REPAIR')).toBe('REPAIRING'); // gửi sửa
+    expect(statusAfterMove('MAKING', 'REPAIR')).toBe('MAKING');
   });
 
   it('finds dies by size in any order within tolerance', () => {

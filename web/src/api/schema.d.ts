@@ -1782,24 +1782,8 @@ export interface paths {
         };
         get: operations["Warehouse_warehouseList"];
         put?: never;
+        /** Thêm kho: người lập phiếu kho hoặc phiếu khuôn cũng thêm được (sửa kho thì cần quyền quản lý kho) */
         post: operations["Warehouse_createWarehouse"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/warehouse/people": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Người dùng để chọn làm thủ kho */
-        get: operations["Warehouse_people"];
-        put?: never;
-        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1822,31 +1806,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/warehouse/partners": {
+    "/api/v1/warehouse/people": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["Warehouse_partners"];
+        get: operations["Warehouse_people"];
         put?: never;
-        post: operations["Warehouse_createPartner"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/warehouse/partners/{id}": {
+    "/api/v1/warehouse/suppliers": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
-        put: operations["Warehouse_updatePartner"];
+        get: operations["Warehouse_suppliers"];
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -2043,7 +2027,7 @@ export interface paths {
         };
         get: operations["Warehouse_slips"];
         put?: never;
-        /** Lập phiếu (chờ thủ kho xác nhận; thủ kho lập thì confirm=true để xác nhận luôn) */
+        /** Lập phiếu: có hiệu lực ngay khi lưu */
         post: operations["Warehouse_createSlip"];
         delete?: never;
         options?: never;
@@ -2076,56 +2060,8 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Phiếu chuyển kho A → B: thủ kho A xác nhận xuất, rồi thủ kho B xác nhận nhận */
+        /** Phiếu chuyển kho A → B: hàng rời kho A và vào kho B ngay khi lưu */
         post: operations["Warehouse_createTransfer"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/warehouse/slips/{id}/confirm": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["Warehouse_confirmSlip"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/warehouse/slips/{id}/reject": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["Warehouse_rejectSlip"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/warehouse/slips/{id}/cancel": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["Warehouse_cancelSlip"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4098,29 +4034,21 @@ export interface components {
             customerId: string | null;
         };
         /** @enum {string} */
-        WhWarehouseKind: "STOCK" | "DIE";
-        KeeperDto: {
-            id: string;
-            fullName: string;
-        };
+        WhOwnership: "AU_VIET" | "EXTERNAL";
         WarehouseDto: {
-            kind: components["schemas"]["WhWarehouseKind"];
+            ownership: components["schemas"]["WhOwnership"];
             id: string;
             code: string;
             name: string;
             address: string | null;
+            phone: string | null;
             note: string | null;
             isActive: boolean;
             sortOrder: number;
-            keepers: components["schemas"]["KeeperDto"][];
-            /** @description Số vật tư có ở kho */
+            /** @description Số vật tư đã có ở kho */
             materials: number;
-            /** @description Khuôn đang ở kho (kho khuôn) */
+            /** @description Khuôn đang ở kho */
             dies: number;
-            /** @description Người đang xem xác nhận được phiếu của kho này */
-            canConfirm: boolean;
-            /** @description Phiếu đang chờ xác nhận */
-            pending: number;
             /** @description Quy cách dưới mức tối thiểu */
             low: number;
         };
@@ -4158,6 +4086,49 @@ export interface components {
             /** @description Đơn vị chọn được khi lập phiếu (đơn vị cơ sở đầu tiên) */
             units: components["schemas"]["StockUnitDto"][];
         };
+        PlaceCountDto: {
+            warehouseId: string;
+            name: string;
+            inUse: number;
+            kept: number;
+            overdue: number;
+        };
+        /** @enum {string} */
+        WhDieKind: "CUT" | "FOIL" | "EMBOSS";
+        /** @enum {string} */
+        WhOrientation: "PORTRAIT" | "LANDSCAPE";
+        /** @enum {string} */
+        WhDieStatus: "READY" | "IN_USE" | "CHECKING" | "REPAIRING" | "DEFECT" | "BROKEN" | "DISPOSED" | "TRANSIT" | "INCOMING" | "MAKING";
+        DieRowDto: {
+            kind: components["schemas"]["WhDieKind"];
+            orientation: components["schemas"]["WhOrientation"] | null;
+            status: components["schemas"]["WhDieStatus"];
+            id: string;
+            code: string;
+            symbolCode: string;
+            productName: string;
+            customerName: string | null;
+            size: string | null;
+            lengthCm: number | null;
+            widthCm: number | null;
+            heightCm: number | null;
+            pieces: number | null;
+            ups: number | null;
+            /** @description "Kho khuôn Âu Việt · T4-K02", tên xưởng, hoặc "A → B" khi đang chuyển */
+            place: string;
+            /** @description Kho đang giữ khuôn */
+            warehouseId: string;
+            warehouseName: string;
+            /** @description Khuôn đang ở kho ngoài (xưởng bế, nơi làm khuôn…) */
+            external: boolean;
+            locationId: string | null;
+            /** @description Phiếu giao nhận đang chờ xác nhận */
+            pendingBatchId: string | null;
+            expectedBackOn: string | null;
+            overdue: boolean;
+            needsReview: boolean;
+            reviewNote: string | null;
+        };
         /** @enum {string} */
         WhSlipKind: "RECEIPT" | "ISSUE" | "RETURN" | "ADJUST" | "TRANSFER_OUT" | "TRANSFER_IN";
         /** @enum {string} */
@@ -4192,8 +4163,8 @@ export interface components {
             warehouseCode: string;
             warehouseName: string;
             date: string;
-            partnerId: string | null;
-            partnerName: string | null;
+            /** @description Nơi lấy hàng (phiếu nhập) */
+            supplierName: string | null;
             receiver: string | null;
             purpose: string | null;
             reference: string | null;
@@ -4211,53 +4182,9 @@ export interface components {
             voidReason: string | null;
             /** @description Phiếu chuyển kho: phiếu ở kho bên kia */
             counterpart: components["schemas"]["SlipRefDto"] | null;
-            /** @description Người đang xem xác nhận / từ chối được */
-            canConfirm: boolean;
-            /** @description Người đang xem huỷ được (phiếu chưa xác nhận) */
-            canCancel: boolean;
+            /** @description Người đang xem huỷ được (người lập, hoặc quản lý kho) */
+            canVoid: boolean;
             lines: components["schemas"]["SlipLineDto"][];
-        };
-        PlaceCountDto: {
-            holderId: string;
-            name: string;
-            inUse: number;
-            kept: number;
-            overdue: number;
-        };
-        /** @enum {string} */
-        WhDieKind: "CUT" | "FOIL" | "EMBOSS";
-        /** @enum {string} */
-        WhOrientation: "PORTRAIT" | "LANDSCAPE";
-        /** @enum {string} */
-        WhDieStatus: "READY" | "IN_USE" | "CHECKING" | "REPAIRING" | "DEFECT" | "BROKEN" | "DISPOSED" | "TRANSIT" | "INCOMING" | "MAKING";
-        DieRowDto: {
-            kind: components["schemas"]["WhDieKind"];
-            orientation: components["schemas"]["WhOrientation"] | null;
-            status: components["schemas"]["WhDieStatus"];
-            id: string;
-            code: string;
-            symbolCode: string;
-            productName: string;
-            customerName: string | null;
-            size: string | null;
-            lengthCm: number | null;
-            widthCm: number | null;
-            heightCm: number | null;
-            pieces: number | null;
-            ups: number | null;
-            /** @description "Kho khuôn Âu Việt · T4-K02", tên xưởng, hoặc "A → B" khi đang chuyển */
-            place: string;
-            /** @description Kho quản lý (khuôn ở kho này khi holderId trống) */
-            warehouseId: string;
-            warehouseName: string;
-            holderId: string | null;
-            locationId: string | null;
-            /** @description Phiếu giao nhận đang chờ xác nhận */
-            pendingBatchId: string | null;
-            expectedBackOn: string | null;
-            overdue: boolean;
-            needsReview: boolean;
-            reviewNote: string | null;
         };
         /** @enum {string} */
         WhDieBatchStatus: "OPEN" | "DONE" | "REJECTED" | "CANCELLED";
@@ -4271,9 +4198,7 @@ export interface components {
             code: string;
             date: string;
             fromWarehouseId: string | null;
-            fromPartnerId: string | null;
             toWarehouseId: string | null;
-            toPartnerId: string | null;
             toLocationId: string | null;
             fromName: string;
             toName: string;
@@ -4302,9 +4227,8 @@ export interface components {
             dies: components["schemas"]["DieRowDto"][];
         };
         DiePlaceDto: {
-            /** @enum {string} */
-            kind: "KHO" | "PARTNER";
-            /** @description "k:<id>" hoặc "x:<id>", dùng làm bộ lọc Ở đâu */
+            ownership: components["schemas"]["WhOwnership"];
+            /** @description "k:<id>", dùng làm bộ lọc Ở đâu */
             key: string;
             name: string;
             dies: number;
@@ -4315,12 +4239,9 @@ export interface components {
             };
             warehouses: components["schemas"]["WarehouseDto"][];
             lowStock: components["schemas"]["StockItemDto"][];
-            /** @description Phiếu chờ người đang xem xác nhận */
-            toConfirm: components["schemas"]["SlipDto"][];
-            /** @description Hàng đang chuyển giữa các kho (đã xuất, kho nhận chưa xác nhận) */
-            inTransit: components["schemas"]["SlipDto"][];
             diesTotal: number;
-            atPartners: components["schemas"]["PlaceCountDto"][];
+            /** @description Khuôn đang ở kho ngoài, theo từng kho */
+            outside: components["schemas"]["PlaceCountDto"][];
             overdue: components["schemas"]["DieRowDto"][];
             checking: components["schemas"]["DieRowDto"][];
             needsReview: number;
@@ -4333,43 +4254,23 @@ export interface components {
             diePlaces: components["schemas"]["DiePlaceDto"][];
         };
         WarehouseInputDto: {
-            /** @description Mã kho dùng trong số phiếu: GIAY, BAT, OFFSET… */
-            code: string;
+            /** @description Mã kho dùng trong số phiếu: GIAY, BAT, MELINH… Bỏ trống thì sinh từ tên */
+            code?: string | null;
             name: string;
+            /**
+             * @description Âu Việt hoặc kho ngoài (xưởng bế, nơi làm khuôn…); mặc định Âu Việt
+             * @enum {string}
+             */
+            ownership?: "AU_VIET" | "EXTERNAL";
             address?: string | null;
-            /**
-             * @description Không còn dùng: mọi kho giữ được cả vật tư lẫn khuôn
-             * @enum {string}
-             */
-            kind?: "STOCK" | "DIE";
-            note?: string | null;
-            isActive?: boolean;
-            sortOrder?: number;
-            /** @description Thủ kho: người xác nhận phiếu của kho này */
-            keeperIds: string[];
-        };
-        /** @enum {string} */
-        WhPartnerKind: "DIE_MAKER" | "DIE_SHOP" | "SUPPLIER" | "OTHER";
-        PartnerDto: {
-            kind: components["schemas"]["WhPartnerKind"];
-            id: string;
-            name: string;
-            phone: string | null;
-            note: string | null;
-            isActive: boolean;
-            /** @description Khuôn đang ở đối tác này */
-            diesHeld: number;
-        };
-        PartnerInputDto: {
-            name: string;
-            /**
-             * @description Chỉ để ghi nhớ, không giới hạn chỗ chọn; bỏ trống = Khác
-             * @enum {string}
-             */
-            kind?: "OTHER" | "DIE_MAKER" | "DIE_SHOP" | "SUPPLIER";
             phone?: string | null;
             note?: string | null;
             isActive?: boolean;
+            sortOrder?: number;
+        };
+        PersonDto: {
+            id: string;
+            fullName: string;
         };
         LocationDto: {
             id: string;
@@ -4383,7 +4284,7 @@ export interface components {
         LocationInputDto: {
             /**
              * Format: uuid
-             * @description Kho khuôn có kệ này
+             * @description Kho có kệ này (bắt buộc)
              */
             warehouseId: string;
             /** @description Ví dụ "T4-K02-O03" hoặc "Tầng 4" */
@@ -4553,21 +4454,14 @@ export interface components {
             warehouseId: string;
             /** @enum {string} */
             kind: "RECEIPT" | "ISSUE" | "RETURN";
-            /**
-             * Format: uuid
-             * @description Nơi lấy hàng nhập kho (phiếu nhập)
-             */
-            partnerId?: string | null;
-            /** @description Nơi lấy hàng gõ tên mới (chưa có trong danh mục): tự thêm vào danh mục đối tác */
-            partnerName?: string | null;
+            /** @description Nơi lấy hàng (phiếu nhập): chữ ghi thêm, không bắt buộc, không tính tồn */
+            supplierName?: string | null;
             receiver?: string | null;
             purpose?: string | null;
             /** @description Số lệnh / đơn tham chiếu, gõ tay */
             reference?: string | null;
             note?: string | null;
             lines: components["schemas"]["SlipLineInputDto"][];
-            /** @description Người lập là thủ kho của kho: xác nhận luôn */
-            confirm?: boolean;
         };
         TransferInputDto: {
             /**
@@ -4577,14 +4471,16 @@ export interface components {
             date: string;
             /** Format: uuid */
             fromWarehouseId: string;
-            /** Format: uuid */
-            toWarehouseId: string;
+            /**
+             * Format: uuid
+             * @description Kho nhận có sẵn; hoặc gõ tên ở toWarehouseName, chưa có thì tự thêm (Kho ngoài)
+             */
+            toWarehouseId?: string | null;
+            toWarehouseName?: string | null;
             receiver?: string | null;
             reference?: string | null;
             note?: string | null;
             lines: components["schemas"]["SlipLineInputDto"][];
-            /** @description Người lập là thủ kho kho đi: xác nhận xuất luôn */
-            confirm?: boolean;
         };
         VoidDto: {
             reason: string;
@@ -4644,10 +4540,11 @@ export interface components {
             ups: number | null;
             /** @description "Kho khuôn Âu Việt · T4-K02", tên xưởng, hoặc "A → B" khi đang chuyển */
             place: string;
-            /** @description Kho quản lý (khuôn ở kho này khi holderId trống) */
+            /** @description Kho đang giữ khuôn */
             warehouseId: string;
             warehouseName: string;
-            holderId: string | null;
+            /** @description Khuôn đang ở kho ngoài (xưởng bế, nơi làm khuôn…) */
+            external: boolean;
             locationId: string | null;
             /** @description Phiếu giao nhận đang chờ xác nhận */
             pendingBatchId: string | null;
@@ -4676,29 +4573,9 @@ export interface components {
             /** @description Nơi làm khuôn gõ tên mới: tự thêm vào danh mục */
             makerName?: string | null;
             /** @enum {string} */
-            owner?: "CUSTOMER" | "PARTNER" | "AU_VIET";
+            owner?: "CUSTOMER" | "AU_VIET" | "PARTNER";
             costVnd?: number | null;
             note?: string | null;
-            /**
-             * Format: uuid
-             * @description Chỉ khi tạo mới, bắt buộc một trong hai: khuôn làm xong nhập kho nào, hoặc giao thẳng tới xưởng nào
-             */
-            toWarehouseId?: string | null;
-            /** Format: uuid */
-            toPartnerId?: string | null;
-            /** @description Xưởng gõ tên mới: tự thêm vào danh mục (xưởng bế) */
-            toPartnerName?: string | null;
-            /**
-             * Format: uuid
-             * @description Kệ cất khi nhận (kho)
-             */
-            toLocationId?: string | null;
-            /** @description Kệ gõ mã mới: tự thêm vào kho nhận */
-            toLocationCode?: string | null;
-            /** @description Lệnh bế khi giao thẳng tới xưởng */
-            reference?: string | null;
-            /** @description Thủ kho xác nhận luôn (đã nhận / đã giao) */
-            confirm?: boolean;
             /** @description Bỏ qua cảnh báo trùng kích thước */
             force?: boolean;
             /** @description Đánh dấu đã xử lý xong việc cần xác nhận */
@@ -4747,7 +4624,8 @@ export interface components {
             dies: number;
             skippedExisting: number;
             history: number;
-            partnersCreated: string[];
+            /** @description Kho ngoài sẽ tạo (nơi bế, nơi ra khuôn chưa có) */
+            warehousesCreated: string[];
             locationsCreated: string[];
             issues: components["schemas"]["ImportIssueDto"][];
         };
@@ -4807,22 +4685,17 @@ export interface components {
             expectedBackOn?: string | null;
             /**
              * Format: uuid
-             * @description Từ: một kho hoặc một xưởng
+             * @description Từ: kho khuôn đang ở
              */
-            fromWarehouseId?: string | null;
-            /** Format: uuid */
-            fromPartnerId?: string | null;
+            fromWarehouseId: string;
             /**
              * Format: uuid
-             * @description Đến (bắt buộc): một kho hoặc một xưởng
+             * @description Đến: một kho, hoặc gõ tên kho mới (toWarehouseName, tự thêm làm kho ngoài)
              */
             toWarehouseId?: string | null;
-            /** Format: uuid */
-            toPartnerId?: string | null;
-            /** @description Nơi đến gõ tên mới: tự thêm vào danh mục (mặc định xưởng bế) */
-            toPartnerName?: string | null;
+            toWarehouseName?: string | null;
             /**
-             * @description Thao tác khi tới một đối tác: CUT = bế khuôn (đang bế), REPAIR = gửi sửa (đang sửa). Không phụ thuộc loại đối tác
+             * @description Thao tác: CUT = bế khuôn (đang bế), REPAIR = gửi sửa (đang sửa), trống = chuyển kho. Cùng kho với nơi đi = bế / sửa tại chỗ
              * @enum {string|null}
              */
             purpose?: "CUT" | "REPAIR" | null;
@@ -4835,8 +4708,6 @@ export interface components {
             newDies?: components["schemas"]["NewDieLineDto"][];
             reference?: string | null;
             note?: string | null;
-            /** @description Thủ kho xác nhận xuất luôn */
-            confirm?: boolean;
         };
         BatchReceiveDto: {
             /**
@@ -7733,25 +7604,6 @@ export interface operations {
             };
         };
     };
-    Warehouse_people: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["KeeperDto"][];
-                };
-            };
-        };
-    };
     Warehouse_updateWarehouse: {
         parameters: {
             query?: never;
@@ -7775,7 +7627,7 @@ export interface operations {
             };
         };
     };
-    Warehouse_partners: {
+    Warehouse_people: {
         parameters: {
             query?: never;
             header?: never;
@@ -7789,52 +7641,27 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PartnerDto"][];
+                    "application/json": components["schemas"]["PersonDto"][];
                 };
             };
         };
     };
-    Warehouse_createPartner: {
+    Warehouse_suppliers: {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PartnerInputDto"];
-            };
-        };
+        requestBody?: never;
         responses: {
-            204: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
-            };
-        };
-    };
-    Warehouse_updatePartner: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PartnerInputDto"];
-            };
-        };
-        responses: {
-            204: {
-                headers: {
-                    [name: string]: unknown;
+                content: {
+                    "application/json": string[];
                 };
-                content?: never;
             };
         };
     };
@@ -8228,73 +8055,6 @@ export interface operations {
             };
         };
     };
-    Warehouse_confirmSlip: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SlipDto"];
-                };
-            };
-        };
-    };
-    Warehouse_rejectSlip: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["VoidDto"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SlipDto"];
-                };
-            };
-        };
-    };
-    Warehouse_cancelSlip: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SlipDto"];
-                };
-            };
-        };
-    };
     Warehouse_voidSlip: {
         parameters: {
             query?: never;
@@ -8534,7 +8294,7 @@ export interface operations {
             query?: {
                 /** @description mine = chờ người đang xem xác nhận; open = còn chờ; all */
                 tab?: "mine" | "open" | "all";
-                /** @description Nơi đi hoặc đến: k:<kho> hoặc x:<đối tác> */
+                /** @description Nơi đi hoặc đến: k:<kho> */
                 place?: string;
             };
             header?: never;

@@ -68,7 +68,7 @@ export const MODULES: AppModule[] = [
   {
     key: 'warehouse',
     name: 'Kho',
-    description: 'Nhiều kho (giấy, vật tư xưởng bạt, tồn offset, khuôn), thủ kho xác nhận phiếu, chuyển kho, tồn theo ngày; khuôn bế',
+    description: 'Nhiều kho (của Âu Việt và kho ngoài), phiếu nhập xuất có hiệu lực ngay, chuyển kho, tồn theo ngày; khuôn bế',
     icon: <I c={Warehouse} />,
     color: '#b5651d',
     nav: [

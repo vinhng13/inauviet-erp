@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   HttpCode,
+  HttpStatus,
   Param,
   ParseUUIDPipe,
   Post,
@@ -16,7 +17,8 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBody, ApiConsumes, ApiExcludeEndpoint, ApiQuery, ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
-import type { AuthUser } from '../auth/auth.types';
+import { can, type AuthUser } from '../auth/auth.types';
+import { DomainError } from '../common/errors/domain-error';
 import { CurrentUser, RequirePermission } from '../auth/decorators';
 import { WhCatalogService } from './catalog.service';
 import { DiesService } from './dies.service';
@@ -40,13 +42,10 @@ import {
   DieQueryDto,
   ImportReportDto,
   PaperImportReportDto,
-  KeeperDto,
   LocationDto,
   LocationInputDto,
   WhMaterialDto,
   WhMaterialInputDto,
-  PartnerDto,
-  PartnerInputDto,
   SlipDto,
   SlipInputDto,
   SlipQueryDto,
@@ -59,6 +58,7 @@ import {
   StockUpdateDto,
   TransferInputDto,
   WarehouseDto,
+  PersonDto,
   WarehouseInputDto,
   StockCardDto,
   StockItemDto,
@@ -88,18 +88,15 @@ export class WarehouseController {
   @RequirePermission('warehouse.view')
   @Get('overview')
   async overview(@CurrentUser() user: AuthUser): Promise<WarehouseOverviewDto> {
-    const [warehouses, items, slips, pending, parts] = await Promise.all([
-      this.warehouses.list(user, false),
+    const [warehouses, items, slips, parts] = await Promise.all([
+      this.warehouses.list(false),
       this.stock.items(),
       this.stock.slips({}, user),
-      this.stock.slips({ status: 'PENDING' }, user),
       this.dies.overviewParts(user),
     ]);
     return {
       warehouses,
       lowStock: items.filter((i) => i.low),
-      toConfirm: pending.filter((s) => s.canConfirm),
-      inTransit: pending.filter((s) => s.kind === 'TRANSFER_IN' && s.counterpart?.status === 'CONFIRMED'),
       recentSlips: slips.filter((s) => s.status === 'CONFIRMED').slice(0, 8),
       ...parts,
     };
@@ -110,20 +107,17 @@ export class WarehouseController {
   @RequirePermission('warehouse.view')
   @Get('warehouses')
   warehouseList(@CurrentUser() user: AuthUser): Promise<WarehouseDto[]> {
-    return this.warehouses.list(user);
+    return this.warehouses.list();
   }
 
-  /** Người dùng để chọn làm thủ kho */
-  @RequirePermission('warehouse.manage')
-  @Get('people')
-  people(): Promise<KeeperDto[]> {
-    return this.warehouses.people();
-  }
-
-  @RequirePermission('warehouse.manage')
+  /** Thêm kho: người lập phiếu kho hoặc phiếu khuôn cũng thêm được (sửa kho thì cần quyền quản lý kho) */
+  @RequirePermission('warehouse.view')
   @Post('warehouses')
   @HttpCode(204)
-  createWarehouse(@Body() dto: WarehouseInputDto): Promise<void> {
+  createWarehouse(@Body() dto: WarehouseInputDto, @CurrentUser() user: AuthUser): Promise<void> {
+    if (!can(user, 'warehouse.manage') && !can(user, 'warehouse.slip') && !can(user, 'warehouse.dies')) {
+      throw new DomainError(HttpStatus.FORBIDDEN, 'PERMISSION_DENIED', 'Missing permission: warehouse.slip or warehouse.dies', { missing: ['warehouse.slip'] });
+    }
     return this.warehouses.save(null, dto);
   }
 
@@ -136,24 +130,18 @@ export class WarehouseController {
 
   // ───────────── Danh mục ─────────────
 
+  /** Các nơi lấy hàng đã từng ghi trên phiếu nhập, để gợi ý khi gõ */
+  /** Người dùng đang hoạt động, để lọc nhật ký khuôn theo người làm */
+  @RequirePermission('warehouse.manage')
+  @Get('people')
+  people(): Promise<PersonDto[]> {
+    return this.warehouses.people();
+  }
+
   @RequirePermission('warehouse.view')
-  @Get('partners')
-  partners(): Promise<PartnerDto[]> {
-    return this.catalog.partners();
-  }
-
-  @RequirePermission('warehouse.manage')
-  @Post('partners')
-  @HttpCode(204)
-  createPartner(@Body() dto: PartnerInputDto): Promise<void> {
-    return this.catalog.savePartner(null, dto);
-  }
-
-  @RequirePermission('warehouse.manage')
-  @Put('partners/:id')
-  @HttpCode(204)
-  updatePartner(@Param('id', ParseUUIDPipe) id: string, @Body() dto: PartnerInputDto): Promise<void> {
-    return this.catalog.savePartner(id, dto);
+  @Get('suppliers')
+  suppliers(): Promise<string[]> {
+    return this.catalog.suppliers();
   }
 
   @RequirePermission('warehouse.view')
@@ -264,36 +252,18 @@ export class WarehouseController {
     return this.stock.slip(id, user);
   }
 
-  /** Lập phiếu (chờ thủ kho xác nhận; thủ kho lập thì confirm=true để xác nhận luôn) */
+  /** Lập phiếu: có hiệu lực ngay khi lưu */
   @RequirePermission('warehouse.slip')
   @Post('slips')
   createSlip(@Body() dto: SlipInputDto, @CurrentUser() user: AuthUser): Promise<SlipDto> {
     return this.stock.createSlip(dto, user);
   }
 
-  /** Phiếu chuyển kho A → B: thủ kho A xác nhận xuất, rồi thủ kho B xác nhận nhận */
+  /** Phiếu chuyển kho A → B: hàng rời kho A và vào kho B ngay khi lưu */
   @RequirePermission('warehouse.slip')
   @Post('transfers')
   createTransfer(@Body() dto: TransferInputDto, @CurrentUser() user: AuthUser): Promise<SlipDto> {
     return this.stock.createTransfer(dto, user);
-  }
-
-  @RequirePermission('warehouse.slip')
-  @Post('slips/:id/confirm')
-  confirmSlip(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthUser): Promise<SlipDto> {
-    return this.stock.confirmSlip(id, user);
-  }
-
-  @RequirePermission('warehouse.slip')
-  @Post('slips/:id/reject')
-  rejectSlip(@Param('id', ParseUUIDPipe) id: string, @Body() dto: VoidDto, @CurrentUser() user: AuthUser): Promise<SlipDto> {
-    return this.stock.rejectSlip(id, dto.reason, user);
-  }
-
-  @RequirePermission('warehouse.slip')
-  @Post('slips/:id/cancel')
-  cancelSlip(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthUser): Promise<SlipDto> {
-    return this.stock.cancelSlip(id, user);
   }
 
   @RequirePermission('warehouse.slip')

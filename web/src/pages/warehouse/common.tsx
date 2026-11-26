@@ -1,6 +1,6 @@
-import { Badge, Flex, Segmented, Tabs, Tag, Typography } from 'antd';
+import { Flex, Segmented, Tabs, Tag, Typography } from 'antd';
 import { useSearchParams } from 'react-router';
-import { usePartners, useWarehouses } from '../../api/warehouse';
+import { useWarehouses } from '../../api/warehouse';
 import type { ReactNode } from 'react';
 import type { Schemas } from '../../api/client';
 
@@ -41,32 +41,37 @@ export function BatchStatusTag({ batch }: { batch: Pick<Schemas['BatchDto'], 'st
   return <Tag color="gold">Chờ kho nhận</Tag>;
 }
 
-/** Nơi đi / nơi đến của khuôn: mọi kho và mọi đối tác (không lọc theo loại), giá trị "k:<id>" / "x:<id>" */
-export function useDiePlaces(): { options: Array<{ label: string; options: Array<{ value: string; label: string }> }>; khos: Schemas['WarehouseDto'][]; partners: Schemas['PartnerDto'][]; name: (key?: string | null) => string } {
+/** Sở hữu của kho: kho của Âu Việt hay kho ngoài (xưởng, nơi làm khuôn, kho thuê...) */
+export const OWNERSHIP: Record<Schemas['WhOwnership'], { label: string; color: string }> = {
+  AU_VIET: { label: 'Âu Việt', color: 'blue' },
+  EXTERNAL: { label: 'Kho ngoài', color: 'orange' },
+};
+
+/**
+ * Mọi kho đang dùng làm nơi đi / nơi đến của khuôn, nhóm theo sở hữu, giá trị "k:<id>".
+ * Ô chọn cho gõ tên mới: giá trị "n:<tên>", máy chủ tự thêm kho (Kho ngoài) khi lưu.
+ */
+export function useDiePlaces(): { options: Array<{ label: string; options: Array<{ value: string; label: string }> }>; khos: Schemas['WarehouseDto'][]; name: (key?: string | null) => string } {
   const warehouses = useWarehouses();
-  const partners = usePartners();
   const khos = (warehouses.data ?? []).filter((w) => w.isActive);
-  const shops = (partners.data ?? []).filter((p) => p.isActive);
-  const options = [
-    { label: 'Kho', options: khos.map((k) => ({ value: `k:${k.id}`, label: k.name })) },
-    { label: 'Đối tác', options: shops.map((p) => ({ value: `x:${p.id}`, label: p.name })) },
-  ].filter((g) => g.options.length);
+  const options = (['AU_VIET', 'EXTERNAL'] as const)
+    .map((o) => ({ label: OWNERSHIP[o].label, options: khos.filter((k) => k.ownership === o).map((k) => ({ value: `k:${k.id}`, label: k.name })) }))
+    .filter((g) => g.options.length);
   const name = (key?: string | null) => {
     if (!key) return '';
     const id = key.slice(2);
-    if (key.startsWith('n:')) return id.trim(); // xưởng mới gõ tên
-    return key.startsWith('k:') ? (khos.find((k) => k.id === id)?.name ?? '') : ((partners.data ?? []).find((p) => p.id === id)?.name ?? '');
+    if (key.startsWith('n:')) return id.trim(); // kho mới gõ tên
+    return (warehouses.data ?? []).find((k) => k.id === id)?.name ?? '';
   };
-  return { options, khos, partners: shops, name };
+  return { options, khos, name };
 }
 
-/** Khóa nơi hiện tại của một khuôn ("k:<kho>" hoặc "x:<xưởng>") */
-export const placeKey = (d: Pick<Schemas['DieRowDto'], 'holderId' | 'warehouseId'>) => (d.holderId ? `x:${d.holderId}` : `k:${d.warehouseId}`);
+/** Khóa nơi hiện tại của một khuôn ("k:<kho>") */
+export const placeKey = (d: Pick<Schemas['DieRowDto'], 'warehouseId'>) => `k:${d.warehouseId}`;
 
 export const KIND: Record<Schemas['WhDieKind'], string> = { CUT: 'Khuôn bế', FOIL: 'Khuôn ép nhũ', EMBOSS: 'Khuôn dập nổi' };
 export const OWNER: Record<Schemas['WhDieOwner'], string> = { AU_VIET: 'Âu Việt', CUSTOMER: 'Khách hàng', PARTNER: 'Đối tác' };
 export const ORIENT: Record<Schemas['WhOrientation'], string> = { PORTRAIT: 'Dọc', LANDSCAPE: 'Ngang' };
-export const PARTNER_KIND: Record<Schemas['WhPartnerKind'], string> = { DIE_MAKER: 'Nơi làm khuôn', DIE_SHOP: 'Xưởng bế', SUPPLIER: 'Nhà cung cấp', OTHER: 'Khác' };
 export const SLIP: Record<SlipKind, { label: string; color: string }> = {
   RECEIPT: { label: 'Nhập kho', color: 'green' },
   ISSUE: { label: 'Xuất kho', color: 'blue' },
@@ -79,15 +84,13 @@ export const SLIP: Record<SlipKind, { label: string; color: string }> = {
 export type SlipStatus = Schemas['WhSlipStatus'];
 export const SLIP_STATUS: Record<SlipStatus, { label: string; color: string }> = {
   PENDING: { label: 'Chờ xác nhận', color: 'gold' },
-  CONFIRMED: { label: 'Đã xác nhận', color: 'green' },
+  CONFIRMED: { label: 'Đã ghi', color: 'green' },
   REJECTED: { label: 'Bị từ chối', color: 'red' },
   CANCELLED: { label: 'Đã huỷ', color: 'default' },
 };
 
-export function SlipStatusTag({ slip }: { slip: Pick<Schemas['SlipDto'], 'status' | 'voidedAt' | 'kind' | 'counterpart'> }) {
+export function SlipStatusTag({ slip }: { slip: Pick<Schemas['SlipDto'], 'status' | 'voidedAt'> }) {
   if (slip.voidedAt) return <Tag>Đã huỷ</Tag>;
-  if (slip.status === 'PENDING' && slip.kind === 'TRANSFER_IN' && slip.counterpart?.status === 'CONFIRMED') return <Tag color="processing">Đang chuyển đến</Tag>;
-  if (slip.status === 'PENDING' && slip.kind === 'TRANSFER_IN') return <Tag color="default">Chờ kho đi xuất</Tag>;
   return <Tag color={SLIP_STATUS[slip.status].color}>{SLIP_STATUS[slip.status].label}</Tag>;
 }
 
@@ -100,13 +103,13 @@ export function lineQty(l: Pick<Schemas['SlipLineDto'], 'qty' | 'unit' | 'unitNa
 const PICK_KEY = 'wh.kho';
 
 /**
- * Kho đang làm việc (mọi kho đang dùng), nhớ trên địa chỉ trang (?kho=GIAY) và trong trình duyệt.
+ * Kho đang làm việc (kho Âu Việt và kho ngoài đang có vật tư), nhớ trên địa chỉ trang (?kho=GIAY) và trong trình duyệt.
  * Trả về kho đang chọn và hàm đổi kho.
  */
 export function useWarehousePick(): { warehouse: Schemas['WarehouseDto'] | undefined; list: Schemas['WarehouseDto'][]; pick: (code: string) => void; loading: boolean } {
   const { data, isLoading } = useWarehouses();
   const [params, setParams] = useSearchParams();
-  const list = (data ?? []).filter((w) => w.isActive);
+  const active = (data ?? []).filter((w) => w.isActive);
   let saved: string | null = null;
   try {
     saved = localStorage.getItem(PICK_KEY);
@@ -114,6 +117,8 @@ export function useWarehousePick(): { warehouse: Schemas['WarehouseDto'] | undef
     saved = null;
   }
   const code = params.get('kho') ?? saved;
+  // Kho Âu Việt luôn hiện; kho ngoài chỉ hiện khi đang có vật tư (hoặc đang được chọn)
+  const list = active.filter((w) => w.ownership === 'AU_VIET' || w.materials > 0 || w.code === code);
   const warehouse = list.find((w) => w.code === code) ?? list[0];
   const pick = (c: string) => {
     try {
@@ -141,11 +146,9 @@ export function WarehousePicker({ value, list, onChange }: { value?: Schemas['Wa
         options={list.map((w) => ({
           value: w.code,
           label: (
-            <Badge count={w.canConfirm ? w.pending : 0} size="small" offset={[8, -2]}>
-              <span style={{ padding: '0 4px' }}>
-                {w.name} · {w.materials}
-              </span>
-            </Badge>
+            <span style={{ padding: '0 4px' }}>
+              {w.name} · {w.materials}
+            </span>
           ),
         }))}
       />
@@ -183,8 +186,8 @@ export function DieTabs({ view }: { view: DieView }) {
   };
   const options = [
     { value: '', label: 'Tất cả' },
-    ...places.khos.map((k) => ({ value: `k:${k.id}`, label: `${k.name} · ${k.dies}` })),
-    ...places.partners.filter((p) => p.diesHeld > 0 || `x:${p.id}` === place).map((p) => ({ value: `x:${p.id}`, label: `${p.name} · ${p.diesHeld}` })),
+    // Kho Âu Việt luôn hiện; kho ngoài chỉ hiện khi đang giữ khuôn
+    ...places.khos.filter((k) => k.ownership === 'AU_VIET' || k.dies > 0 || `k:${k.id}` === place).map((k) => ({ value: `k:${k.id}`, label: `${k.name} · ${k.dies}` })),
   ];
   return (
     <>

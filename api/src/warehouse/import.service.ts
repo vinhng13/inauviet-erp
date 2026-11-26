@@ -6,7 +6,7 @@ import type { WhDieStatus } from '../generated/prisma/enums';
 import { PrismaService } from '../prisma/prisma.service';
 import { parseDieNotes, parseSize } from './die-rules';
 import type { ImportIssueDto, ImportReportDto } from './warehouse.dto';
-import { dieSearchText, sizeOf } from './wh-common';
+import { dieSearchText, sizeOf, warehouseIdOrCreate } from './wh-common';
 import { excelDate, readXlsx, type Cell } from './xlsx-reader';
 
 const LIST_SHEET = 'DANH_SACH_KHUON';
@@ -194,18 +194,19 @@ export class DieImportService {
       khoByName.set(k.name.replace(/^kho\s+(khuôn\s+)?/i, '').toLowerCase(), k.id);
     }
     const khoOf = (p: Planned) => (p.holder ? khoByName.get(p.holder.toLowerCase()) : undefined);
-    const partnerNames = (await this.prisma.whPartner.findMany({ select: { name: true } })).map((p) => p.name.toLowerCase());
+    const ownKho = (id: string | undefined) => !!id && khos.find((k) => k.id === id)?.ownership === 'AU_VIET';
     // Kệ luôn thuộc một kho: kệ của khuôn tạo ở đúng kho khuôn đó nằm
     const locKey = (w: string, code: string) => `${w}|${code.toLowerCase()}`;
     const existingLocs = new Set((await this.prisma.whLocation.findMany({ select: { warehouseId: true, code: true } })).map((l) => locKey(l.warehouseId, l.code)));
-    const shelfOf = (p: Planned) => (p.shelf && (!p.holder || khoOf(p)) ? { warehouseId: khoOf(p) ?? homeKho.id, code: p.shelf } : null);
+    const shelfOf = (p: Planned) => (p.shelf && (!p.holder || ownKho(khoOf(p))) ? { warehouseId: khoOf(p) ?? homeKho.id, code: p.shelf } : null);
     const newLocs = new Map<string, { warehouseId: string; code: string }>();
     for (const p of todo) {
       const s = shelfOf(p);
       if (s && !existingLocs.has(locKey(s.warehouseId, s.code))) newLocs.set(locKey(s.warehouseId, s.code), s);
     }
-    const partnersCreated = uniq([...todo.map((p) => p.maker), ...todo.map((p) => p.holder)]).filter((n) => !partnerNames.includes(n.toLowerCase()) && !khoByName.has(n.toLowerCase()));
-    const khoName = (id: string) => khos.find((k) => k.id === id)!.name;
+    // Nơi bế, nơi ra khuôn chưa có trong danh sách kho: tạo kho ngoài
+    const warehousesCreated = uniq([...todo.map((p) => p.maker), ...todo.map((p) => p.holder)]).filter((n) => !khoByName.has(n.toLowerCase()));
+    const khoName = (id: string) => khos.find((k) => k.id === id)?.name ?? '';
     const locationsCreated = [...newLocs.values()].map((l) => (l.warehouseId === homeKho.id ? l.code : `${l.code} (${khoName(l.warehouseId)})`));
     const byStatus: Record<string, number> = {};
     for (const p of todo) byStatus[p.status] = (byStatus[p.status] ?? 0) + 1;
@@ -223,7 +224,7 @@ export class DieImportService {
       dies: todo.length,
       skippedExisting: planned.length - todo.length,
       history: historyTodo.length,
-      partnersCreated,
+      warehousesCreated,
       locationsCreated,
       byStatus,
       issues: issues.sort((a, b) => (a.row ?? 0) - (b.row ?? 0)),
@@ -232,12 +233,12 @@ export class DieImportService {
 
     await this.prisma.$transaction(
       async (tx) => {
-        const partners = new Map<string, string>();
-        for (const p of await tx.whPartner.findMany()) partners.set(p.name.toLowerCase(), p.id);
-        // Đối tác mới không gán loại: loại chỉ để ghi nhớ, không giới hạn chỗ chọn
-        for (const name of partnersCreated) {
-          const p = await tx.whPartner.create({ data: { name, kind: 'OTHER' } });
-          partners.set(name.toLowerCase(), p.id);
+        const places = new Map(khoByName);
+        const names = new Map(khos.map((k) => [k.id, k.name]));
+        for (const name of warehousesCreated) {
+          const id = (await warehouseIdOrCreate(tx, null, name))!;
+          places.set(name.toLowerCase(), id);
+          names.set(id, name);
         }
         const locations = new Map<string, string>();
         for (const l of await tx.whLocation.findMany()) locations.set(locKey(l.warehouseId, l.code), l.id);
@@ -254,12 +255,12 @@ export class DieImportService {
         }
         const imported = dateField(today, 'today');
         for (const p of todo) {
-          const atKho = khoOf(p);
-          const holderId = p.holder && !atKho ? partners.get(p.holder.toLowerCase())! : null;
+          const at = p.holder ? places.get(p.holder.toLowerCase())! : homeKho.id;
           const shelf = shelfOf(p);
           const locationId = shelf ? locations.get(locKey(shelf.warehouseId, shelf.code))! : null;
-          const warehouseId = atKho ?? homeKho.id;
-          const status = atKho && p.status === 'IN_USE' ? 'READY' : p.status;
+          const warehouseId = at;
+          // "Đang sản xuất" mà nơi ghi là một kho của Âu Việt: khuôn nằm trong kho, sẵn sàng
+          const status = ownKho(khoOf(p)) && p.status === 'IN_USE' ? 'READY' : p.status;
           const fields = {
             productName: p.productName,
             lengthCm: p.size.lengthCm,
@@ -277,10 +278,9 @@ export class DieImportService {
               symbolCode: p.symbolCode,
               seq: p.seq,
               ...fields,
-              makerId: p.maker ? partners.get(p.maker.toLowerCase())! : null,
+              makerId: p.maker ? places.get(p.maker.toLowerCase())! : null,
               status,
               warehouseId,
-              holderId,
               locationId,
               // không theo dõi hạn trả; ngày dự kiến lấy lại trong bảng chỉ ghi vào lịch sử
               needsReview: p.review.length > 0,
@@ -294,8 +294,8 @@ export class DieImportService {
               action: 'IMPORT',
               date: p.lastDate ? dateField(p.lastDate, 'date') : imported,
               toStatus: status,
-              place: holderId ? p.holder! : `${khoName(warehouseId)}${shelf ? ` · ${shelf.code}` : ''}`,
-              partnerId: holderId,
+              place: `${names.get(warehouseId) ?? ''}${shelf ? ` · ${shelf.code}` : ''}`,
+              warehouseId,
               locationId,
               expectedBackOn: p.expectedBackOn ? dateField(p.expectedBackOn, 'expectedBackOn') : null,
               note: `Nhập từ bảng khuôn Excel (dòng ${p.row})`,

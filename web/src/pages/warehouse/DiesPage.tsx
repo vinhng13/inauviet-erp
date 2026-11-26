@@ -36,7 +36,7 @@ import { ACTION, BatchStatusTag, DieStatusTag, DieTabs, downloadCsv, KIND, ORIEN
 import { pager } from '../../lib/paging';
 import { CreatableSelect, isNew, newName } from '../../components/CreatableSelect';
 
-const FLAG_LABEL = { review: 'Cần xác nhận', out: 'Đang ở ngoài (xưởng, nơi làm khuôn)' } as const;
+const FLAG_LABEL = { review: 'Cần xác nhận', out: 'Đang ở kho ngoài' } as const;
 
 /** Danh mục khuôn: tìm theo mã, tên, khách, kích thước; mở hồ sơ để luân chuyển */
 /** Kho khuôn: một trang ba thẻ (như Kho vật tư): danh sách khuôn, bế khuôn & chuyển kho, nhật ký khuôn */
@@ -218,7 +218,7 @@ function DieDrawer({ id, onClose, onEdit }: { id: string; onClose: () => void; o
     ? []
     : [
         ...(d.status === 'READY' || d.status === 'IN_USE' ? [{ mode: 'cut' as const, label: d.status === 'IN_USE' ? 'Bế ở xưởng khác' : 'Bế khuôn', primary: d.status === 'READY' }] : []),
-        ...(!['DISPOSED', 'BROKEN', 'TRANSIT', 'INCOMING', 'MAKING'].includes(d.status) ? [{ mode: 'kho' as const, label: d.holderId ? 'Chuyển về kho' : 'Chuyển kho' }] : []),
+        ...(!['DISPOSED', 'BROKEN', 'TRANSIT', 'INCOMING', 'MAKING'].includes(d.status) ? [{ mode: 'kho' as const, label: d.external ? 'Chuyển về kho' : 'Chuyển kho' }] : []),
         ...(d.status === 'DEFECT' ? [{ mode: 'fix' as const, label: 'Gửi sửa' }] : []),
       ];
   const confirmReview = () =>
@@ -378,7 +378,7 @@ function ActionModal({ die, action, onClose }: { die: Die; action: DieAction; on
         <Form.Item name="date" label="Ngày" rules={[{ required: true }]}>
           <DatePicker format="DD/MM/YYYY" allowClear={false} />
         </Form.Item>
-        {(action === 'MOVE' || (action === 'PASS' && !die.holderId)) && (
+        {(action === 'MOVE' || (action === 'PASS' && !die.external)) && (
           <Form.Item name="locationId" label={`Kệ trong ${die.warehouseName}`} rules={action === 'MOVE' ? [{ required: true, message: 'Chọn kệ' }] : []}>
             <CreatableSelect placeholder="Chọn kệ hoặc gõ mã kệ mới" addLabel="Thêm kệ" options={shelves.map((l) => ({ value: l.id, label: l.code }))} />
           </Form.Item>
@@ -425,7 +425,7 @@ function DieFormModal({ die, onClose, onCreated }: { die: Die | null; onClose: (
   const symbol = Form.useWatch('symbolCode', form);
   const next = symbols.data?.find((s) => s.code === symbol);
   const save = (force = false) => {
-    const { to: _to, toLocationId: _loc, reference: _ref, makerId, ...v } = form.getFieldsValue(true) as DieForm;
+    const { to: _to, makerId, ...v } = form.getFieldsValue(true) as DieForm;
     const body = {
       ...v,
       makerId: makerId && !isNew(makerId) ? makerId : null,
@@ -508,7 +508,7 @@ function DieFormModal({ die, onClose, onCreated }: { die: Die | null; onClose: (
         </Flex>
         <Flex wrap gap={12}>
           <Form.Item name="makerId" label="Nơi làm khuôn" rules={die ? [] : [{ required: true, message: 'Chọn nơi làm khuôn (hoặc gõ tên mới)' }]}>
-            <CreatableSelect id="die-maker" allowClear={!!die} placeholder="Chọn hoặc gõ tên mới" style={{ width: 240 }} options={places.partners.map((p) => ({ value: p.id, label: p.name }))} />
+            <CreatableSelect id="die-maker" allowClear={!!die} addLabel="Thêm kho" placeholder="Chọn kho hoặc gõ tên mới" style={{ width: 240 }} options={places.options.map((g) => ({ ...g, options: g.options.map((o) => ({ value: o.value.slice(2), label: o.label })) }))} />
           </Form.Item>
           <Form.Item name="costVnd" label="Giá làm khuôn">
             <InputNumber {...vndInputProps} style={{ width: 160 }} />

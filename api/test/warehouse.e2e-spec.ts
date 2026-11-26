@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import request from 'supertest';
 import { normalizePermissions } from '../src/access/permissions';
 import { hashPassword } from '../src/auth/password';
+import { StockService } from '../src/warehouse/stock.service';
 import { ADMIN, createTestApp, PASSWORD, resetDatabase, type Api, type TestContext } from './helpers';
 
 /** Phân hệ Kho: vật tư theo khổ, phiếu, tồn, kiểm kê, khuôn và vòng luân chuyển. */
@@ -35,21 +36,25 @@ describe('Warehouse', () => {
   const stockOf = async (api: Api, warehouseId: string, specId: string) =>
     (await api.get(`/warehouse/stock?warehouseId=${warehouseId}`).expect(200)).body.find((i: { specId: string }) => i.specId === specId);
 
-  it('has the warehouses from the migration; storekeepers are set per warehouse', async () => {
+  it('has one warehouse list: Âu Việt and outside warehouses, no storekeepers', async () => {
     const list = (await keeper.get('/warehouse/warehouses').expect(200)).body;
     expect(list.map((w: { code: string }) => w.code)).toEqual(['GIAY', 'BAT', 'OFFSET', 'KHUON', 'XUANDINH']);
+    expect(list[0]).toMatchObject({ ownership: 'AU_VIET' });
+    expect(list[0]).not.toHaveProperty('keepers');
     giay = list[0];
     bat = list[1];
-    const ha = await t.prisma.user.findFirstOrThrow({ where: { username: 'kho' } });
-    const lan = await t.prisma.user.findFirstOrThrow({ where: { username: 'kho2' } });
-    expect((await keeper.put(`/warehouse/warehouses/${giay.id}`, { code: 'GIAY', name: 'Kho giấy', keeperIds: [ha.id] }).expect(403)).body.code).toBe('PERMISSION_DENIED');
-    await t.api.put(`/warehouse/warehouses/${giay.id}`, { code: 'GIAY', name: 'Kho giấy', keeperIds: [ha.id] }).expect(204);
-    await t.api.put(`/warehouse/warehouses/${bat.id}`, { code: 'BAT', name: 'Kho vật tư xưởng bạt', keeperIds: [lan.id] }).expect(204);
-    await t.api.post('/warehouse/warehouses', { code: 'X2', name: 'Kho xưởng 2', keeperIds: [] }).expect(204);
-    expect((await t.api.post('/warehouse/warehouses', { code: 'X2', name: 'Trùng', keeperIds: [] }).expect(409)).body.code).toBe('WH_WAREHOUSE_EXISTS');
-    const mine = (await keeper.get('/warehouse/warehouses').expect(200)).body;
-    expect(mine.find((w: { code: string }) => w.code === 'GIAY')).toMatchObject({ canConfirm: true, keepers: [{ fullName: 'Hà Thủ kho' }] });
-    expect(mine.find((w: { code: string }) => w.code === 'BAT').canConfirm).toBe(false);
+    expect((await keeper.put(`/warehouse/warehouses/${giay.id}`, { code: 'GIAY', name: 'Kho giấy' }).expect(403)).body.code).toBe('PERMISSION_DENIED');
+    // mã bỏ trống thì sinh từ tên; trùng tên bị từ chối
+    await t.api.post('/warehouse/warehouses', { name: 'Kho xưởng 2' }).expect(204);
+    await t.api.post('/warehouse/warehouses', { name: 'Xưởng Mê Linh', ownership: 'EXTERNAL', phone: '0912' }).expect(204);
+    expect((await t.api.post('/warehouse/warehouses', { name: 'kho  XƯỞNG 2' }).expect(409)).body.code).toBe('WH_WAREHOUSE_EXISTS');
+    const all = (await keeper.get('/warehouse/warehouses').expect(200)).body;
+    expect(all.find((w: { name: string }) => w.name === 'Kho xưởng 2')).toMatchObject({ code: 'KHOXUONG2', ownership: 'AU_VIET' });
+    expect(all.at(-1)).toMatchObject({ code: 'XUONGMELINH', ownership: 'EXTERNAL', phone: '0912' }); // kho ngoài xếp sau
+    // người lập phiếu (không có quyền quản lý kho) cũng thêm được kho; danh sách người để lọc nhật ký chỉ cho quản lý
+    await keeper.post('/warehouse/warehouses', { name: 'Kho thuê Cầu Giấy', ownership: 'EXTERNAL' }).expect(204);
+    expect((await keeper.get('/warehouse/people').expect(403)).body.code).toBe('PERMISSION_DENIED');
+    expect((await t.api.get('/warehouse/people').expect(200)).body.map((u: { fullName: string }) => u.fullName)).toContain('Hà Thủ kho');
   });
 
   it('keeps one material catalog with sizes and units (factor per size), not tied to any warehouse', async () => {
@@ -84,40 +89,30 @@ describe('Warehouse', () => {
 
   let receiptId: string;
 
-  it('slips wait for the storekeeper; stock changes only on confirmation', async () => {
-    // Lan (kho2) is not the paper storekeeper: her receipt waits
-    const r = (await requester.post('/warehouse/slips', { warehouseId: giay.id, kind: 'RECEIPT', date: today, reference: 'HĐ 123', confirm: true, lines: [{ specId: spec18, unitId: ramUnit, qty: 1, unitPriceVnd: 600000 }, { specId: glueSpec, qty: 12.5 }] }).expect(201)).body;
-    expect(r).toMatchObject({ status: 'PENDING', canConfirm: false, canCancel: true, warehouseCode: 'GIAY' });
+  it('slips take effect as soon as they are saved; the maker or a manager can void them', async () => {
+    const r = (await requester.post('/warehouse/slips', { warehouseId: giay.id, kind: 'RECEIPT', date: today, reference: 'HĐ 123', supplierName: '  Giấy  Thuận Phát ', lines: [{ specId: spec18, unitId: ramUnit, qty: 1, unitPriceVnd: 600000 }, { specId: glueSpec, qty: 12.5 }] }).expect(201)).body;
+    expect(r).toMatchObject({ status: 'CONFIRMED', confirmedBy: 'Lan Thủ kho bạt', canVoid: true, warehouseCode: 'GIAY', supplierName: 'Giấy Thuận Phát' });
     expect(r.code).toMatch(/^NK-GIAY-\d{4}-\d{4}$/);
     expect(r.lines[0]).toMatchObject({ qty: 500, unitName: 'ram', unitQty: 1 });
     // the slip gives the warehouse a stock row for a material it never had
     const s18 = await stockOf(keeper, giay.id, spec18);
-    expect(s18).toMatchObject({ label: 'Giấy ngoại IC 145 · 18 x 50,5', qty: 0, warehouseCode: 'GIAY' });
+    expect(s18).toMatchObject({ label: 'Giấy ngoại IC 145 · 18 x 50,5', qty: 500, warehouseCode: 'GIAY' });
     expect(s18.units.map((u: { name: string; factor: number }) => [u.name, u.factor])).toEqual([['tờ', 1], ['ram', 500]]);
-    expect((await requester.post(`/warehouse/slips/${r.id}/confirm`).expect(403)).body.code).toBe('WH_NOT_KEEPER');
-    const ok = (await keeper.post(`/warehouse/slips/${r.id}/confirm`).expect(201)).body;
-    expect(ok).toMatchObject({ status: 'CONFIRMED', confirmedBy: 'Hà Thủ kho' });
-    expect((await keeper.post(`/warehouse/slips/${r.id}/confirm`).expect(409)).body.code).toBe('WH_SLIP_NOT_PENDING');
+    // nơi lấy hàng chỉ là chữ, gợi ý lại lần sau
+    expect((await keeper.get('/warehouse/suppliers').expect(200)).body).toEqual(['Giấy Thuận Phát']);
     receiptId = r.id;
 
-    // the storekeeper's own slip can be confirmed straight away
     expect((await keeper.post('/warehouse/slips', { warehouseId: giay.id, kind: 'ISSUE', date: today, lines: [{ specId: spec18, qty: 1 }] }).expect(400)).body.code).toBe('WH_RECEIVER_REQUIRED');
-    const issue = (await keeper.post('/warehouse/slips', { warehouseId: giay.id, kind: 'ISSUE', date: today, receiver: 'Anh Tuấn', purpose: 'In túi', reference: 'LSX 88', confirm: true, lines: [{ specId: spec18, qty: 320 }] }).expect(201)).body;
+    const issue = (await keeper.post('/warehouse/slips', { warehouseId: giay.id, kind: 'ISSUE', date: today, receiver: 'Anh Tuấn', purpose: 'In túi', reference: 'LSX 88', lines: [{ specId: spec18, qty: 320 }] }).expect(201)).body;
     expect(issue.status).toBe('CONFIRMED');
-    // short stock is refused at confirmation
-    const big = (await requester.post('/warehouse/slips', { warehouseId: giay.id, kind: 'ISSUE', date: today, receiver: 'Xưởng', lines: [{ specId: spec18, qty: 600 }] }).expect(201)).body;
-    expect((await stockOf(keeper, giay.id, spec18)).pendingOut).toBe(600);
-    expect((await keeper.post(`/warehouse/slips/${big.id}/confirm`).expect(400)).body.code).toBe('WH_STOCK_SHORT');
-    const rej = (await keeper.post(`/warehouse/slips/${big.id}/reject`, { reason: 'không đủ giấy' }).expect(201)).body;
-    expect(rej).toMatchObject({ status: 'REJECTED', rejectReason: 'không đủ giấy' });
-    // the requester cancels her own pending slip
-    const ret = (await requester.post('/warehouse/slips', { warehouseId: giay.id, kind: 'RETURN', date: today, receiver: 'Anh Tuấn', lines: [{ specId: spec18, qty: 20 }] }).expect(201)).body;
-    expect((await requester.post(`/warehouse/slips/${ret.id}/cancel`).expect(201)).body.status).toBe('CANCELLED');
-    await keeper.post('/warehouse/slips', { warehouseId: giay.id, kind: 'RETURN', date: today, receiver: 'Anh Tuấn', confirm: true, lines: [{ specId: spec18, qty: 20 }] }).expect(201);
-    // any warehouse takes any material from the catalog: the first slip adds the stock row
+    // short stock is refused when saving
+    expect((await requester.post('/warehouse/slips', { warehouseId: giay.id, kind: 'ISSUE', date: today, receiver: 'Xưởng', lines: [{ specId: spec18, qty: 600 }] }).expect(400)).body.code).toBe('WH_STOCK_SHORT');
+    await keeper.post('/warehouse/slips', { warehouseId: giay.id, kind: 'RETURN', date: today, receiver: 'Anh Tuấn', lines: [{ specId: spec18, qty: 20 }] }).expect(201);
+    // any warehouse takes any material; someone else's slip cannot be voided without warehouse.manage
     const atBat = (await keeper.post('/warehouse/slips', { warehouseId: bat.id, kind: 'RECEIPT', date: today, lines: [{ specId: spec18, qty: 1 }] }).expect(201)).body;
+    expect((await requester.post(`/warehouse/slips/${atBat.id}/void`, { reason: 'x' }).expect(403)).body.code).toBe('WH_NOT_OWNER');
+    await keeper.post(`/warehouse/slips/${atBat.id}/void`, { reason: 'nhập nhầm kho' }).expect(201);
     expect(await stockOf(keeper, bat.id, spec18)).toMatchObject({ qty: 0, warehouseCode: 'BAT' });
-    await keeper.post(`/warehouse/slips/${atBat.id}/cancel`).expect(201);
 
     const row = await stockOf(keeper, giay.id, spec18);
     expect(row).toMatchObject({ qty: 200, pendingOut: 0 });
@@ -127,36 +122,49 @@ describe('Warehouse', () => {
 
     const card = (await keeper.get(`/warehouse/stock/${row.id}/card`).expect(200)).body;
     expect(card.rows.map((x: { inQty: number; outQty: number; balance: number }) => [x.inQty, x.outQty, x.balance])).toEqual([[20, 0, 200], [0, 320, 180], [500, 0, 500]]);
-    expect((await keeper.post(`/warehouse/slips/${receiptId}/void`, { reason: 'nhập nhầm' }).expect(400)).body.code).toBe('WH_VOID_NEGATIVE');
+    expect(card.rows[2].partyText).toBe('Giấy Thuận Phát');
+    expect((await t.api.post(`/warehouse/slips/${receiptId}/void`, { reason: 'nhập nhầm' }).expect(400)).body.code).toBe('WH_VOID_NEGATIVE');
   });
 
-  it('transfers from warehouse A to B: A confirms sending, then B confirms receiving', async () => {
+  it('transfers move stock from A to B at once; voiding reverses both sides', async () => {
     const tr = (await keeper.post('/warehouse/transfers', { fromWarehouseId: giay.id, toWarehouseId: bat.id, date: today, reference: 'decal dùng chung', lines: [{ specId: spec18, qty: 50 }] }).expect(201)).body;
-    expect(tr).toMatchObject({ kind: 'TRANSFER_OUT', status: 'PENDING', warehouseCode: 'GIAY', counterpart: { warehouseCode: 'BAT', status: 'PENDING' } });
+    expect(tr).toMatchObject({ kind: 'TRANSFER_OUT', status: 'CONFIRMED', warehouseCode: 'GIAY', counterpart: { warehouseCode: 'BAT', status: 'CONFIRMED' } });
     expect(tr.code).toMatch(/^CK-GIAY-/);
     expect(tr.counterpart.code).toMatch(/^CK-BAT-/);
-    // the receiving storekeeper cannot receive before it is sent
-    expect((await requester.post(`/warehouse/slips/${tr.counterpart.id}/confirm`).expect(409)).body.code).toBe('WH_TRANSFER_NOT_SENT');
-    await keeper.post(`/warehouse/slips/${tr.id}/confirm`).expect(201);
     expect((await stockOf(keeper, giay.id, spec18)).qty).toBe(150);
-    expect((await stockOf(keeper, bat.id, spec18)).qty).toBe(0); // material added to BAT, nothing received yet
-    const transit = (await requester.get('/warehouse/overview').expect(200)).body;
-    expect(transit.inTransit.map((s: { id: string }) => s.id)).toEqual([tr.counterpart.id]);
-    expect(transit.toConfirm.map((s: { id: string }) => s.id)).toEqual([tr.counterpart.id]);
-    expect((await keeper.post(`/warehouse/slips/${tr.counterpart.id}/confirm`).expect(403)).body.code).toBe('WH_NOT_KEEPER');
-    expect((await requester.post(`/warehouse/slips/${tr.counterpart.id}/reject`, { reason: 'x' }).expect(409)).body.code).toBe('WH_TRANSFER_SENT');
-    await requester.post(`/warehouse/slips/${tr.counterpart.id}/confirm`).expect(201);
     expect((await stockOf(keeper, bat.id, spec18)).qty).toBe(50);
+    expect((await keeper.post('/warehouse/transfers', { fromWarehouseId: giay.id, toWarehouseId: bat.id, date: today, lines: [{ specId: spec18, qty: 500 }] }).expect(400)).body.code).toBe('WH_STOCK_SHORT');
+    expect((await stockOf(keeper, bat.id, spec18)).qty).toBe(50); // nothing half-done
 
-    // voiding a transfer reverses both sides
-    const tr2 = (await keeper.post('/warehouse/transfers', { fromWarehouseId: giay.id, toWarehouseId: bat.id, date: today, confirm: true, lines: [{ specId: spec18, qty: 10 }] }).expect(201)).body;
-    expect(tr2.status).toBe('CONFIRMED');
+    const tr2 = (await keeper.post('/warehouse/transfers', { fromWarehouseId: giay.id, toWarehouseId: bat.id, date: today, lines: [{ specId: spec18, qty: 10 }] }).expect(201)).body;
     await keeper.post(`/warehouse/slips/${tr2.id}/void`, { reason: 'chuyển nhầm' }).expect(201);
     const both = (await keeper.get(`/warehouse/slips/${tr2.id}`).expect(200)).body;
     expect(both.voidedAt).not.toBeNull();
-    expect(both.counterpart.status).toBe('CANCELLED');
+    expect((await keeper.get(`/warehouse/slips/${both.counterpart.id}`).expect(200)).body.voidedAt).not.toBeNull();
     expect((await stockOf(keeper, giay.id, spec18)).qty).toBe(150);
+    expect((await stockOf(keeper, bat.id, spec18)).qty).toBe(50);
     expect((await keeper.post('/warehouse/transfers', { fromWarehouseId: giay.id, toWarehouseId: giay.id, date: today, lines: [{ specId: spec18, qty: 1 }] }).expect(400)).body.code).toBe('WH_TRANSFER_SAME');
+    // gõ tên kho nhận chưa có: tự thêm Kho ngoài; gõ lại đúng tên thì dùng lại kho đó
+    const typed = (await keeper.post('/warehouse/transfers', { fromWarehouseId: giay.id, toWarehouseName: 'Kho  nhà anh Trường', date: today, lines: [{ specId: spec18, qty: 2 }] }).expect(201)).body;
+    const truong = (await keeper.get('/warehouse/warehouses').expect(200)).body.find((w: { name: string }) => w.name === 'Kho nhà anh Trường');
+    expect(truong).toMatchObject({ ownership: 'EXTERNAL', materials: 1 });
+    expect(typed.counterpart.warehouseName).toBe('Kho nhà anh Trường');
+    const again = (await keeper.post('/warehouse/transfers', { fromWarehouseId: giay.id, toWarehouseName: 'kho nhà anh trường', date: today, lines: [{ specId: spec18, qty: 1 }] }).expect(201)).body;
+    expect(again.counterpart.warehouseId).toBe(truong.id);
+    for (const x of [typed, again]) await keeper.post(`/warehouse/slips/${x.id}/void`, { reason: 'thử' }).expect(201);
+    expect((await stockOf(keeper, giay.id, spec18)).qty).toBe(150);
+    expect((await keeper.post('/warehouse/transfers', { fromWarehouseId: giay.id, date: today, lines: [{ specId: spec18, qty: 1 }] }).expect(400)).body.code).toBe('WH_TRANSFER_TO_REQUIRED');
+    // phiếu còn chờ từ trước khi bỏ thủ kho: có hiệu lực khi khởi động; phiếu làm âm tồn thì huỷ
+    const admin = await t.prisma.user.findFirstOrThrow({ where: { username: ADMIN } });
+    const mk = (kind: 'RECEIPT' | 'ISSUE', qty: number, code: string) =>
+      t.prisma.whSlip.create({ data: { code, warehouseId: bat.id, kind, date: new Date(today), status: 'PENDING', createdById: admin.id, lines: { create: [{ specId: spec18, qty }] } } });
+    const okSlip = await mk('RECEIPT', 5, 'NK-BAT-OLD-1');
+    const badSlip = await mk('ISSUE', 9999, 'XK-BAT-OLD-2');
+    expect(await t.app.get(StockService).settleLegacyPending()).toBe(1);
+    expect((await t.prisma.whSlip.findUniqueOrThrow({ where: { id: okSlip.id } })).status).toBe('CONFIRMED');
+    expect(await t.prisma.whSlip.findUniqueOrThrow({ where: { id: badSlip.id } })).toMatchObject({ status: 'CANCELLED', rejectReason: expect.stringMatching(/^Huỷ khi bỏ bước xác nhận/) });
+    expect((await stockOf(keeper, bat.id, spec18)).qty).toBe(55);
+    await t.api.post(`/warehouse/slips/${okSlip.id}/void`, { reason: 'dọn dữ liệu thử' }).expect(201);
   });
 
   it('a size that has slips cannot be changed; saving a material never drops stock rows', async () => {
@@ -169,7 +177,7 @@ describe('Warehouse', () => {
   it('reports in – out – balance, stock as of a day, and saves end-of-day snapshots', async () => {
     const yesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
     // a slip dated yesterday, so a snapshot of yesterday has something in it
-    await keeper.post('/warehouse/slips', { warehouseId: giay.id, kind: 'RECEIPT', date: yesterday, confirm: true, lines: [{ specId: spec27, qty: 10 }] }).expect(201);
+    await keeper.post('/warehouse/slips', { warehouseId: giay.id, kind: 'RECEIPT', date: yesterday, lines: [{ specId: spec27, qty: 10 }] }).expect(201);
     const rep = (await keeper.get(`/warehouse/reports/stock?warehouseId=${giay.id}&from=${today}&to=${today}`).expect(200)).body;
     const r18 = rep.rows.find((r: { specId: string }) => r.specId === spec18);
     // today: +500 receipt, −320 issue, +20 return, −50 transfer
@@ -185,7 +193,7 @@ describe('Warehouse', () => {
     expect(run.days).toBeGreaterThan(0);
     expect((await t.api.post('/warehouse/snapshots/run').expect(201)).body.days).toBe(0); // nothing left to take
     // a later slip dated yesterday changes the live figure, not the snapshot
-    await keeper.post('/warehouse/slips', { warehouseId: giay.id, kind: 'RECEIPT', date: yesterday, confirm: true, lines: [{ specId: spec27, qty: 5 }] }).expect(201);
+    await keeper.post('/warehouse/slips', { warehouseId: giay.id, kind: 'RECEIPT', date: yesterday, lines: [{ specId: spec27, qty: 5 }] }).expect(201);
     const snap = (await keeper.get(`/warehouse/reports/as-of?warehouseId=${giay.id}&date=${yesterday}`).expect(200)).body;
     expect(snap.source).toBe('SNAPSHOT');
     expect(snap.rows.find((r: { specId: string }) => r.specId === spec27)).toMatchObject({ qty: 10, liveQty: 15 });
@@ -204,16 +212,15 @@ describe('Warehouse', () => {
     const list = (await t.api.get('/warehouse/warehouses').expect(200)).body;
     khuon = list.find((w: { code: string }) => w.code === 'KHUON').id;
     xd = list.find((w: { code: string }) => w.code === 'XUANDINH').id;
-    const ha = await t.prisma.user.findFirstOrThrow({ where: { username: 'kho' } });
-    await t.api.put(`/warehouse/warehouses/${khuon}`, { code: 'KHUON', name: 'Kho khuôn Âu Việt', keeperIds: [ha.id] }).expect(204);
-    await t.api.post('/warehouse/partners', { name: 'Mê Linh', kind: 'DIE_SHOP' }).expect(204);
-    await t.api.post('/warehouse/partners', { name: 'A.Kiên Trương Định', kind: 'DIE_SHOP' }).expect(204);
-    await t.api.post('/warehouse/partners', { name: 'Em Hòa', kind: 'DIE_MAKER' }).expect(204);
+    // xưởng bế, nơi làm khuôn là kho ngoài trong cùng một danh sách kho
+    await t.api.post('/warehouse/warehouses', { name: 'Mê Linh', ownership: 'EXTERNAL' }).expect(204);
+    await t.api.post('/warehouse/warehouses', { name: 'A.Kiên Trương Định', ownership: 'EXTERNAL' }).expect(204);
+    await t.api.post('/warehouse/warehouses', { name: 'Em Hòa', ownership: 'EXTERNAL' }).expect(204);
     // a shelf must belong to a warehouse; any warehouse may have shelves
     expect((await t.api.post('/warehouse/locations', { code: 'T4-K01' }).expect(400)).body.code).toBe('VALIDATION_FAILED');
     await t.api.post('/warehouse/locations', { code: 'T4-K01', warehouseId: khuon }).expect(204);
     await t.api.post('/warehouse/locations', { code: 'Kệ giấy A', warehouseId: giay.id }).expect(204);
-    const partners = (await keeper.get('/warehouse/partners').expect(200)).body;
+    const partners = (await keeper.get('/warehouse/warehouses').expect(200)).body;
     mlId = partners.find((p: { name: string }) => p.name === 'Mê Linh').id;
     kienId = partners.find((p: { name: string }) => p.name === 'A.Kiên Trương Định').id;
     const hoaId = partners.find((p: { name: string }) => p.name === 'Em Hòa').id;
@@ -226,14 +233,14 @@ describe('Warehouse', () => {
     expect(a).toMatchObject({ code: 'TUI-001', status: 'MAKING', place: 'Em Hòa', size: '21 x 30 x 10', pendingBatchId: null, makerName: 'Em Hòa', allowedActions: ['PASS', 'DEFECT'] });
     dieId = a.id;
     // chưa kiểm đạt thì chưa bế được
-    expect((await requester.post('/warehouse/batches', { date: today, fromPartnerId: hoaId, toPartnerId: mlId, dieIds: [dieId] }).expect(409)).body.code).toBe('WH_DIE_NOT_PASSED');
+    expect((await requester.post('/warehouse/batches', { date: today, fromWarehouseId: hoaId, toWarehouseId: mlId, dieIds: [dieId], purpose: 'CUT' }).expect(409)).body.code).toBe('WH_DIE_NOT_PASSED');
     // kiểm tra: không đạt → làm lại → kiểm tra lại: đạt (tại nơi làm khuôn, không cần chọn kệ)
     await requester.post(`/warehouse/dies/${dieId}/actions`, { action: 'DEFECT', date: today, note: 'Lệch dao' }).expect(201);
     expect(await dieOf(keeper, dieId)).toMatchObject({ status: 'DEFECT', place: 'Em Hòa' });
     await requester.post(`/warehouse/dies/${dieId}/actions`, { action: 'PASS', date: today }).expect(201);
     expect(await dieOf(keeper, dieId)).toMatchObject({ status: 'READY', place: 'Em Hòa' });
     // bế khuôn: thẳng từ nơi làm khuôn tới xưởng bế
-    const go = (await requester.post('/warehouse/batches', { date: today, fromPartnerId: hoaId, toPartnerId: mlId, dieIds: [dieId], reference: 'LSX 1' }).expect(201)).body;
+    const go = (await requester.post('/warehouse/batches', { date: today, fromWarehouseId: hoaId, toWarehouseId: mlId, dieIds: [dieId], reference: 'LSX 1', purpose: 'CUT' }).expect(201)).body;
     expect(go).toMatchObject({ status: 'DONE', fromName: 'Em Hòa', toName: 'Mê Linh', reference: 'LSX 1' });
     expect(await dieOf(keeper, dieId)).toMatchObject({ status: 'IN_USE', place: 'Mê Linh' });
     const moves = (await dieOf(keeper, dieId)).moves.map((m: { action: string }) => m.action);
@@ -247,7 +254,7 @@ describe('Warehouse', () => {
     die2Id = b.id;
     await requester.post(`/warehouse/dies/${die2Id}/actions`, { action: 'PASS', date: today }).expect(201);
     // chuyển kho: nơi làm khuôn → kho, kèm kệ
-    await requester.post('/warehouse/batches', { date: today, fromPartnerId: hoaId, toWarehouseId: khuon, toLocationId: shelfId, dieIds: [die2Id] }).expect(201);
+    await requester.post('/warehouse/batches', { date: today, fromWarehouseId: hoaId, toWarehouseId: khuon, toLocationId: shelfId, dieIds: [die2Id] }).expect(201);
     expect(await dieOf(keeper, die2Id)).toMatchObject({ status: 'READY', place: 'Kho khuôn Âu Việt · T4-K01' });
 
     expect((await keeper.get('/warehouse/dies?q=30x10x21').expect(200)).body.items.map((d: { code: string }) => d.code)).toEqual(['TUI-001', 'TUI-002']);
@@ -260,37 +267,42 @@ describe('Warehouse', () => {
   it('cuts and moves dies at once: bế khuôn to a workshop, chuyển kho between khos; no confirmation step', async () => {
     expect((await keeper.post(`/warehouse/dies/${dieId}/actions`, { action: 'KEEP', date: today }).expect(400)).body.code).toBe('VALIDATION_FAILED');
     // the die must be where the transfer starts
-    expect((await requester.post('/warehouse/batches', { date: today, fromWarehouseId: khuon, toPartnerId: kienId, dieIds: [dieId] }).expect(409)).body.code).toBe('WH_DIE_NOT_HERE');
+    expect((await requester.post('/warehouse/batches', { date: today, fromWarehouseId: khuon, toWarehouseId: kienId, dieIds: [dieId], purpose: 'CUT' }).expect(409)).body.code).toBe('WH_DIE_NOT_HERE');
     // bế ở xưởng khác: xưởng → xưởng thẳng
-    await requester.post('/warehouse/batches', { date: today, fromPartnerId: mlId, toPartnerId: kienId, dieIds: [dieId], reference: 'LSX 2' }).expect(201);
+    await requester.post('/warehouse/batches', { date: today, fromWarehouseId: mlId, toWarehouseId: kienId, dieIds: [dieId], reference: 'LSX 2', purpose: 'CUT' }).expect(201);
     expect(await dieOf(keeper, dieId)).toMatchObject({ status: 'IN_USE', place: 'A.Kiên Trương Định' });
     // bế xong về kho: sẵn sàng
-    await requester.post('/warehouse/batches', { date: today, fromPartnerId: kienId, toWarehouseId: xd, dieIds: [dieId] }).expect(201);
-    expect(await dieOf(keeper, dieId)).toMatchObject({ status: 'READY', place: 'Kho Xuân Đỉnh', warehouseName: 'Kho Xuân Đỉnh', holderId: null });
+    await requester.post('/warehouse/batches', { date: today, fromWarehouseId: kienId, toWarehouseId: xd, dieIds: [dieId] }).expect(201);
+    expect(await dieOf(keeper, dieId)).toMatchObject({ status: 'READY', place: 'Kho Xuân Đỉnh', warehouseName: 'Kho Xuân Đỉnh', external: false });
     // chuyển kho A → B giữ nguyên trạng thái
     await requester.post('/warehouse/batches', { date: today, fromWarehouseId: xd, toWarehouseId: khuon, toLocationId: shelfId, dieIds: [dieId] }).expect(201);
     expect(await dieOf(keeper, dieId)).toMatchObject({ status: 'READY', place: 'Kho khuôn Âu Việt · T4-K01' });
     // kho → xưởng bế
-    const out = (await requester.post('/warehouse/batches', { date: today, fromWarehouseId: khuon, toPartnerId: mlId, dieIds: [dieId], reference: 'LSX 88' }).expect(201)).body;
+    const out = (await requester.post('/warehouse/batches', { date: today, fromWarehouseId: khuon, toWarehouseId: mlId, dieIds: [dieId], reference: 'LSX 88', purpose: 'CUT' }).expect(201)).body;
     expect(out).toMatchObject({ code: expect.stringMatching(/^GN/), status: 'DONE', fromName: 'Kho khuôn Âu Việt', toName: 'Mê Linh', canSend: false, canReceive: false });
-    expect(await dieOf(keeper, dieId)).toMatchObject({ status: 'IN_USE', place: 'Mê Linh', overdue: false });
+    expect(await dieOf(keeper, dieId)).toMatchObject({ status: 'IN_USE', place: 'Mê Linh', overdue: false, external: true });
     // báo lỗi ở xưởng, gửi về nơi làm khuôn sửa, kiểm tra đạt, bế tiếp
     await requester.post(`/warehouse/dies/${dieId}/actions`, { action: 'DEFECT', date: today, note: 'Mẻ dao' }).expect(201);
-    expect((await requester.post('/warehouse/batches', { date: today, fromPartnerId: mlId, toPartnerId: kienId, dieIds: [dieId] }).expect(409)).body.code).toBe('WH_DIE_NOT_PASSED');
-    const hoa = (await keeper.get('/warehouse/partners').expect(200)).body.find((p: { name: string }) => p.name === 'Em Hòa').id;
+    expect((await requester.post('/warehouse/batches', { date: today, fromWarehouseId: mlId, toWarehouseId: kienId, dieIds: [dieId], purpose: 'CUT' }).expect(409)).body.code).toBe('WH_DIE_NOT_PASSED');
+    const hoa = (await keeper.get('/warehouse/warehouses').expect(200)).body.find((p: { name: string }) => p.name === 'Em Hòa').id;
     // gửi sửa: trạng thái theo thao tác, không theo loại đối tác (gửi tới một xưởng bế cũng được)
-    await requester.post('/warehouse/batches', { date: today, fromPartnerId: mlId, toPartnerId: hoa, dieIds: [dieId], purpose: 'REPAIR' }).expect(201);
+    await requester.post('/warehouse/batches', { date: today, fromWarehouseId: mlId, toWarehouseId: hoa, dieIds: [dieId], purpose: 'REPAIR' }).expect(201);
     expect(await dieOf(keeper, dieId)).toMatchObject({ status: 'REPAIRING', place: 'Em Hòa' });
     await requester.post(`/warehouse/dies/${dieId}/actions`, { action: 'PASS', date: today }).expect(201);
     // bế tại chỗ: khuôn làm ở đâu bế luôn ở đó, chỉ đổi trạng thái; chuyển kho / không nêu thao tác thì vẫn phải khác nơi
-    expect((await requester.post('/warehouse/batches', { date: today, fromPartnerId: hoa, toPartnerId: hoa, dieIds: [dieId] }).expect(400)).body.code).toBe('WH_BATCH_SAME_PLACE');
-    await requester.post('/warehouse/batches', { date: today, fromPartnerId: hoa, toPartnerId: hoa, dieIds: [dieId], purpose: 'CUT', reference: 'LSX 4' }).expect(201);
+    expect((await requester.post('/warehouse/batches', { date: today, fromWarehouseId: hoa, toWarehouseId: hoa, dieIds: [dieId] }).expect(400)).body.code).toBe('WH_BATCH_SAME_PLACE');
+    await requester.post('/warehouse/batches', { date: today, fromWarehouseId: hoa, toWarehouseId: hoa, dieIds: [dieId], purpose: 'CUT', reference: 'LSX 4' }).expect(201);
     expect(await dieOf(keeper, dieId)).toMatchObject({ status: 'IN_USE', place: 'Em Hòa' });
-    await requester.post('/warehouse/batches', { date: today, fromPartnerId: hoa, toPartnerId: mlId, dieIds: [dieId] }).expect(201);
+    await requester.post('/warehouse/batches', { date: today, fromWarehouseId: hoa, toWarehouseId: mlId, dieIds: [dieId], purpose: 'CUT' }).expect(201);
     expect(await dieOf(keeper, dieId)).toMatchObject({ status: 'IN_USE', place: 'Mê Linh' });
+    // bế tại chỗ ở cả kho Âu Việt
+    await requester.post('/warehouse/batches', { date: today, fromWarehouseId: khuon, toWarehouseId: khuon, dieIds: [die2Id], purpose: 'CUT' }).expect(201);
+    expect(await dieOf(keeper, die2Id)).toMatchObject({ status: 'IN_USE', place: 'Kho khuôn Âu Việt · T4-K01' });
+    await requester.post('/warehouse/batches', { date: today, fromWarehouseId: khuon, toWarehouseId: xd, dieIds: [die2Id] }).expect(201);
+    expect(await dieOf(keeper, die2Id)).toMatchObject({ status: 'READY', place: 'Kho Xuân Đỉnh' });
 
     // khuôn có sẵn trong kho nhưng chưa có mã: cấp mã khi chuyển
-    const nw = (await keeper.post('/warehouse/batches', { date: today, fromWarehouseId: khuon, toPartnerId: mlId, dieIds: [], newDies: [{ symbolCode: 'HOP', productName: 'Hộp trà sen', size: '12x12x8' }], reference: 'LSX 5' }).expect(201)).body;
+    const nw = (await keeper.post('/warehouse/batches', { date: today, fromWarehouseId: khuon, toWarehouseId: mlId, dieIds: [], newDies: [{ symbolCode: 'HOP', productName: 'Hộp trà sen', size: '12x12x8' }], reference: 'LSX 5', purpose: 'CUT' }).expect(201)).body;
     expect(nw.dies).toEqual([expect.objectContaining({ code: 'HOP-001', status: 'IN_USE', place: 'Mê Linh', size: '12 x 12 x 8', needsReview: true })]);
 
     // nhật ký theo ngày, lọc theo nơi và thao tác
@@ -306,7 +318,7 @@ describe('Warehouse', () => {
     // lọc các lần chuyển theo nơi đi hoặc đến
     const atKien = (await keeper.get(`/warehouse/batches?tab=all&place=x:${kienId}`).expect(200)).body;
     expect(atKien.map((b: { fromName: string; toName: string }) => `${b.fromName} → ${b.toName}`).sort()).toEqual(['A.Kiên Trương Định → Kho Xuân Đỉnh', 'Mê Linh → A.Kiên Trương Định']);
-    expect((await keeper.get(`/warehouse/batches?tab=all&place=k:${xd}`).expect(200)).body).toHaveLength(2);
+    expect((await keeper.get(`/warehouse/batches?tab=all&place=k:${xd}`).expect(200)).body).toHaveLength(3);
     const ov = (await keeper.get('/warehouse/overview').expect(200)).body;
     expect(ov.dieToConfirm).toEqual([]);
     expect(ov.diePlaces.find((p: { name: string }) => p.name === 'Mê Linh').dies).toBe(2);
@@ -319,36 +331,27 @@ describe('Warehouse', () => {
     expect(d.needsReview).toBe(false);
   });
 
-  it('a name typed in a catalog picker is added to the catalog (no catalog permission needed) and reused after', async () => {
-    const r1 = (await keeper.post('/warehouse/slips', { warehouseId: giay.id, kind: 'RECEIPT', date: today, partnerName: '  giấy   Hà Nội ', lines: [{ specId: spec18, qty: 1 }] }).expect(201)).body;
-    const r2 = (await keeper.post('/warehouse/slips', { warehouseId: giay.id, kind: 'RECEIPT', date: today, partnerName: 'GIẤY HÀ NỘI', lines: [{ specId: spec18, qty: 1 }] }).expect(201)).body;
-    expect(r1.partnerName).toBe('giấy Hà Nội');
-    expect(r2.partnerId).toBe(r1.partnerId);
-    expect(await t.prisma.whPartner.findUniqueOrThrow({ where: { id: r1.partnerId }, select: { kind: true } })).toEqual({ kind: 'SUPPLIER' });
-    // an id wins over a typed name; issue slips have no "nơi lấy hàng"
-    const r3 = (await keeper.post('/warehouse/slips', { warehouseId: giay.id, kind: 'RECEIPT', date: today, partnerId: mlId, partnerName: 'bỏ qua', lines: [{ specId: spec18, qty: 1 }] }).expect(201)).body;
-    expect(r3.partnerId).toBe(mlId);
-    expect(await t.prisma.whPartner.count({ where: { name: 'bỏ qua' } })).toBe(0);
-    for (const s of [r1, r2, r3]) await keeper.post(`/warehouse/slips/${s.id}/cancel`, {}).expect(201);
-
-    // nơi làm khuôn gõ tên mới; chuyển tới xưởng gõ tên mới; cất ở kệ gõ mã mới
+  it('a warehouse name typed in a picker is added as an outside warehouse (no catalog permission needed) and reused after', async () => {
+    // nơi làm khuôn gõ tên mới; chuyển tới nơi gõ tên mới; cất ở kệ gõ mã mới
     const base = { symbolCode: 'HOP', productName: 'Hộp bánh thử danh mục', lengthCm: 51, widthCm: 41, heightCm: 6 };
-    const made = (await keeper.post('/warehouse/dies', { ...base, makerName: 'Nơi làm khuôn Mới' }).expect(201)).body;
-    expect(made).toMatchObject({ makerName: 'Nơi làm khuôn Mới', place: 'Nơi làm khuôn Mới', status: 'MAKING' });
-    expect(await t.prisma.whPartner.findFirstOrThrow({ where: { name: 'Nơi làm khuôn Mới' }, select: { kind: true } })).toEqual({ kind: 'DIE_MAKER' });
+    const made = (await keeper.post('/warehouse/dies', { ...base, makerName: '  Nơi làm  khuôn Mới ' }).expect(201)).body;
+    expect(made).toMatchObject({ makerName: 'Nơi làm khuôn Mới', place: 'Nơi làm khuôn Mới', status: 'MAKING', external: true });
+    expect(await t.prisma.whWarehouse.findFirstOrThrow({ where: { name: 'Nơi làm khuôn Mới' }, select: { code: true, ownership: true } })).toEqual({ code: 'NOILAMKHUONMOI', ownership: 'EXTERNAL' });
     await keeper.post(`/warehouse/dies/${made.id}/actions`, { action: 'PASS', date: today }).expect(201);
-    await keeper.post('/warehouse/batches', { date: today, fromPartnerId: made.makerId, toPartnerName: 'Xưởng bế Mới', dieIds: [made.id] }).expect(201);
-    const shop = await t.prisma.whPartner.findFirstOrThrow({ where: { name: 'Xưởng bế Mới' } });
-    expect(shop.kind).toBe('DIE_SHOP');
-    expect((await dieOf(keeper, made.id)).place).toBe('Xưởng bế Mới');
-    const second = (await keeper.post('/warehouse/dies', { ...base, productName: 'Hộp bánh thử kệ', lengthCm: 80, makerName: 'nơi làm khuôn mới' }).expect(201)).body;
+    await keeper.post('/warehouse/batches', { date: today, fromWarehouseId: made.makerId, toWarehouseName: 'Xưởng bế Mới', dieIds: [made.id], purpose: 'CUT' }).expect(201);
+    expect(await dieOf(keeper, made.id)).toMatchObject({ place: 'Xưởng bế Mới', status: 'IN_USE' });
+    const second = (await keeper.post('/warehouse/dies', { ...base, productName: 'Hộp bánh thử kệ', lengthCm: 80, makerName: 'NƠI LÀM KHUÔN MỚI' }).expect(201)).body;
     expect(second.makerId).toBe(made.makerId);
-    await keeper.post('/warehouse/batches', { date: today, fromPartnerId: made.makerId, toWarehouseId: khuon, toLocationCode: 'T9-K99', dieIds: [second.id] }).expect(201);
+    await keeper.post('/warehouse/batches', { date: today, fromWarehouseId: made.makerId, toWarehouseId: khuon, toLocationCode: 'T9-K99', dieIds: [second.id] }).expect(201);
     expect((await dieOf(keeper, second.id)).place).toBe('Kho khuôn Âu Việt · T9-K99');
     expect(await t.prisma.whLocation.count({ where: { warehouseId: khuon, code: 'T9-K99' } })).toBe(1);
+    // một kho gõ tên mới cũng nhận vật tư được như mọi kho
+    const xb = (await keeper.get('/warehouse/warehouses').expect(200)).body.find((w: { name: string }) => w.name === 'Xưởng bế Mới');
+    await keeper.post('/warehouse/slips', { warehouseId: xb.id, kind: 'RECEIPT', date: today, lines: [{ specId: glueSpec, qty: 2 }] }).expect(201);
+    expect((await stockOf(keeper, xb.id, glueSpec)).qty).toBe(2);
   });
 
-  it('imports the paper stock sheet: catalog plus a slip that brings stock to the sheet, re-imports replace or top up', async () => {
+  it('imports a stock sheet into a warehouse: catalog plus an adjustment that takes effect at once; re-imports only top up', async () => {
     const agent = request.agent(t.app.getHttpServer());
     await agent.post('/api/v1/auth/login').send({ username: ADMIN, password: PASSWORD }).expect(200);
     const file = readFileSync(join(__dirname, 'fixtures', 'giay-mau.xlsx'));
@@ -373,16 +376,8 @@ describe('Warehouse', () => {
     expect(await t.prisma.whMaterial.findMany({ where: { name: 'Đề can giấy đế trắng LH' }, select: { code: true, group: true } })).toEqual([{ code: 'DC', group: 'Đề can' }]);
     expect(await t.prisma.whMaterial.findFirst({ where: { name: 'Op140' }, select: { code: true, group: true } })).toEqual({ code: 'Op', group: 'Op' });
     const slip = (await agent.get(`/api/v1/warehouse/slips?warehouseId=${giay.id}`).expect(200)).body.find((x: { code: string }) => x.code === done.slipCode);
-    expect(slip).toMatchObject({ kind: 'ADJUST', status: 'PENDING', purpose: 'Tồn đầu' });
+    expect(slip).toMatchObject({ kind: 'ADJUST', status: 'CONFIRMED', purpose: 'Tồn đầu' });
     expect(slip.lines.filter((l: { label: string }) => l.label.startsWith('Op140')).map((l: { qty: number }) => l.qty).sort((a: number, b: number) => a - b)).toEqual([75, 250]);
-    // importing again while it waits replaces it with a fresh slip
-    const second = (await upload(false).expect(201)).body;
-    expect(second).toMatchObject({ materialsCreated: 0, specsCreated: 0, adjusted: 7, replacedSlips: [done.slipCode] });
-    expect(second.slipCode).not.toBe(done.slipCode);
-    const slips = (await agent.get(`/api/v1/warehouse/slips?warehouseId=${giay.id}`).expect(200)).body;
-    expect(slips.find((x: { code: string }) => x.code === done.slipCode).status).toBe('CANCELLED');
-    const fresh = slips.find((x: { code: string }) => x.code === second.slipCode);
-    await agent.post(`/api/v1/warehouse/slips/${fresh.id}/confirm`).expect(201);
     const stockOf = async (label: string) => (await agent.get(`/api/v1/warehouse/stock?warehouseId=${giay.id}`).expect(200)).body.find((s: { label: string }) => s.label === label).qty;
     expect(await stockOf('C150 · 42 x 50')).toBe(575);
 
@@ -397,8 +392,15 @@ describe('Warehouse', () => {
     const fix = (await agent.get(`/api/v1/warehouse/slips?warehouseId=${giay.id}`).expect(200)).body.find((x: { code: string }) => x.code === topUp.slipCode);
     expect(fix).toMatchObject({ purpose: 'Điều chỉnh theo bảng tồn vật tư' });
     expect(fix.lines.map((l: { qty: number }) => l.qty)).toEqual([75]);
-    await agent.post(`/api/v1/warehouse/slips/${fix.id}/confirm`).expect(201);
     expect(await stockOf('C150 · 42 x 50')).toBe(575);
+
+    // any warehouse, generic columns: Tên vật tư, Quy cách (khổ cuộn hoặc trống), ĐVT, Nhóm
+    const vt = readFileSync(join(__dirname, 'fixtures', 'vattu-mau.xlsx'));
+    const r = (await agent.post(`/api/v1/warehouse/materials/import-paper?dryRun=false&warehouseId=${bat.id}`).attach('file', vt, 'vt.xlsx').expect(201)).body;
+    expect(r).toMatchObject({ warehouseName: 'Kho vật tư xưởng bạt', materialsCreated: 2, adjusted: 2 });
+    const batStock = (await agent.get(`/api/v1/warehouse/stock?warehouseId=${bat.id}`).expect(200)).body;
+    expect(batStock.find((x: { label: string }) => x.label === 'Bạt Hiflex · khổ 320')).toMatchObject({ qty: 150, unit: 'm', group: 'Bạt' });
+    expect(batStock.find((x: { label: string }) => x.label === 'Mực UV Cyan')).toMatchObject({ qty: 4.5, unit: 'lít' });
   });
 
   it('imports the Excel die list: preview first, then write; running it again adds nothing', async () => {
@@ -410,7 +412,7 @@ describe('Warehouse', () => {
     const upload = (dryRun: boolean) => agent.post(`/api/v1/warehouse/dies/import?dryRun=${dryRun}&warehouseId=${khuon}`).attach('file', file, 'khuon.xlsx');
 
     const preview = (await upload(true).expect(201)).body;
-    expect(preview).toMatchObject({ dryRun: true, dies: 5, skippedExisting: 0, history: 1, partnersCreated: [], locationsCreated: ['Tầng 4'], byStatus: { READY: 4, IN_USE: 1 } });
+    expect(preview).toMatchObject({ dryRun: true, dies: 5, skippedExisting: 0, history: 1, warehousesCreated: [], locationsCreated: ['Tầng 4'], byStatus: { READY: 4, IN_USE: 1 } });
     const messages = preview.issues.map((i: { code: string | null; message: string }) => `${i.code}: ${i.message}`);
     expect(messages).toEqual(expect.arrayContaining([
       expect.stringMatching(/^TUI-001: Cần xác nhận: Cùng kích thước với TUI-002/),

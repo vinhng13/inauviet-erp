@@ -33,7 +33,7 @@ async function main(): Promise<void> {
     console.log(write ? 'ĐÃ NHẬP vào cơ sở dữ liệu' : 'XEM TRƯỚC (chưa ghi gì). Thêm --write để nhập.');
     console.log(`  Khuôn mới: ${r.dies}   Mã đã có, bỏ qua: ${r.skippedExisting}   Dòng lịch sử: ${r.history}`);
     console.log(`  Theo trạng thái: ${Object.entries(r.byStatus).map(([s, n]) => `${STATUS[s] ?? s} ${n}`).join(', ') || '—'}`);
-    console.log(`  Đối tác ${write ? 'đã' : 'sẽ'} tạo: ${r.partnersCreated.join(', ') || '—'}`);
+    console.log(`  Kho ngoài ${write ? 'đã' : 'sẽ'} tạo: ${r.warehousesCreated.join(', ') || '—'}`);
     console.log(`  Vị trí ${write ? 'đã' : 'sẽ'} tạo: ${r.locationsCreated.join(', ') || '—'}`);
     console.log(`  Điểm cần xem: ${r.issues.length}${r.issues.length ? ' (khuôn cần xác nhận hiện ở bộ lọc "Cần xác nhận" trong menu Khuôn)' : ''}`);
     for (const i of r.issues.slice(0, 15)) console.log(`    dòng ${i.row} ${i.code ?? ''}: ${i.message}`);

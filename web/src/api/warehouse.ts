@@ -16,12 +16,13 @@ export type StockItem = Schemas['StockItemDto'];
 const p = (id: string) => ({ path: { id } });
 
 export const useWhOverview = () => useQuery({ queryKey: wh.key('overview'), queryFn: () => unwrap(api.GET('/api/v1/warehouse/overview')) });
-export const usePartners = () => useQuery({ queryKey: wh.key('partners'), queryFn: () => unwrap(api.GET('/api/v1/warehouse/partners')), staleTime: 60_000 });
+/** Nơi lấy hàng đã ghi trên phiếu nhập (chữ), để gợi ý */
+export const useSuppliers = () => useQuery({ queryKey: wh.key('suppliers'), queryFn: () => unwrap(api.GET('/api/v1/warehouse/suppliers')), staleTime: 60_000 });
+export const useWhPeople = (enabled = true) => useQuery({ queryKey: wh.key('people'), enabled, queryFn: () => unwrap(api.GET('/api/v1/warehouse/people')), staleTime: 300_000 });
 export const useLocations = () => useQuery({ queryKey: wh.key('locations'), queryFn: () => unwrap(api.GET('/api/v1/warehouse/locations')), staleTime: 60_000 });
 export const useSymbols = () => useQuery({ queryKey: wh.key('symbols'), queryFn: () => unwrap(api.GET('/api/v1/warehouse/symbols')), staleTime: 60_000 });
 export const useWhMaterials = () => useQuery({ queryKey: wh.key('materials'), queryFn: () => unwrap(api.GET('/api/v1/warehouse/materials')) });
 export const useWarehouses = () => useQuery({ queryKey: wh.key('warehouses'), queryFn: () => unwrap(api.GET('/api/v1/warehouse/warehouses')), staleTime: 30_000 });
-export const useWhPeople = (enabled = true) => useQuery({ queryKey: wh.key('people'), enabled, queryFn: () => unwrap(api.GET('/api/v1/warehouse/people')), staleTime: 300_000 });
 export const useStockItems = (warehouseId?: string, all = false) =>
   useQuery({
     queryKey: wh.key('stock', warehouseId, all),
@@ -68,11 +69,6 @@ export function useWarehouseMutations() {
   const qc = useQueryClient();
   const done = { onSuccess: () => qc.invalidateQueries({ queryKey: wh.all }) };
   return {
-    savePartner: useMutation({
-      mutationFn: ({ id, ...body }: Schemas['PartnerInputDto'] & { id?: string }) =>
-        unwrap(id ? api.PUT('/api/v1/warehouse/partners/{id}', { params: p(id), body }) : api.POST('/api/v1/warehouse/partners', { body })),
-      ...done,
-    }),
     saveLocation: useMutation({
       mutationFn: ({ id, ...body }: Schemas['LocationInputDto'] & { id?: string }) =>
         unwrap(id ? api.PUT('/api/v1/warehouse/locations/{id}', { params: p(id), body }) : api.POST('/api/v1/warehouse/locations', { body })),
@@ -92,9 +88,6 @@ export function useWarehouseMutations() {
     updateStock: useMutation({ mutationFn: ({ id, ...body }: Schemas['StockUpdateDto'] & { id: string }) => unwrap(api.PUT('/api/v1/warehouse/stock/{id}', { params: p(id), body })), ...done }),
     createSlip: useMutation({ mutationFn: (body: Schemas['SlipInputDto']) => unwrap(api.POST('/api/v1/warehouse/slips', { body })), ...done }),
     createTransfer: useMutation({ mutationFn: (body: Schemas['TransferInputDto']) => unwrap(api.POST('/api/v1/warehouse/transfers', { body })), ...done }),
-    confirmSlip: useMutation({ mutationFn: (id: string) => unwrap(api.POST('/api/v1/warehouse/slips/{id}/confirm', { params: p(id) })), ...done }),
-    rejectSlip: useMutation({ mutationFn: ({ id, reason }: { id: string; reason: string }) => unwrap(api.POST('/api/v1/warehouse/slips/{id}/reject', { params: p(id), body: { reason } })), ...done }),
-    cancelSlip: useMutation({ mutationFn: (id: string) => unwrap(api.POST('/api/v1/warehouse/slips/{id}/cancel', { params: p(id) })), ...done }),
     runSnapshots: useMutation({ mutationFn: () => unwrap(api.POST('/api/v1/warehouse/snapshots/run')), ...done }),
     voidSlip: useMutation({ mutationFn: ({ id, reason }: { id: string; reason: string }) => unwrap(api.POST('/api/v1/warehouse/slips/{id}/void', { params: p(id), body: { reason } })), ...done }),
     createDie: useMutation({ mutationFn: (body: Schemas['DieInputDto']) => unwrap(api.POST('/api/v1/warehouse/dies', { body })), ...done }),

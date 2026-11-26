@@ -4444,31 +4444,7 @@
             "description": ""
           }
         },
-        "tags": [
-          "warehouse"
-        ]
-      }
-    },
-    "/api/v1/warehouse/people": {
-      "get": {
-        "operationId": "Warehouse_people",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/KeeperDto"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "summary": "Người dùng để chọn làm thủ kho",
+        "summary": "Thêm kho: người lập phiếu kho hoặc phiếu khuôn cũng thêm được (sửa kho thì cần quyền quản lý kho)",
         "tags": [
           "warehouse"
         ]
@@ -4507,9 +4483,9 @@
         ]
       }
     },
-    "/api/v1/warehouse/partners": {
+    "/api/v1/warehouse/people": {
       "get": {
-        "operationId": "Warehouse_partners",
+        "operationId": "Warehouse_people",
         "parameters": [],
         "responses": {
           "200": {
@@ -4519,7 +4495,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/PartnerDto"
+                    "$ref": "#/components/schemas/PersonDto"
                   }
                 }
               }
@@ -4529,56 +4505,25 @@
         "tags": [
           "warehouse"
         ]
-      },
-      "post": {
-        "operationId": "Warehouse_createPartner",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PartnerInputDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "204": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "warehouse"
-        ]
       }
     },
-    "/api/v1/warehouse/partners/{id}": {
-      "put": {
-        "operationId": "Warehouse_updatePartner",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PartnerInputDto"
+    "/api/v1/warehouse/suppliers": {
+      "get": {
+        "operationId": "Warehouse_suppliers",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
               }
             }
-          }
-        },
-        "responses": {
-          "204": {
-            "description": ""
           }
         },
         "tags": [
@@ -5142,7 +5087,7 @@
             }
           }
         },
-        "summary": "Lập phiếu (chờ thủ kho xác nhận; thủ kho lập thì confirm=true để xác nhận luôn)",
+        "summary": "Lập phiếu: có hiệu lực ngay khi lưu",
         "tags": [
           "warehouse"
         ]
@@ -5204,107 +5149,7 @@
             }
           }
         },
-        "summary": "Phiếu chuyển kho A → B: thủ kho A xác nhận xuất, rồi thủ kho B xác nhận nhận",
-        "tags": [
-          "warehouse"
-        ]
-      }
-    },
-    "/api/v1/warehouse/slips/{id}/confirm": {
-      "post": {
-        "operationId": "Warehouse_confirmSlip",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SlipDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "warehouse"
-        ]
-      }
-    },
-    "/api/v1/warehouse/slips/{id}/reject": {
-      "post": {
-        "operationId": "Warehouse_rejectSlip",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/VoidDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SlipDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "warehouse"
-        ]
-      }
-    },
-    "/api/v1/warehouse/slips/{id}/cancel": {
-      "post": {
-        "operationId": "Warehouse_cancelSlip",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SlipDto"
-                }
-              }
-            }
-          }
-        },
+        "summary": "Phiếu chuyển kho A → B: hàng rời kho A và vào kho B ngay khi lưu",
         "tags": [
           "warehouse"
         ]
@@ -5786,7 +5631,7 @@
             "name": "place",
             "required": false,
             "in": "query",
-            "description": "Nơi đi hoặc đến: k:<kho> hoặc x:<đối tác>",
+            "description": "Nơi đi hoặc đến: k:<kho>",
             "schema": {
               "pattern": "^[kx]:[0-9a-f-]{36}$",
               "type": "string"
@@ -12410,35 +12255,20 @@
           "customerId"
         ]
       },
-      "WhWarehouseKind": {
+      "WhOwnership": {
         "type": "string",
         "enum": [
-          "STOCK",
-          "DIE"
-        ]
-      },
-      "KeeperDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "fullName": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "fullName"
+          "AU_VIET",
+          "EXTERNAL"
         ]
       },
       "WarehouseDto": {
         "type": "object",
         "properties": {
-          "kind": {
+          "ownership": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/WhWarehouseKind"
+                "$ref": "#/components/schemas/WhOwnership"
               }
             ]
           },
@@ -12455,6 +12285,10 @@
             "type": "string",
             "nullable": true
           },
+          "phone": {
+            "type": "string",
+            "nullable": true
+          },
           "note": {
             "type": "string",
             "nullable": true
@@ -12465,27 +12299,13 @@
           "sortOrder": {
             "type": "number"
           },
-          "keepers": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/KeeperDto"
-            }
-          },
           "materials": {
             "type": "number",
-            "description": "Số vật tư có ở kho"
+            "description": "Số vật tư đã có ở kho"
           },
           "dies": {
             "type": "number",
-            "description": "Khuôn đang ở kho (kho khuôn)"
-          },
-          "canConfirm": {
-            "type": "boolean",
-            "description": "Người đang xem xác nhận được phiếu của kho này"
-          },
-          "pending": {
-            "type": "number",
-            "description": "Phiếu đang chờ xác nhận"
+            "description": "Khuôn đang ở kho"
           },
           "low": {
             "type": "number",
@@ -12493,19 +12313,17 @@
           }
         },
         "required": [
-          "kind",
+          "ownership",
           "id",
           "code",
           "name",
           "address",
+          "phone",
           "note",
           "isActive",
           "sortOrder",
-          "keepers",
           "materials",
           "dies",
-          "canConfirm",
-          "pending",
           "low"
         ]
       },
@@ -12627,6 +12445,194 @@
           "pendingOut",
           "valueVnd",
           "units"
+        ]
+      },
+      "PlaceCountDto": {
+        "type": "object",
+        "properties": {
+          "warehouseId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "inUse": {
+            "type": "number"
+          },
+          "kept": {
+            "type": "number"
+          },
+          "overdue": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "warehouseId",
+          "name",
+          "inUse",
+          "kept",
+          "overdue"
+        ]
+      },
+      "WhDieKind": {
+        "type": "string",
+        "enum": [
+          "CUT",
+          "FOIL",
+          "EMBOSS"
+        ]
+      },
+      "WhOrientation": {
+        "type": "string",
+        "enum": [
+          "PORTRAIT",
+          "LANDSCAPE"
+        ]
+      },
+      "WhDieStatus": {
+        "type": "string",
+        "enum": [
+          "READY",
+          "IN_USE",
+          "CHECKING",
+          "REPAIRING",
+          "DEFECT",
+          "BROKEN",
+          "DISPOSED",
+          "TRANSIT",
+          "INCOMING",
+          "MAKING"
+        ]
+      },
+      "DieRowDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WhDieKind"
+              }
+            ]
+          },
+          "orientation": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WhOrientation"
+              }
+            ]
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WhDieStatus"
+              }
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "symbolCode": {
+            "type": "string"
+          },
+          "productName": {
+            "type": "string"
+          },
+          "customerName": {
+            "type": "string",
+            "nullable": true
+          },
+          "size": {
+            "type": "string",
+            "nullable": true
+          },
+          "lengthCm": {
+            "type": "number",
+            "nullable": true
+          },
+          "widthCm": {
+            "type": "number",
+            "nullable": true
+          },
+          "heightCm": {
+            "type": "number",
+            "nullable": true
+          },
+          "pieces": {
+            "type": "number",
+            "nullable": true
+          },
+          "ups": {
+            "type": "number",
+            "nullable": true
+          },
+          "place": {
+            "type": "string",
+            "description": "\"Kho khuôn Âu Việt · T4-K02\", tên xưởng, hoặc \"A → B\" khi đang chuyển"
+          },
+          "warehouseId": {
+            "type": "string",
+            "description": "Kho đang giữ khuôn"
+          },
+          "warehouseName": {
+            "type": "string"
+          },
+          "external": {
+            "type": "boolean",
+            "description": "Khuôn đang ở kho ngoài (xưởng bế, nơi làm khuôn…)"
+          },
+          "locationId": {
+            "type": "string",
+            "nullable": true
+          },
+          "pendingBatchId": {
+            "type": "string",
+            "nullable": true,
+            "description": "Phiếu giao nhận đang chờ xác nhận"
+          },
+          "expectedBackOn": {
+            "type": "string",
+            "nullable": true
+          },
+          "overdue": {
+            "type": "boolean"
+          },
+          "needsReview": {
+            "type": "boolean"
+          },
+          "reviewNote": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "kind",
+          "orientation",
+          "status",
+          "id",
+          "code",
+          "symbolCode",
+          "productName",
+          "customerName",
+          "size",
+          "lengthCm",
+          "widthCm",
+          "heightCm",
+          "pieces",
+          "ups",
+          "place",
+          "warehouseId",
+          "warehouseName",
+          "external",
+          "locationId",
+          "pendingBatchId",
+          "expectedBackOn",
+          "overdue",
+          "needsReview",
+          "reviewNote"
         ]
       },
       "WhSlipKind": {
@@ -12764,13 +12770,10 @@
           "date": {
             "type": "string"
           },
-          "partnerId": {
+          "supplierName": {
             "type": "string",
-            "nullable": true
-          },
-          "partnerName": {
-            "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Nơi lấy hàng (phiếu nhập)"
           },
           "receiver": {
             "type": "string",
@@ -12830,13 +12833,9 @@
               }
             ]
           },
-          "canConfirm": {
+          "canVoid": {
             "type": "boolean",
-            "description": "Người đang xem xác nhận / từ chối được"
-          },
-          "canCancel": {
-            "type": "boolean",
-            "description": "Người đang xem huỷ được (phiếu chưa xác nhận)"
+            "description": "Người đang xem huỷ được (người lập, hoặc quản lý kho)"
           },
           "lines": {
             "type": "array",
@@ -12854,8 +12853,7 @@
           "warehouseCode",
           "warehouseName",
           "date",
-          "partnerId",
-          "partnerName",
+          "supplierName",
           "receiver",
           "purpose",
           "reference",
@@ -12869,197 +12867,8 @@
           "voidedAt",
           "voidReason",
           "counterpart",
-          "canConfirm",
-          "canCancel",
+          "canVoid",
           "lines"
-        ]
-      },
-      "PlaceCountDto": {
-        "type": "object",
-        "properties": {
-          "holderId": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "inUse": {
-            "type": "number"
-          },
-          "kept": {
-            "type": "number"
-          },
-          "overdue": {
-            "type": "number"
-          }
-        },
-        "required": [
-          "holderId",
-          "name",
-          "inUse",
-          "kept",
-          "overdue"
-        ]
-      },
-      "WhDieKind": {
-        "type": "string",
-        "enum": [
-          "CUT",
-          "FOIL",
-          "EMBOSS"
-        ]
-      },
-      "WhOrientation": {
-        "type": "string",
-        "enum": [
-          "PORTRAIT",
-          "LANDSCAPE"
-        ]
-      },
-      "WhDieStatus": {
-        "type": "string",
-        "enum": [
-          "READY",
-          "IN_USE",
-          "CHECKING",
-          "REPAIRING",
-          "DEFECT",
-          "BROKEN",
-          "DISPOSED",
-          "TRANSIT",
-          "INCOMING",
-          "MAKING"
-        ]
-      },
-      "DieRowDto": {
-        "type": "object",
-        "properties": {
-          "kind": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/WhDieKind"
-              }
-            ]
-          },
-          "orientation": {
-            "nullable": true,
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/WhOrientation"
-              }
-            ]
-          },
-          "status": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/WhDieStatus"
-              }
-            ]
-          },
-          "id": {
-            "type": "string"
-          },
-          "code": {
-            "type": "string"
-          },
-          "symbolCode": {
-            "type": "string"
-          },
-          "productName": {
-            "type": "string"
-          },
-          "customerName": {
-            "type": "string",
-            "nullable": true
-          },
-          "size": {
-            "type": "string",
-            "nullable": true
-          },
-          "lengthCm": {
-            "type": "number",
-            "nullable": true
-          },
-          "widthCm": {
-            "type": "number",
-            "nullable": true
-          },
-          "heightCm": {
-            "type": "number",
-            "nullable": true
-          },
-          "pieces": {
-            "type": "number",
-            "nullable": true
-          },
-          "ups": {
-            "type": "number",
-            "nullable": true
-          },
-          "place": {
-            "type": "string",
-            "description": "\"Kho khuôn Âu Việt · T4-K02\", tên xưởng, hoặc \"A → B\" khi đang chuyển"
-          },
-          "warehouseId": {
-            "type": "string",
-            "description": "Kho quản lý (khuôn ở kho này khi holderId trống)"
-          },
-          "warehouseName": {
-            "type": "string"
-          },
-          "holderId": {
-            "type": "string",
-            "nullable": true
-          },
-          "locationId": {
-            "type": "string",
-            "nullable": true
-          },
-          "pendingBatchId": {
-            "type": "string",
-            "nullable": true,
-            "description": "Phiếu giao nhận đang chờ xác nhận"
-          },
-          "expectedBackOn": {
-            "type": "string",
-            "nullable": true
-          },
-          "overdue": {
-            "type": "boolean"
-          },
-          "needsReview": {
-            "type": "boolean"
-          },
-          "reviewNote": {
-            "type": "string",
-            "nullable": true
-          }
-        },
-        "required": [
-          "kind",
-          "orientation",
-          "status",
-          "id",
-          "code",
-          "symbolCode",
-          "productName",
-          "customerName",
-          "size",
-          "lengthCm",
-          "widthCm",
-          "heightCm",
-          "pieces",
-          "ups",
-          "place",
-          "warehouseId",
-          "warehouseName",
-          "holderId",
-          "locationId",
-          "pendingBatchId",
-          "expectedBackOn",
-          "overdue",
-          "needsReview",
-          "reviewNote"
         ]
       },
       "WhDieBatchStatus": {
@@ -13116,15 +12925,7 @@
             "type": "string",
             "nullable": true
           },
-          "fromPartnerId": {
-            "type": "string",
-            "nullable": true
-          },
           "toWarehouseId": {
-            "type": "string",
-            "nullable": true
-          },
-          "toPartnerId": {
             "type": "string",
             "nullable": true
           },
@@ -13219,9 +13020,7 @@
           "code",
           "date",
           "fromWarehouseId",
-          "fromPartnerId",
           "toWarehouseId",
-          "toPartnerId",
           "toLocationId",
           "fromName",
           "toName",
@@ -13248,16 +13047,16 @@
       "DiePlaceDto": {
         "type": "object",
         "properties": {
-          "kind": {
-            "enum": [
-              "KHO",
-              "PARTNER"
-            ],
-            "type": "string"
+          "ownership": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WhOwnership"
+              }
+            ]
           },
           "key": {
             "type": "string",
-            "description": "\"k:<id>\" hoặc \"x:<id>\", dùng làm bộ lọc Ở đâu"
+            "description": "\"k:<id>\", dùng làm bộ lọc Ở đâu"
           },
           "name": {
             "type": "string"
@@ -13267,7 +13066,7 @@
           }
         },
         "required": [
-          "kind",
+          "ownership",
           "key",
           "name",
           "dies"
@@ -13294,24 +13093,11 @@
               "$ref": "#/components/schemas/StockItemDto"
             }
           },
-          "toConfirm": {
-            "description": "Phiếu chờ người đang xem xác nhận",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/SlipDto"
-            }
-          },
-          "inTransit": {
-            "description": "Hàng đang chuyển giữa các kho (đã xuất, kho nhận chưa xác nhận)",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/SlipDto"
-            }
-          },
           "diesTotal": {
             "type": "number"
           },
-          "atPartners": {
+          "outside": {
+            "description": "Khuôn đang ở kho ngoài, theo từng kho",
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/PlaceCountDto"
@@ -13364,10 +13150,8 @@
           "diesByStatus",
           "warehouses",
           "lowStock",
-          "toConfirm",
-          "inTransit",
           "diesTotal",
-          "atPartners",
+          "outside",
           "overdue",
           "checking",
           "needsReview",
@@ -13382,121 +13166,26 @@
         "properties": {
           "code": {
             "type": "string",
-            "description": "Mã kho dùng trong số phiếu: GIAY, BAT, OFFSET…",
-            "pattern": "^[A-Z0-9]{2,10}$"
+            "nullable": true,
+            "description": "Mã kho dùng trong số phiếu: GIAY, BAT, MELINH… Bỏ trống thì sinh từ tên",
+            "pattern": "^[A-Za-z0-9]{2,16}$"
           },
           "name": {
             "type": "string",
             "maxLength": 120
+          },
+          "ownership": {
+            "description": "Âu Việt hoặc kho ngoài (xưởng bế, nơi làm khuôn…); mặc định Âu Việt",
+            "enum": [
+              "AU_VIET",
+              "EXTERNAL"
+            ],
+            "type": "string"
           },
           "address": {
             "type": "string",
             "nullable": true,
             "maxLength": 300
-          },
-          "kind": {
-            "description": "Không còn dùng: mọi kho giữ được cả vật tư lẫn khuôn",
-            "enum": [
-              "STOCK",
-              "DIE"
-            ],
-            "type": "string"
-          },
-          "note": {
-            "type": "string",
-            "nullable": true,
-            "maxLength": 500
-          },
-          "isActive": {
-            "type": "boolean"
-          },
-          "sortOrder": {
-            "type": "number",
-            "minimum": 0,
-            "maximum": 10000
-          },
-          "keeperIds": {
-            "description": "Thủ kho: người xác nhận phiếu của kho này",
-            "type": "array",
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        },
-        "required": [
-          "code",
-          "name",
-          "keeperIds"
-        ]
-      },
-      "WhPartnerKind": {
-        "type": "string",
-        "enum": [
-          "DIE_MAKER",
-          "DIE_SHOP",
-          "SUPPLIER",
-          "OTHER"
-        ]
-      },
-      "PartnerDto": {
-        "type": "object",
-        "properties": {
-          "kind": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/WhPartnerKind"
-              }
-            ]
-          },
-          "id": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "phone": {
-            "type": "string",
-            "nullable": true
-          },
-          "note": {
-            "type": "string",
-            "nullable": true
-          },
-          "isActive": {
-            "type": "boolean"
-          },
-          "diesHeld": {
-            "type": "number",
-            "description": "Khuôn đang ở đối tác này"
-          }
-        },
-        "required": [
-          "kind",
-          "id",
-          "name",
-          "phone",
-          "note",
-          "isActive",
-          "diesHeld"
-        ]
-      },
-      "PartnerInputDto": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string",
-            "maxLength": 120
-          },
-          "kind": {
-            "description": "Chỉ để ghi nhớ, không giới hạn chỗ chọn; bỏ trống = Khác",
-            "enum": [
-              "OTHER",
-              "DIE_MAKER",
-              "DIE_SHOP",
-              "SUPPLIER"
-            ],
-            "type": "string"
           },
           "phone": {
             "type": "string",
@@ -13510,10 +13199,30 @@
           },
           "isActive": {
             "type": "boolean"
+          },
+          "sortOrder": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 10000
           }
         },
         "required": [
           "name"
+        ]
+      },
+      "PersonDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "fullName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "fullName"
         ]
       },
       "LocationDto": {
@@ -13557,7 +13266,7 @@
         "properties": {
           "warehouseId": {
             "type": "string",
-            "description": "Kho khuôn có kệ này",
+            "description": "Kho có kệ này (bắt buộc)",
             "format": "uuid"
           },
           "code": {
@@ -14173,16 +13882,10 @@
               "RETURN"
             ]
           },
-          "partnerId": {
+          "supplierName": {
             "type": "string",
             "nullable": true,
-            "description": "Nơi lấy hàng nhập kho (phiếu nhập)",
-            "format": "uuid"
-          },
-          "partnerName": {
-            "type": "string",
-            "nullable": true,
-            "description": "Nơi lấy hàng gõ tên mới (chưa có trong danh mục): tự thêm vào danh mục đối tác",
+            "description": "Nơi lấy hàng (phiếu nhập): chữ ghi thêm, không bắt buộc, không tính tồn",
             "maxLength": 120
           },
           "receiver": {
@@ -14212,10 +13915,6 @@
             "items": {
               "$ref": "#/components/schemas/SlipLineInputDto"
             }
-          },
-          "confirm": {
-            "type": "boolean",
-            "description": "Người lập là thủ kho của kho: xác nhận luôn"
           }
         },
         "required": [
@@ -14239,7 +13938,14 @@
           },
           "toWarehouseId": {
             "type": "string",
+            "nullable": true,
+            "description": "Kho nhận có sẵn; hoặc gõ tên ở toWarehouseName, chưa có thì tự thêm (Kho ngoài)",
             "format": "uuid"
+          },
+          "toWarehouseName": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 120
           },
           "receiver": {
             "type": "string",
@@ -14262,16 +13968,11 @@
             "items": {
               "$ref": "#/components/schemas/SlipLineInputDto"
             }
-          },
-          "confirm": {
-            "type": "boolean",
-            "description": "Người lập là thủ kho kho đi: xác nhận xuất luôn"
           }
         },
         "required": [
           "date",
           "fromWarehouseId",
-          "toWarehouseId",
           "lines"
         ]
       },
@@ -14554,14 +14255,14 @@
           },
           "warehouseId": {
             "type": "string",
-            "description": "Kho quản lý (khuôn ở kho này khi holderId trống)"
+            "description": "Kho đang giữ khuôn"
           },
           "warehouseName": {
             "type": "string"
           },
-          "holderId": {
-            "type": "string",
-            "nullable": true
+          "external": {
+            "type": "boolean",
+            "description": "Khuôn đang ở kho ngoài (xưởng bế, nơi làm khuôn…)"
           },
           "locationId": {
             "type": "string",
@@ -14616,7 +14317,7 @@
           "place",
           "warehouseId",
           "warehouseName",
-          "holderId",
+          "external",
           "locationId",
           "pendingBatchId",
           "expectedBackOn",
@@ -14707,8 +14408,8 @@
           "owner": {
             "enum": [
               "CUSTOMER",
-              "PARTNER",
-              "AU_VIET"
+              "AU_VIET",
+              "PARTNER"
             ],
             "type": "string"
           },
@@ -14721,45 +14422,6 @@
             "type": "string",
             "nullable": true,
             "maxLength": 1000
-          },
-          "toWarehouseId": {
-            "type": "string",
-            "nullable": true,
-            "description": "Chỉ khi tạo mới, bắt buộc một trong hai: khuôn làm xong nhập kho nào, hoặc giao thẳng tới xưởng nào",
-            "format": "uuid"
-          },
-          "toPartnerId": {
-            "type": "string",
-            "nullable": true,
-            "format": "uuid"
-          },
-          "toPartnerName": {
-            "type": "string",
-            "nullable": true,
-            "description": "Xưởng gõ tên mới: tự thêm vào danh mục (xưởng bế)",
-            "maxLength": 120
-          },
-          "toLocationId": {
-            "type": "string",
-            "nullable": true,
-            "description": "Kệ cất khi nhận (kho)",
-            "format": "uuid"
-          },
-          "toLocationCode": {
-            "type": "string",
-            "nullable": true,
-            "description": "Kệ gõ mã mới: tự thêm vào kho nhận",
-            "maxLength": 40
-          },
-          "reference": {
-            "type": "string",
-            "nullable": true,
-            "description": "Lệnh bế khi giao thẳng tới xưởng",
-            "maxLength": 60
-          },
-          "confirm": {
-            "type": "boolean",
-            "description": "Thủ kho xác nhận luôn (đã nhận / đã giao)"
           },
           "force": {
             "type": "boolean",
@@ -14880,7 +14542,8 @@
           "history": {
             "type": "number"
           },
-          "partnersCreated": {
+          "warehousesCreated": {
+            "description": "Kho ngoài sẽ tạo (nơi bế, nơi ra khuôn chưa có)",
             "type": "array",
             "items": {
               "type": "string"
@@ -14907,7 +14570,7 @@
           "dies",
           "skippedExisting",
           "history",
-          "partnersCreated",
+          "warehousesCreated",
           "locationsCreated",
           "issues"
         ]
@@ -15082,36 +14745,24 @@
           },
           "fromWarehouseId": {
             "type": "string",
-            "nullable": true,
-            "description": "Từ: một kho hoặc một xưởng",
-            "format": "uuid"
-          },
-          "fromPartnerId": {
-            "type": "string",
-            "nullable": true,
+            "description": "Từ: kho khuôn đang ở",
             "format": "uuid"
           },
           "toWarehouseId": {
             "type": "string",
             "nullable": true,
-            "description": "Đến (bắt buộc): một kho hoặc một xưởng",
+            "description": "Đến: một kho, hoặc gõ tên kho mới (toWarehouseName, tự thêm làm kho ngoài)",
             "format": "uuid"
           },
-          "toPartnerId": {
+          "toWarehouseName": {
             "type": "string",
             "nullable": true,
-            "format": "uuid"
-          },
-          "toPartnerName": {
-            "type": "string",
-            "nullable": true,
-            "description": "Nơi đến gõ tên mới: tự thêm vào danh mục (mặc định xưởng bế)",
             "maxLength": 120
           },
           "purpose": {
             "type": "string",
             "nullable": true,
-            "description": "Thao tác khi tới một đối tác: CUT = bế khuôn (đang bế), REPAIR = gửi sửa (đang sửa). Không phụ thuộc loại đối tác",
+            "description": "Thao tác: CUT = bế khuôn (đang bế), REPAIR = gửi sửa (đang sửa), trống = chuyển kho. Cùng kho với nơi đi = bế / sửa tại chỗ",
             "enum": [
               "CUT",
               "REPAIR"
@@ -15151,14 +14802,11 @@
             "type": "string",
             "nullable": true,
             "maxLength": 500
-          },
-          "confirm": {
-            "type": "boolean",
-            "description": "Thủ kho xác nhận xuất luôn"
           }
         },
         "required": [
           "date",
+          "fromWarehouseId",
           "dieIds"
         ]
       },

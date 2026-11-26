@@ -65,7 +65,7 @@ function InOutBalance({ warehouse }: { warehouse: Schemas['WarehouseDto'] }) {
           Xuất CSV
         </Button>
       </Flex>
-      <Typography.Text type="secondary">Tính từ các phiếu đã được thủ kho xác nhận, theo ngày ghi trên phiếu. Phiếu chờ xác nhận, bị từ chối hoặc đã huỷ không tính.</Typography.Text>
+      <Typography.Text type="secondary">Tính từ các phiếu đã ghi, theo ngày ghi trên phiếu. Phiếu đã huỷ không tính.</Typography.Text>
       <Table<Schemas['StockReportRowDto']>
         rowKey="stockId"
         size="small"
@@ -165,8 +165,8 @@ function Journal({ warehouse }: { warehouse: Schemas['WarehouseDto'] }) {
           onClick={() =>
             downloadCsv(
               `so-phieu-${warehouse.code}-${range[0].format('YYYY-MM-DD')}-${range[1].format('YYYY-MM-DD')}.csv`,
-              ['Ngày', 'Số phiếu', 'Loại', 'Trạng thái', 'Vật tư', 'NCC / người nhận', 'Lệnh', 'Người lập', 'Thủ kho xác nhận'],
-              (data ?? []).flatMap((s) => s.lines.map((l) => [s.date, s.code, SLIP[s.kind].label, s.voidedAt ? 'Đã huỷ' : s.status, `${l.label}: ${lineQty(l)}`, [s.partnerName, s.receiver].filter(Boolean).join(' · '), s.reference, s.createdBy, s.confirmedBy])),
+              ['Ngày', 'Số phiếu', 'Loại', 'Trạng thái', 'Vật tư', 'Nơi lấy hàng / người nhận', 'Lệnh', 'Người lập'],
+              (data ?? []).flatMap((s) => s.lines.map((l) => [s.date, s.code, SLIP[s.kind].label, s.voidedAt ? 'Đã huỷ' : s.status, `${l.label}: ${lineQty(l)}`, [s.supplierName, s.receiver].filter(Boolean).join(' · '), s.reference, s.createdBy])),
             )
           }
         >
@@ -188,7 +188,7 @@ function Journal({ warehouse }: { warehouse: Schemas['WarehouseDto'] }) {
           { title: 'Trạng thái', key: 'st', width: 140, render: (_, r) => <SlipStatusTag slip={r} /> },
           { title: 'Vật tư', key: 'l', render: (_, r) => r.lines.map((l) => `${l.label}: ${lineQty(l)}`).join('; ') },
           { title: 'Người lập', dataIndex: 'createdBy', width: 120 },
-          { title: 'Thủ kho xác nhận', key: 'c', width: 170, render: (_, r) => (r.confirmedBy ? `${r.confirmedBy}, ${formatDateTime(String(r.confirmedAt))}` : '') },
+          { title: 'Nơi lấy hàng / người nhận', key: 'who', width: 180, render: (_, r) => [r.supplierName, r.receiver].filter(Boolean).join(' · ') },
         ]}
       />
     </Flex>

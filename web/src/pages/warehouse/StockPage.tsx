@@ -1,14 +1,14 @@
-import { CheckOutlined, DownloadOutlined, EditOutlined, ExportOutlined, ImportOutlined, MinusCircleOutlined, PlusOutlined, RollbackOutlined, SwapOutlined } from '@ant-design/icons';
-import { Alert, App, Badge, Button, DatePicker, Descriptions, Drawer, Flex, Form, Input, InputNumber, Modal, Segmented, Select, Space, Table, Tabs, Tag, Typography } from 'antd';
+import { DownloadOutlined, EditOutlined, ExportOutlined, ImportOutlined, MinusCircleOutlined, PlusOutlined, RollbackOutlined, SwapOutlined } from '@ant-design/icons';
+import { Alert, App, AutoComplete, Button, DatePicker, Descriptions, Drawer, Flex, Form, Input, InputNumber, Modal, Segmented, Select, Space, Table, Tabs, Tag, Typography } from 'antd';
 import dayjs, { type Dayjs } from 'dayjs';
 import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import type { Schemas } from '../../api/client';
-import { usePartners, useSlip, useSlips, useStockCard, useStockItems, useWarehouseMutations, useWarehouses, useWhMaterials, type StockItem } from '../../api/warehouse';
+import { useSuppliers, useSlip, useSlips, useStockCard, useStockItems, useWarehouseMutations, useWarehouses, useWhMaterials, type StockItem } from '../../api/warehouse';
 import { useCan } from '../../lib/access';
 import { errorMessage } from '../../lib/errors';
 import { formatDate, formatDateTime } from '../../lib/format';
-import { downloadCsv, lineQty, PageHead, qty, SLIP, SlipStatusTag, useWarehousePick, WarehousePicker, type SlipKind } from './common';
+import { downloadCsv, lineQty, OWNERSHIP, PageHead, qty, SLIP, SlipStatusTag, useWarehousePick, WarehousePicker, type SlipKind } from './common';
 import { pager } from '../../lib/paging';
 import { CreatableSelect, isNew, newName } from '../../components/CreatableSelect';
 
@@ -17,7 +17,7 @@ type Slip = Schemas['SlipDto'];
 type NewKind = 'RECEIPT' | 'ISSUE' | 'RETURN';
 const NEW_TITLE: Record<NewKind, string> = { RECEIPT: 'Phiếu nhập kho', ISSUE: 'Phiếu xuất kho', RETURN: 'Phiếu nhập lại (hàng thừa trả về kho)' };
 
-/** Tồn kho theo kho đang chọn, thẻ kho, phiếu, phiếu chờ thủ kho xác nhận, chuyển kho */
+/** Tồn kho theo kho đang chọn, thẻ kho, phiếu, chuyển kho. Phiếu lưu là có hiệu lực ngay */
 export function WarehouseStockPage() {
   const can = useCan();
   const [params, setParams] = useSearchParams();
@@ -47,7 +47,10 @@ export function WarehouseStockPage() {
           )
         }
       >
-        <WarehousePicker value={warehouse} list={list} onChange={pick} />
+        <Flex wrap gap={8} align="center">
+          <WarehousePicker value={warehouse} list={list} onChange={pick} />
+          <OtherKho onPick={pick} />
+        </Flex>
       </PageHead>
       {warehouse && (
         <Tabs
@@ -55,15 +58,6 @@ export function WarehouseStockPage() {
           onChange={setTab}
           items={[
             { key: 'stock', label: 'Tồn kho', children: <StockTable warehouse={warehouse} /> },
-            {
-              key: 'pending',
-              label: (
-                <Badge count={warehouse.pending} size="small" offset={[10, 0]}>
-                  Phiếu chờ xác nhận
-                </Badge>
-              ),
-              children: <SlipList warehouse={warehouse} pendingOnly onOpen={setOpenSlip} />,
-            },
             { key: 'slips', label: 'Tra cứu lịch sử', children: <SlipList warehouse={warehouse} onOpen={setOpenSlip} /> },
           ]}
         />
@@ -97,7 +91,7 @@ function StockTable({ warehouse }: { warehouse: Warehouse }) {
         <Button
           icon={<DownloadOutlined />}
           onClick={() =>
-            downloadCsv(`ton-${warehouse.code}-${dayjs().format('YYYY-MM-DD')}.csv`, ['Kho', 'Mã', 'Nhóm', 'Vật tư / quy cách', 'ĐVT', 'Tồn', 'Chờ xuất', 'Tối thiểu'], rows.map((i) => [warehouse.code, i.materialCode, i.group, i.label, i.unit, i.qty, i.pendingOut, i.minQty]))
+            downloadCsv(`ton-${warehouse.code}-${dayjs().format('YYYY-MM-DD')}.csv`, ['Kho', 'Mã', 'Nhóm', 'Vật tư / quy cách', 'ĐVT', 'Tồn', 'Tối thiểu'], rows.map((i) => [warehouse.code, i.materialCode, i.group, i.label, i.unit, i.qty, i.minQty]))
           }
         >
           Xuất CSV
@@ -131,7 +125,6 @@ function StockTable({ warehouse }: { warehouse: Warehouse }) {
               );
             },
           },
-          { title: 'Chờ xuất', dataIndex: 'pendingOut', width: 90, align: 'right', render: (v: number) => (v ? <Typography.Text type="warning">{qty(v)}</Typography.Text> : '') },
           {
             title: 'Tối thiểu',
             dataIndex: 'minQty',
@@ -179,7 +172,6 @@ function StockCard({ item, onClose }: { item: StockItem; onClose: () => void }) 
     <Drawer open size={760} onClose={onClose} title={`Thẻ kho ${item.warehouseCode} · ${item.label}`}>
       <Typography.Paragraph>
         Tồn hiện tại: <strong>{qty(data?.item.qty ?? item.qty)} {item.unit}</strong>
-        {item.pendingOut > 0 && <Typography.Text type="warning"> · chờ xuất {qty(item.pendingOut)}</Typography.Text>}
       </Typography.Paragraph>
       <Table
         rowKey="slipId"
@@ -187,7 +179,7 @@ function StockCard({ item, onClose }: { item: StockItem; onClose: () => void }) 
         loading={isFetching}
         dataSource={data?.rows}
         pagination={pager(data?.rows?.length)}
-        locale={{ emptyText: 'Chưa có phiếu nào được xác nhận' }}
+        locale={{ emptyText: 'Chưa có phiếu nào' }}
         columns={[
           { title: 'Ngày', dataIndex: 'date', width: 100, render: formatDate },
           { title: 'Số phiếu', dataIndex: 'code', width: 170, render: (v: string, r) => <span>{v} <Tag color={SLIP[r.kind].color}>{SLIP[r.kind].label}</Tag></span> },
@@ -201,24 +193,18 @@ function StockCard({ item, onClose }: { item: StockItem; onClose: () => void }) 
   );
 }
 
-function SlipList({ warehouse, pendingOnly, onOpen }: { warehouse: Warehouse; pendingOnly?: boolean; onOpen: (id: string) => void }) {
+function SlipList({ warehouse, onOpen }: { warehouse: Warehouse; onOpen: (id: string) => void }) {
   const [kind, setKind] = useState<SlipKind | 'all'>('all');
-  const [month, setMonth] = useState<Dayjs | null>(pendingOnly ? null : dayjs());
+  const [month, setMonth] = useState<Dayjs | null>(dayjs());
   const [q, setQ] = useState('');
   const { data, isFetching } = useSlips({
     warehouseId: warehouse.id,
-    status: pendingOnly ? 'PENDING' : undefined,
     kind: kind === 'all' ? undefined : kind,
     month: month?.format('YYYY-MM'),
     q: q || undefined,
   });
   return (
     <Flex vertical gap={12}>
-      {pendingOnly && (
-        <Typography.Text type="secondary">
-          Phiếu đã lập nhưng tồn chưa thay đổi. {warehouse.canConfirm ? 'Bấm vào phiếu để xác nhận hoặc từ chối.' : 'Chờ thủ kho của kho này xác nhận.'}
-        </Typography.Text>
-      )}
       <Flex wrap gap={12} align="center">
         <Select
           value={kind}
@@ -226,8 +212,8 @@ function SlipList({ warehouse, pendingOnly, onOpen }: { warehouse: Warehouse; pe
           style={{ width: 150 }}
           options={[{ value: 'all', label: 'Mọi loại phiếu' }, ...(Object.keys(SLIP) as SlipKind[]).map((k) => ({ value: k, label: SLIP[k].label }))]}
         />
-        {!pendingOnly && <DatePicker picker="month" format="MM/YYYY" value={month} onChange={setMonth} placeholder="Mọi tháng" />}
-        <Input.Search id={pendingOnly ? 'pending-search' : 'slip-search'} placeholder="Số phiếu, người nhận, lệnh" allowClear onSearch={(v) => setQ(v.trim())} style={{ width: 260 }} />
+        <DatePicker picker="month" format="MM/YYYY" value={month} onChange={setMonth} placeholder="Mọi tháng" />
+        <Input.Search id="slip-search" placeholder="Số phiếu, nơi lấy hàng, người nhận, lệnh" allowClear onSearch={(v) => setQ(v.trim())} style={{ width: 260 }} />
       </Flex>
       <Table<Slip>
         rowKey="id"
@@ -235,8 +221,8 @@ function SlipList({ warehouse, pendingOnly, onOpen }: { warehouse: Warehouse; pe
         loading={isFetching}
         dataSource={data}
         pagination={pager(data?.length)}
-        locale={{ emptyText: pendingOnly ? 'Không có phiếu chờ xác nhận' : 'Không có phiếu' }}
-        scroll={{ x: 1250 }}
+        locale={{ emptyText: 'Không có phiếu' }}
+        scroll={{ x: 1150 }}
         rowClassName={(r) => (r.voidedAt || r.status === 'CANCELLED' || r.status === 'REJECTED' ? 'row-voided' : '')}
         onRow={(r) => ({ onClick: () => onOpen(r.id), style: { cursor: 'pointer' } })}
         columns={[
@@ -245,20 +231,9 @@ function SlipList({ warehouse, pendingOnly, onOpen }: { warehouse: Warehouse; pe
           { title: 'Loại', dataIndex: 'kind', width: 110, render: (k: SlipKind) => <Tag color={SLIP[k].color}>{SLIP[k].label}</Tag> },
           { title: 'Trạng thái', key: 'st', width: 140, render: (_, r) => <SlipStatusTag slip={r} /> },
           { title: 'Vật tư', key: 'l', ellipsis: true, render: (_, r) => r.lines.map((l) => `${l.label}: ${lineQty(l)}`).join('; ') },
-          { title: 'Nơi lấy hàng / người nhận / kho bên kia', key: 'p', width: 200, render: (_, r) => [r.partnerName, r.receiver, r.counterpart?.warehouseName].filter(Boolean).join(' · ') },
+          { title: 'Nơi lấy hàng / người nhận / kho bên kia', key: 'p', width: 200, render: (_, r) => [r.supplierName, r.receiver, r.counterpart?.warehouseName].filter(Boolean).join(' · ') },
           { title: 'Mục đích / lệnh', key: 'r', width: 170, render: (_, r) => [r.purpose, r.reference].filter(Boolean).join(' · ') },
           { title: 'Người lập', dataIndex: 'createdBy', width: 120 },
-          {
-            key: 'a',
-            width: 110,
-            fixed: 'right',
-            render: (_, r) =>
-              r.canConfirm ? (
-                <Button size="small" type="primary" icon={<CheckOutlined />} onClick={(e) => (e.stopPropagation(), onOpen(r.id))}>
-                  Xác nhận
-                </Button>
-              ) : null,
-          },
         ]}
       />
     </Flex>
@@ -269,9 +244,7 @@ function SlipDrawer({ id, onClose, onOpen }: { id: string; onClose: () => void; 
   const { message, modal } = App.useApp();
   const slipQuery = useSlip(id);
   const s = slipQuery.data;
-  const warehouses = useWarehouses();
   const m = useWarehouseMutations();
-  const w = warehouses.data?.find((x) => x.id === s?.warehouseId);
   const ask = (title: string, ok: string, run: (reason: string) => Promise<unknown>, danger = true) => {
     let reason = '';
     modal.confirm({
@@ -292,7 +265,6 @@ function SlipDrawer({ id, onClose, onOpen }: { id: string; onClose: () => void; 
           : (message.warning('Ghi lý do'), Promise.reject(new Error('reason'))),
     });
   };
-  const act = (p: Promise<unknown>, ok: string) => p.then(() => message.success(ok), (e) => message.error(errorMessage(e)));
   return (
     <Drawer
       open
@@ -303,15 +275,8 @@ function SlipDrawer({ id, onClose, onOpen }: { id: string; onClose: () => void; 
       extra={
         s && (
           <Space wrap>
-            {s.canConfirm && (
-              <Button type="primary" icon={<CheckOutlined />} loading={m.confirmSlip.isPending} onClick={() => act(m.confirmSlip.mutateAsync(s.id), 'Đã xác nhận, tồn đã cập nhật')}>
-                {s.kind === 'TRANSFER_IN' ? 'Xác nhận đã nhận' : s.kind === 'TRANSFER_OUT' ? 'Xác nhận xuất' : 'Xác nhận'}
-              </Button>
-            )}
-            {s.canConfirm && <Button danger onClick={() => ask(`Từ chối phiếu ${s.code}?`, 'Từ chối', (reason) => m.rejectSlip.mutateAsync({ id: s.id, reason }))}>Từ chối</Button>}
-            {s.canCancel && !s.canConfirm && <Button danger onClick={() => act(m.cancelSlip.mutateAsync(s.id), 'Đã huỷ phiếu')}>Huỷ phiếu</Button>}
-            {s.status === 'CONFIRMED' && !s.voidedAt && w?.canConfirm && (
-              <Button danger onClick={() => ask(`Huỷ phiếu đã xác nhận ${s.code}?`, 'Huỷ phiếu', (reason) => m.voidSlip.mutateAsync({ id: s.id, reason }))}>Huỷ phiếu</Button>
+            {s.canVoid && (
+              <Button danger onClick={() => ask(`Huỷ phiếu ${s.code}? Tồn sẽ được trả lại như trước khi lập phiếu.`, 'Huỷ phiếu', (reason) => m.voidSlip.mutateAsync({ id: s.id, reason }))}>Huỷ phiếu</Button>
             )}
           </Space>
         )
@@ -319,9 +284,6 @@ function SlipDrawer({ id, onClose, onOpen }: { id: string; onClose: () => void; 
     >
       {s && (
         <Flex vertical gap={16}>
-          {s.kind === 'TRANSFER_IN' && s.status === 'PENDING' && s.counterpart?.status !== 'CONFIRMED' && (
-            <Alert type="info" showIcon title={`Kho ${s.counterpart?.warehouseName} chưa xác nhận xuất. Kho nhận xác nhận được sau khi hàng đã xuất.`} />
-          )}
           {s.status === 'REJECTED' && <Alert type="error" showIcon title={`Bị từ chối: ${s.rejectReason}`} />}
           {s.voidedAt && <Alert type="warning" showIcon title={`Đã huỷ: ${s.voidReason}`} />}
           <Descriptions
@@ -333,11 +295,10 @@ function SlipDrawer({ id, onClose, onOpen }: { id: string; onClose: () => void; 
               { label: 'Trạng thái', children: <SlipStatusTag slip={s} /> },
               { label: 'Ngày', children: formatDate(s.date) },
               { label: 'Người lập', children: `${s.createdBy}, ${formatDateTime(s.createdAt)}` },
-              ...(s.confirmedBy ? [{ label: s.status === 'REJECTED' ? 'Người từ chối' : 'Thủ kho xác nhận', children: `${s.confirmedBy}, ${formatDateTime(s.confirmedAt!)}` }] : []),
               ...(s.counterpart
                 ? [{ label: s.kind === 'TRANSFER_OUT' ? 'Chuyển đến' : 'Chuyển từ', children: <a onClick={() => onOpen(s.counterpart!.id)}>{s.counterpart.warehouseName} · {s.counterpart.code}</a> }]
                 : []),
-              ...(s.partnerName ? [{ label: 'Nơi lấy hàng nhập kho', children: s.partnerName }] : []),
+              ...(s.supplierName ? [{ label: 'Nơi lấy hàng', children: s.supplierName }] : []),
               ...(s.receiver ? [{ label: s.kind === 'RETURN' ? 'Người trả' : 'Người nhận', children: s.receiver }] : []),
               ...(s.purpose ? [{ label: 'Mục đích', children: s.purpose }] : []),
               ...(s.reference ? [{ label: 'Lệnh / chứng từ', children: s.reference }] : []),
@@ -434,13 +395,13 @@ function LinesEditor({ items, lines }: { items: LineItem[]; lines: LineValue[] }
 /** Kho chỉ ghi số lượng và đơn vị tính, không ghi đơn giá */
 const toLines = (lines: LineValue[]) => lines.filter((l) => l.specId && l.qty).map((l) => ({ specId: l.specId!, unitId: l.unitId || null, qty: l.qty! }));
 
-type SlipForm = { date: Dayjs; partnerId?: string; receiver?: string; purpose?: string; reference?: string; note?: string; lines: LineValue[] };
+type SlipForm = { date: Dayjs; supplierName?: string; receiver?: string; purpose?: string; reference?: string; note?: string; lines: LineValue[] };
 
 function SlipModal({ kind, warehouse, onClose, onCreated }: { kind: NewKind; warehouse: Warehouse; onClose: () => void; onCreated: (id: string) => void }) {
   const { message } = App.useApp();
   const [form] = Form.useForm<SlipForm>();
   const items = useLineItems(warehouse.id, kind !== 'ISSUE');
-  const partners = usePartners();
+  const suppliers = useSuppliers();
   const { createSlip } = useWarehouseMutations();
   const lines = Form.useWatch('lines', form) ?? [];
   const submit = (v: SlipForm) =>
@@ -449,19 +410,16 @@ function SlipModal({ kind, warehouse, onClose, onCreated }: { kind: NewKind; war
         warehouseId: warehouse.id,
         kind,
         date: v.date.format('YYYY-MM-DD'),
-        partnerId: v.partnerId && !isNew(v.partnerId) ? v.partnerId : null,
-        partnerName: newName(v.partnerId) || null,
+        supplierName: v.supplierName?.trim() || null,
         receiver: v.receiver || null,
         purpose: v.purpose || null,
         reference: v.reference || null,
         note: v.note || null,
-        // thủ kho lập thì xác nhận luôn, người khác lập thì chờ thủ kho
-        confirm: warehouse.canConfirm,
         lines: toLines(v.lines),
       },
       {
         onSuccess: (s) => {
-          message.success(s.status === 'CONFIRMED' ? `Đã lập và xác nhận ${s.code}` : `Đã lập ${s.code}, chờ thủ kho xác nhận`);
+          message.success(`Đã lưu ${s.code}, tồn đã cập nhật`);
           onClose();
           onCreated(s.id);
         },
@@ -476,8 +434,8 @@ function SlipModal({ kind, warehouse, onClose, onCreated }: { kind: NewKind; war
             <DatePicker format="DD/MM/YYYY" allowClear={false} />
           </Form.Item>
           {kind === 'RECEIPT' && (
-            <Form.Item name="partnerId" label="Nơi lấy hàng nhập kho" style={{ minWidth: 260 }} tooltip="Chọn nơi đã có, hoặc gõ tên mới rồi chọn “Thêm”: phần mềm tự thêm vào danh mục đối tác">
-              <CreatableSelect allowClear placeholder="Chọn hoặc gõ tên mới" options={(partners.data ?? []).filter((p) => p.isActive).map((p) => ({ value: p.id, label: p.name }))} />
+            <Form.Item name="supplierName" label="Nơi lấy hàng (nếu có)" style={{ minWidth: 260 }} tooltip="Ghi để tra cứu sau, không bắt buộc. Phần mềm không quản lý tồn ở nơi này.">
+              <AutoComplete id="slip-supplier" allowClear placeholder="Ví dụ: Giấy Hải Tiến" options={(suppliers.data ?? []).map((n) => ({ value: n }))} filterOption={(input, o) => String(o?.value ?? '').toLowerCase().includes(input.toLowerCase())} />
             </Form.Item>
           )}
           {kind !== 'RECEIPT' && (
@@ -503,7 +461,7 @@ function SlipModal({ kind, warehouse, onClose, onCreated }: { kind: NewKind; war
   );
 }
 
-type TransferForm = { date: Dayjs; toWarehouseId?: string; receiver?: string; reference?: string; note?: string; lines: LineValue[] };
+type TransferForm = { date: Dayjs; to?: string; receiver?: string; reference?: string; note?: string; lines: LineValue[] };
 
 function TransferModal({ warehouse, onClose, onCreated }: { warehouse: Warehouse; onClose: () => void; onCreated: (id: string) => void }) {
   const { message } = App.useApp();
@@ -516,17 +474,17 @@ function TransferModal({ warehouse, onClose, onCreated }: { warehouse: Warehouse
     createTransfer.mutate(
       {
         fromWarehouseId: warehouse.id,
-        toWarehouseId: v.toWarehouseId!,
+        toWarehouseId: v.to && !isNew(v.to) ? v.to : null,
+        toWarehouseName: newName(v.to) || null,
         date: v.date.format('YYYY-MM-DD'),
         receiver: v.receiver || null,
         reference: v.reference || null,
         note: v.note || null,
-        confirm: warehouse.canConfirm,
         lines: toLines(v.lines),
       },
       {
         onSuccess: (s) => {
-          message.success(s.status === 'CONFIRMED' ? `Đã xuất ${s.code}, chờ kho ${s.counterpart?.warehouseName} xác nhận nhận` : `Đã lập ${s.code}, chờ thủ kho xác nhận xuất`);
+          message.success(`Đã chuyển ${s.code} sang ${s.counterpart?.warehouseName}`);
           onClose();
           onCreated(s.id);
         },
@@ -534,17 +492,17 @@ function TransferModal({ warehouse, onClose, onCreated }: { warehouse: Warehouse
       },
     );
   return (
-    <Modal open width={900} title={`Chuyển kho · từ ${warehouse.name}`} okText="Lập phiếu chuyển" cancelText="Đóng" onCancel={onClose} onOk={() => form.submit()} confirmLoading={createTransfer.isPending} destroyOnHidden>
+    <Modal open width={900} title={`Chuyển kho · từ ${warehouse.name}`} okText="Chuyển kho" cancelText="Đóng" onCancel={onClose} onOk={() => form.submit()} confirmLoading={createTransfer.isPending} destroyOnHidden>
       <Typography.Paragraph type="secondary">
-        Thủ kho {warehouse.name} xác nhận xuất thì hàng rời kho này; thủ kho kho nhận xác nhận đã nhận thì hàng vào kho đó. Kho nhận chưa có vật tư sẽ được thêm vào.
+        Lưu là hàng rời {warehouse.name} và vào kho nhận ngay. Kho nhận chưa có vật tư sẽ được thêm vào; gõ tên kho chưa có thì phần mềm tự thêm kho (Kho ngoài).
       </Typography.Paragraph>
       <Form<TransferForm> form={form} layout="vertical" onFinish={submit} initialValues={{ date: dayjs(), lines: [{ unitId: '' }] }}>
         <Flex wrap gap={12}>
           <Form.Item name="date" label="Ngày" rules={[{ required: true }]}>
             <DatePicker format="DD/MM/YYYY" allowClear={false} />
           </Form.Item>
-          <Form.Item name="toWarehouseId" label="Chuyển đến kho" rules={[{ required: true, message: 'Chọn kho nhận' }]} style={{ minWidth: 240 }}>
-            <Select options={(warehouses.data ?? []).filter((w) => w.isActive && w.id !== warehouse.id).map((w) => ({ value: w.id, label: w.name }))} />
+          <Form.Item name="to" label="Chuyển đến kho" rules={[{ required: true, message: 'Chọn kho nhận hoặc gõ tên mới' }]} style={{ minWidth: 240 }}>
+            <CreatableSelect id="transfer-to" addLabel="Thêm kho" placeholder="Chọn hoặc gõ tên kho" options={khoOptions(warehouses.data, warehouse.id)} />
           </Form.Item>
           <Form.Item name="receiver" label="Người mang / người nhận">
             <Input style={{ width: 180 }} />
@@ -559,5 +517,45 @@ function TransferModal({ warehouse, onClose, onCreated }: { warehouse: Warehouse
         </Form.Item>
       </Form>
     </Modal>
+  );
+}
+
+/** Mọi kho đang dùng, nhóm Âu Việt / Kho ngoài (bỏ kho `except`) */
+function khoOptions(list: Warehouse[] | undefined, except?: string) {
+  return (['AU_VIET', 'EXTERNAL'] as const)
+    .map((o) => ({ label: OWNERSHIP[o].label, options: (list ?? []).filter((w) => w.isActive && w.ownership === o && w.id !== except).map((w) => ({ value: w.id, label: w.name })) }))
+    .filter((g) => g.options.length);
+}
+
+/**
+ * Chọn kho khác ngoài hàng nút (kho ngoài chưa có vật tư): gõ tên, có rồi thì chọn, chưa có thì thêm kho mới (Kho ngoài).
+ * Người không có quyền lập phiếu chỉ chọn được kho có sẵn.
+ */
+function OtherKho({ onPick }: { onPick: (code: string) => void }) {
+  const { message } = App.useApp();
+  const can = useCan();
+  const warehouses = useWarehouses();
+  const { saveWarehouse } = useWarehouseMutations();
+  const choose = async (v: string) => {
+    if (!isNew(v)) {
+      const w = warehouses.data?.find((x) => x.id === v);
+      if (w) onPick(w.code);
+      return;
+    }
+    const name = newName(v);
+    try {
+      await saveWarehouse.mutateAsync({ name, ownership: 'EXTERNAL' });
+      const { data: list } = await warehouses.refetch();
+      const w = list?.find((x) => x.name.toLowerCase() === name.replace(/\s+/g, ' ').toLowerCase());
+      message.success(`Đã thêm kho ${name} (Kho ngoài)`);
+      if (w) onPick(w.code);
+    } catch (e) {
+      message.error(errorMessage(e));
+    }
+  };
+  return can('warehouse.slip') ? (
+    <CreatableSelect id="other-kho" value={null as unknown as string} addLabel="Thêm kho" placeholder="Kho khác…" style={{ width: 200 }} popupMatchSelectWidth={280} options={khoOptions(warehouses.data)} onChange={choose} loading={saveWarehouse.isPending} />
+  ) : (
+    <Select id="other-kho" value={null} showSearch optionFilterProp="label" placeholder="Kho khác…" style={{ width: 200 }} options={khoOptions(warehouses.data)} onChange={choose} />
   );
 }

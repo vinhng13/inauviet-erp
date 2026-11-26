@@ -28,42 +28,15 @@ import {
   WhDieOwner,
   WhDieStatus,
   WhOrientation,
-  WhPartnerKind,
+  WhOwnership,
   WhSlipKind,
   WhSlipStatus,
-  WhWarehouseKind,
 } from '../generated/prisma/enums';
 
 // ───────────── Danh mục ─────────────
 
-export class PartnerInputDto {
-  @IsString() @IsNotEmpty() @MaxLength(120)
-  name: string;
-  /** Chỉ để ghi nhớ, không giới hạn chỗ chọn; bỏ trống = Khác */
-  @IsOptional() @IsEnum(WhPartnerKind)
-  kind?: WhPartnerKind;
-  @IsOptional() @IsString() @MaxLength(30)
-  phone?: string | null;
-  @IsOptional() @IsString() @MaxLength(500)
-  note?: string | null;
-  @IsOptional() @IsBoolean()
-  isActive?: boolean;
-}
-
-export class PartnerDto {
-  id: string;
-  name: string;
-  @ApiProperty({ enum: WhPartnerKind, enumName: 'WhPartnerKind' })
-  kind: WhPartnerKind;
-  phone: string | null;
-  note: string | null;
-  isActive: boolean;
-  /** Khuôn đang ở đối tác này */
-  diesHeld: number;
-}
-
 export class LocationInputDto {
-  /** Kho khuôn có kệ này */
+  /** Kho có kệ này (bắt buộc) */
   @IsUUID()
   warehouseId: string;
   /** Ví dụ "T4-K02-O03" hoặc "Tầng 4" */
@@ -104,52 +77,48 @@ export class SymbolDto {
 
 // ───────────── Kho ─────────────
 
+/** Người dùng (để lọc nhật ký theo người làm) */
+export class PersonDto {
+  id!: string;
+  fullName!: string;
+}
+
 export class WarehouseInputDto {
-  /** Mã kho dùng trong số phiếu: GIAY, BAT, OFFSET… */
-  @IsString() @Matches(/^[A-Z0-9]{2,10}$/, { message: 'Mã kho là 2–10 chữ in hoa hoặc số' })
-  code: string;
+  /** Mã kho dùng trong số phiếu: GIAY, BAT, MELINH… Bỏ trống thì sinh từ tên */
+  @IsOptional() @IsString() @Matches(/^[A-Za-z0-9]{2,16}$/, { message: 'Mã kho là 2–16 chữ hoặc số, không dấu' })
+  code?: string | null;
   @IsString() @IsNotEmpty() @MaxLength(120)
   name: string;
+  /** Âu Việt hoặc kho ngoài (xưởng bế, nơi làm khuôn…); mặc định Âu Việt */
+  @IsOptional() @IsEnum(WhOwnership)
+  ownership?: WhOwnership;
   @IsOptional() @IsString() @MaxLength(300)
   address?: string | null;
-  /** Không còn dùng: mọi kho giữ được cả vật tư lẫn khuôn */
-  @IsOptional() @IsEnum(WhWarehouseKind)
-  kind?: WhWarehouseKind;
+  @IsOptional() @IsString() @MaxLength(30)
+  phone?: string | null;
   @IsOptional() @IsString() @MaxLength(500)
   note?: string | null;
   @IsOptional() @IsBoolean()
   isActive?: boolean;
   @IsOptional() @IsInt() @Min(0) @Max(10_000)
   sortOrder?: number;
-  /** Thủ kho: người xác nhận phiếu của kho này */
-  @IsArray() @IsUUID('all', { each: true })
-  keeperIds: string[];
-}
-
-export class KeeperDto {
-  id: string;
-  fullName: string;
 }
 
 export class WarehouseDto {
   id: string;
   code: string;
   name: string;
+  @ApiProperty({ enum: WhOwnership, enumName: 'WhOwnership' })
+  ownership: WhOwnership;
   address: string | null;
-  @ApiProperty({ enum: WhWarehouseKind, enumName: 'WhWarehouseKind' })
-  kind: WhWarehouseKind;
+  phone: string | null;
   note: string | null;
   isActive: boolean;
   sortOrder: number;
-  keepers: KeeperDto[];
-  /** Số vật tư có ở kho */
+  /** Số vật tư đã có ở kho */
   materials: number;
-  /** Khuôn đang ở kho (kho khuôn) */
+  /** Khuôn đang ở kho */
   dies: number;
-  /** Người đang xem xác nhận được phiếu của kho này */
-  canConfirm: boolean;
-  /** Phiếu đang chờ xác nhận */
-  pending: number;
   /** Quy cách dưới mức tối thiểu */
   low: number;
 }
@@ -318,12 +287,9 @@ export class SlipInputDto {
   kind: 'RECEIPT' | 'ISSUE' | 'RETURN';
   @DateOnly()
   date: string;
-  /** Nơi lấy hàng nhập kho (phiếu nhập) */
-  @IsOptional() @ValidateIf((_, v) => v !== null) @IsUUID()
-  partnerId?: string | null;
-  /** Nơi lấy hàng gõ tên mới (chưa có trong danh mục): tự thêm vào danh mục đối tác */
+  /** Nơi lấy hàng (phiếu nhập): chữ ghi thêm, không bắt buộc, không tính tồn */
   @IsOptional() @IsString() @MaxLength(120)
-  partnerName?: string | null;
+  supplierName?: string | null;
   @IsOptional() @IsString() @MaxLength(120)
   receiver?: string | null;
   @IsOptional() @IsString() @MaxLength(200)
@@ -335,16 +301,16 @@ export class SlipInputDto {
   note?: string | null;
   @ArrayMinSize(1) @ValidateNested({ each: true }) @Type(() => SlipLineInputDto)
   lines: SlipLineInputDto[];
-  /** Người lập là thủ kho của kho: xác nhận luôn */
-  @IsOptional() @IsBoolean()
-  confirm?: boolean;
 }
 
 export class TransferInputDto {
   @IsUUID()
   fromWarehouseId: string;
-  @IsUUID()
-  toWarehouseId: string;
+  /** Kho nhận có sẵn; hoặc gõ tên ở toWarehouseName, chưa có thì tự thêm (Kho ngoài) */
+  @IsOptional() @IsUUID()
+  toWarehouseId?: string | null;
+  @IsOptional() @IsString() @MaxLength(120)
+  toWarehouseName?: string | null;
   @DateOnly()
   date: string;
   @IsOptional() @IsString() @MaxLength(120)
@@ -355,9 +321,6 @@ export class TransferInputDto {
   note?: string | null;
   @ArrayMinSize(1) @ValidateNested({ each: true }) @Type(() => SlipLineInputDto)
   lines: SlipLineInputDto[];
-  /** Người lập là thủ kho kho đi: xác nhận xuất luôn */
-  @IsOptional() @IsBoolean()
-  confirm?: boolean;
 }
 
 export class VoidDto {
@@ -417,8 +380,8 @@ export class SlipDto {
   @ApiProperty({ enum: WhSlipStatus, enumName: 'WhSlipStatus' })
   status: WhSlipStatus;
   date: string;
-  partnerId: string | null;
-  partnerName: string | null;
+  /** Nơi lấy hàng (phiếu nhập) */
+  supplierName: string | null;
   receiver: string | null;
   purpose: string | null;
   reference: string | null;
@@ -433,10 +396,8 @@ export class SlipDto {
   voidReason: string | null;
   /** Phiếu chuyển kho: phiếu ở kho bên kia */
   counterpart: SlipRefDto | null;
-  /** Người đang xem xác nhận / từ chối được */
-  canConfirm: boolean;
-  /** Người đang xem huỷ được (phiếu chưa xác nhận) */
-  canCancel: boolean;
+  /** Người đang xem huỷ được (người lập, hoặc quản lý kho) */
+  canVoid: boolean;
   lines: SlipLineDto[];
 }
 
@@ -559,26 +520,6 @@ export class DieInputDto {
   costVnd?: number | null;
   @IsOptional() @IsString() @MaxLength(1000)
   note?: string | null;
-  /** Chỉ khi tạo mới, bắt buộc một trong hai: khuôn làm xong nhập kho nào, hoặc giao thẳng tới xưởng nào */
-  @IsOptional() @ValidateIf((_, v) => v !== null) @IsUUID()
-  toWarehouseId?: string | null;
-  @IsOptional() @ValidateIf((_, v) => v !== null) @IsUUID()
-  toPartnerId?: string | null;
-  /** Xưởng gõ tên mới: tự thêm vào danh mục (xưởng bế) */
-  @IsOptional() @IsString() @MaxLength(120)
-  toPartnerName?: string | null;
-  /** Kệ cất khi nhận (kho) */
-  @IsOptional() @ValidateIf((_, v) => v !== null) @IsUUID()
-  toLocationId?: string | null;
-  /** Kệ gõ mã mới: tự thêm vào kho nhận */
-  @IsOptional() @IsString() @MaxLength(40)
-  toLocationCode?: string | null;
-  /** Lệnh bế khi giao thẳng tới xưởng */
-  @IsOptional() @IsString() @MaxLength(60)
-  reference?: string | null;
-  /** Thủ kho xác nhận luôn (đã nhận / đã giao) */
-  @IsOptional() @IsBoolean()
-  confirm?: boolean;
   /** Bỏ qua cảnh báo trùng kích thước */
   @IsOptional() @IsBoolean()
   force?: boolean;
@@ -657,10 +598,11 @@ export class DieRowDto {
   status: WhDieStatus;
   /** "Kho khuôn Âu Việt · T4-K02", tên xưởng, hoặc "A → B" khi đang chuyển */
   place: string;
-  /** Kho quản lý (khuôn ở kho này khi holderId trống) */
+  /** Kho đang giữ khuôn */
   warehouseId: string;
   warehouseName: string;
-  holderId: string | null;
+  /** Khuôn đang ở kho ngoài (xưởng bế, nơi làm khuôn…) */
+  external: boolean;
   locationId: string | null;
   /** Phiếu giao nhận đang chờ xác nhận */
   pendingBatchId: string | null;
@@ -732,20 +674,15 @@ export class NewDieLineDto {
 export class BatchInputDto {
   @DateOnly()
   date: string;
-  /** Từ: một kho hoặc một xưởng */
-  @IsOptional() @ValidateIf((_, v) => v !== null) @IsUUID()
-  fromWarehouseId?: string | null;
-  @IsOptional() @ValidateIf((_, v) => v !== null) @IsUUID()
-  fromPartnerId?: string | null;
-  /** Đến (bắt buộc): một kho hoặc một xưởng */
+  /** Từ: kho khuôn đang ở */
+  @IsUUID()
+  fromWarehouseId: string;
+  /** Đến: một kho, hoặc gõ tên kho mới (toWarehouseName, tự thêm làm kho ngoài) */
   @IsOptional() @ValidateIf((_, v) => v !== null) @IsUUID()
   toWarehouseId?: string | null;
-  @IsOptional() @ValidateIf((_, v) => v !== null) @IsUUID()
-  toPartnerId?: string | null;
-  /** Nơi đến gõ tên mới: tự thêm vào danh mục (mặc định xưởng bế) */
   @IsOptional() @IsString() @MaxLength(120)
-  toPartnerName?: string | null;
-  /** Thao tác khi tới một đối tác: CUT = bế khuôn (đang bế), REPAIR = gửi sửa (đang sửa). Không phụ thuộc loại đối tác */
+  toWarehouseName?: string | null;
+  /** Thao tác: CUT = bế khuôn (đang bế), REPAIR = gửi sửa (đang sửa), trống = chuyển kho. Cùng kho với nơi đi = bế / sửa tại chỗ */
   @IsOptional() @IsIn(['CUT', 'REPAIR'])
   purpose?: 'CUT' | 'REPAIR' | null;
   @IsOptional() @ValidateIf((_, v) => v !== null) @IsUUID()
@@ -764,16 +701,13 @@ export class BatchInputDto {
   reference?: string | null;
   @IsOptional() @IsString() @MaxLength(500)
   note?: string | null;
-  /** Thủ kho xác nhận xuất luôn */
-  @IsOptional() @IsBoolean()
-  confirm?: boolean;
 }
 
 export class BatchQueryDto {
   /** mine = chờ người đang xem xác nhận; open = còn chờ; all */
   @IsOptional() @IsIn(['mine', 'open', 'all'])
   tab?: 'mine' | 'open' | 'all';
-  /** Nơi đi hoặc đến: k:<kho> hoặc x:<đối tác> */
+  /** Nơi đi hoặc đến: k:<kho> */
   @IsOptional() @IsString() @Matches(/^[kx]:[0-9a-f-]{36}$/)
   place?: string;
 }
@@ -797,9 +731,7 @@ export class BatchDto {
   code: string;
   date: string;
   fromWarehouseId: string | null;
-  fromPartnerId: string | null;
   toWarehouseId: string | null;
-  toPartnerId: string | null;
   toLocationId: string | null;
   fromName: string;
   toName: string;
@@ -867,16 +799,16 @@ export class DieJournalRowDto {
 // ───────────── Tổng quan, nhập Excel ─────────────
 
 export class DiePlaceDto {
-  /** "k:<id>" hoặc "x:<id>", dùng làm bộ lọc Ở đâu */
+  /** "k:<id>", dùng làm bộ lọc Ở đâu */
   key: string;
   name: string;
-  @ApiProperty({ enum: ['KHO', 'PARTNER'] })
-  kind: 'KHO' | 'PARTNER';
+  @ApiProperty({ enum: WhOwnership, enumName: 'WhOwnership' })
+  ownership: WhOwnership;
   dies: number;
 }
 
 export class PlaceCountDto {
-  holderId: string;
+  warehouseId: string;
   name: string;
   inUse: number;
   kept: number;
@@ -886,14 +818,11 @@ export class PlaceCountDto {
 export class WarehouseOverviewDto {
   warehouses: WarehouseDto[];
   lowStock: StockItemDto[];
-  /** Phiếu chờ người đang xem xác nhận */
-  toConfirm: SlipDto[];
-  /** Hàng đang chuyển giữa các kho (đã xuất, kho nhận chưa xác nhận) */
-  inTransit: SlipDto[];
   diesTotal: number;
   @ApiProperty({ type: 'object', additionalProperties: { type: 'number' } })
   diesByStatus: Record<string, number>;
-  atPartners: PlaceCountDto[];
+  /** Khuôn đang ở kho ngoài, theo từng kho */
+  outside: PlaceCountDto[];
   overdue: DieRowDto[];
   checking: DieRowDto[];
   needsReview: number;
@@ -961,7 +890,8 @@ export class ImportReportDto {
   dies: number;
   skippedExisting: number;
   history: number;
-  partnersCreated: string[];
+  /** Kho ngoài sẽ tạo (nơi bế, nơi ra khuôn chưa có) */
+  warehousesCreated: string[];
   locationsCreated: string[];
   @ApiProperty({ type: 'object', additionalProperties: { type: 'number' } })
   byStatus: Record<string, number>;

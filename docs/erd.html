@@ -80,8 +80,8 @@ td code { color: var(--c, var(--fg)); font-weight: 500; }
   <main>
     <section id="tong-quan">
       <h1>Inauviet ERP: sơ đồ dữ liệu</h1>
-      <p class="sub">Vẽ từ <code>api/prisma/schema.prisma</code> của bản code hiện tại (migration mới nhất <code>20261122090000_die_direct_moves</code>, v0.17 danh mục kho độc lập, ngày 23/11/2026). PostgreSQL, Prisma 7. Mỗi phân hệ một sơ đồ; bảng của phân hệ khác chỉ hiện tên.</p>
-      <div class="stats"><span><b>57</b> bảng</span><span><b>33</b> enum</span><span><b>104</b> khoá ngoại</span><span><b>12</b> migration</span></div>
+      <p class="sub">Vẽ từ <code>api/prisma/schema.prisma</code> của bản code hiện tại (migration mới nhất <code>20261126090000_one_warehouse_list</code>, v0.17.2 một danh sách kho, ngày 26/11/2026). PostgreSQL, Prisma 7. Mỗi phân hệ một sơ đồ; bảng của phân hệ khác chỉ hiện tên.</p>
+      <div class="stats"><span><b>55</b> bảng</span><span><b>33</b> enum</span><span><b>97</b> khoá ngoại</span><span><b>13</b> migration</span></div>
       <div class="legend">
         <span><code>PK</code> khoá chính</span><span><code>FK</code> khoá ngoại</span><span><code>UK</code> duy nhất</span>
         <span><code>||--o{</code> một – nhiều</span><span><code>|o--o{</code> khoá ngoại có thể trống</span><span><code>||--o|</code> một – một</span>
@@ -92,17 +92,17 @@ flowchart LR
   crm[&quot;&lt;b&gt;CRM bán hàng&lt;/b&gt;&lt;br/&gt;10 bảng&quot;]
   ke_toan[&quot;&lt;b&gt;Kế toán&lt;/b&gt;&lt;br/&gt;15 bảng&quot;]
   hoi_thoai[&quot;&lt;b&gt;Hội thoại&lt;/b&gt;&lt;br/&gt;5 bảng&quot;]
-  kho_vat_tu[&quot;&lt;b&gt;Kho vật tư&lt;/b&gt;&lt;br/&gt;14 bảng&quot;]
+  kho_vat_tu[&quot;&lt;b&gt;Kho vật tư&lt;/b&gt;&lt;br/&gt;12 bảng&quot;]
   kho_khuon[&quot;&lt;b&gt;Kho khuôn&lt;/b&gt;&lt;br/&gt;8 bảng&quot;]
   crm --&gt;|6 khoá| he_thong
   hoi_thoai --&gt;|1 khoá| crm
   hoi_thoai --&gt;|3 khoá| he_thong
   ke_toan --&gt;|1 khoá| he_thong
   kho_khuon --&gt;|5 khoá| he_thong
-  kho_khuon --&gt;|12 khoá| kho_vat_tu
-  kho_vat_tu --&gt;|6 khoá| he_thong
+  kho_khuon --&gt;|8 khoá| kho_vat_tu
+  kho_vat_tu --&gt;|5 khoá| he_thong
       </pre></div>
-      <p class="note" style="margin-top:14px">Mũi tên đi từ phân hệ có khoá ngoại tới phân hệ được tham chiếu; số trên mũi tên là số khoá ngoại. Gần như mọi bảng chứng từ trỏ về <code>User</code> (người lập, người xác nhận). Phân hệ Kho tách riêng khỏi CRM và Kế toán: không có khoá ngoại sang hai phân hệ đó.</p>
+      <p class="note" style="margin-top:14px">Mũi tên đi từ phân hệ có khoá ngoại tới phân hệ được tham chiếu; số trên mũi tên là số khoá ngoại. Gần như mọi bảng chứng từ trỏ về <code>User</code> (người lập). Phân hệ Kho tách riêng khỏi CRM và Kế toán: không có khoá ngoại sang hai phân hệ đó.</p>
     </section>
     
 <section id="he-thong" class="mod sys">
@@ -648,8 +648,8 @@ erDiagram
   </div>
 </section>
 <section id="kho-vat-tu" class="mod kho">
-  <header class="mod-head"><span class="sw"></span><h2>Kho vật tư</h2><span class="meta">14 bảng · 5 enum</span></header>
-  <p class="intro">Danh mục kho, vật tư, quy cách, đơn vị; tồn theo kho; phiếu nhập / xuất / nhập lại / chuyển / điều chỉnh; bản chụp tồn cuối ngày; kiểm kê và chốt tháng.</p>
+  <header class="mod-head"><span class="sw"></span><h2>Kho vật tư</h2><span class="meta">12 bảng · 5 enum</span></header>
+  <p class="intro">Một danh sách kho chung (Âu Việt / Kho ngoài), vật tư, quy cách, đơn vị; tồn theo kho; phiếu nhập / xuất / nhập lại / chuyển / điều chỉnh; bản chụp tồn cuối ngày; kiểm kê và chốt tháng.</p>
   <div class="diagram"><pre class="mermaid">
 erDiagram
   WhWarehouse {
@@ -658,23 +658,11 @@ erDiagram
     string name
     string address
     WhWarehouseKind kind &quot;cũ, không còn dùng&quot;
-    string note
-    bool isActive
-    int sortOrder
-    datetime createdAt
-    datetime updatedAt
-  }
-  WhWarehouseMember {
-    string warehouseId FK
-    string userId FK
-  }
-  WhPartner {
-    string id PK
-    string name UK
-    WhPartnerKind kind
+    WhOwnership ownership &quot;Âu Việt / kho ngoài (xưởng bế, nơi làm khuôn…)&quot;
     string phone
     string note
     bool isActive
+    int sortOrder
     datetime createdAt
     datetime updatedAt
   }
@@ -733,10 +721,10 @@ erDiagram
     datetime date
     string transferId &quot;phiếu chuyển kho: hai phiếu (đi / đến) chung…&quot;
     WhSlipStatus status
-    datetime confirmedAt
-    string confirmedById FK
-    string rejectReason
-    string partnerId FK &quot;nhà cung cấp (phiếu nhập)&quot;
+    datetime confirmedAt &quot;cũ, không còn dùng&quot;
+    string confirmedById FK &quot;cũ, không còn dùng&quot;
+    string rejectReason &quot;cũ, không còn dùng&quot;
+    string supplierName &quot;nơi lấy hàng (phiếu nhập): chữ ghi thêm, khôn…&quot;
     string receiver &quot;người nhận (phiếu xuất)&quot;
     string purpose
     string reference &quot;số lệnh / đơn tham chiếu, gõ tay, không đối c…&quot;
@@ -782,8 +770,6 @@ erDiagram
     string lockedById FK
     datetime lockedAt
   }
-  WhWarehouse ||--o{ WhWarehouseMember : &quot;warehouse&quot;
-  User ||--o{ WhWarehouseMember : &quot;user&quot;
   WhMaterial ||--o{ WhSpec : &quot;material&quot;
   WhMaterial ||--o{ WhUnit : &quot;material&quot;
   WhSpec |o--o{ WhUnit : &quot;spec&quot;
@@ -794,7 +780,6 @@ erDiagram
   WhWarehouse ||--o{ WhDailyStock : &quot;warehouse&quot;
   WhSpec ||--o{ WhDailyStock : &quot;spec&quot;
   WhWarehouse ||--o{ WhSlip : &quot;warehouse&quot;
-  WhPartner |o--o{ WhSlip : &quot;partner&quot;
   WhCount |o--o| WhSlip : &quot;count&quot;
   User ||--o{ WhSlip : &quot;createdBy&quot;
   User |o--o{ WhSlip : &quot;voidedBy&quot;
@@ -810,13 +795,13 @@ erDiagram
   </pre></div>
   <p class="ext">Bảng ở phân hệ khác, chỉ hiện tên: <code>User</code>.</p>
   <div class="cols">
-    <div class="tbl-wrap"><table><thead><tr><th>Bảng</th><th class="num">Cột</th><th>Dùng để</th></tr></thead><tbody><tr><td><code>WhWarehouse</code></td><td class="num">10</td><td>Kho; kho nào cũng giữ được cả vật tư lẫn khuôn (cột kind cũ không còn dùng).</td></tr><tr><td><code>WhWarehouseMember</code></td><td class="num">2</td><td>Thủ kho của kho; phiếu vật tư do thủ kho lập thì xác nhận luôn.</td></tr><tr><td><code>WhPartner</code></td><td class="num">8</td><td>Đối tác kho (xưởng bế, nơi làm khuôn, nơi lấy hàng); kind chỉ để ghi nhớ, không giới hạn chỗ chọn.</td></tr><tr><td><code>WhMaterial</code></td><td class="num">9</td><td>Vật tư, danh mục chung không gắn kho; code là Mã VT (dùng chung, không duy nhất), group là nhóm.</td></tr><tr><td><code>WhSpec</code></td><td class="num">6</td><td>Quy cách = vật tư + khổ (rộng × dài cm); là đơn vị tồn kho.</td></tr><tr><td><code>WhUnit</code></td><td class="num">6</td><td>Đơn vị tính khác (ram, cuộn); hệ số riêng theo khổ nếu có.</td></tr><tr><td><code>WhWarehouseMaterial</code></td><td class="num">2</td><td>Vật tư nào đã có ở kho nào; tự thêm khi kho lập phiếu đầu tiên cho vật tư đó.</td></tr><tr><td><code>WhStock</code></td><td class="num">7</td><td>Tồn hiện tại của một quy cách tại một kho, kèm mức tối thiểu.</td></tr><tr><td><code>WhDailyStock</code></td><td class="num">5</td><td>Bản chụp tồn cuối ngày, ghi một lần, không đổi về sau.</td></tr><tr><td><code>WhSlip</code></td><td class="num">21</td><td>Phiếu kho: nhập, xuất, nhập lại, điều chỉnh, chuyển đi / nhận chuyển (hai phiếu chung transferId).</td></tr><tr><td><code>WhSlipLine</code></td><td class="num">8</td><td>Dòng phiếu: quy cách, số lượng theo đơn vị đã chọn và quy về đơn vị cơ sở.</td></tr><tr><td><code>WhCount</code></td><td class="num">9</td><td>Đợt kiểm kê vật tư; duyệt thì sinh phiếu điều chỉnh.</td></tr><tr><td><code>WhCountLine</code></td><td class="num">5</td><td>Số sổ và số đếm của từng quy cách.</td></tr><tr><td><code>WhMonthLock</code></td><td class="num">4</td><td>Tháng đã chốt tồn của một kho: không lập / huỷ phiếu trong tháng đó.</td></tr></tbody></table></div>
-    <div class="enums"><h3>Enum</h3><div class="enum"><h4><code>WhCountStatus</code></h4><ul><li><code>DRAFT</code> Nháp</li><li><code>APPROVED</code> Đã duyệt</li><li><code>CANCELLED</code> Huỷ</li></ul></div><div class="enum"><h4><code>WhPartnerKind</code></h4><ul><li><code>DIE_MAKER</code> nơi làm khuôn</li><li><code>DIE_SHOP</code> xưởng bế ngoài</li><li><code>SUPPLIER</code> nhà cung cấp giấy, vật tư</li><li><code>OTHER</code></li></ul></div><div class="enum"><h4><code>WhSlipKind</code></h4><ul><li><code>RECEIPT</code> Nhập kho (NK)</li><li><code>ISSUE</code> Xuất kho (XK)</li><li><code>RETURN</code> Nhập lại (NL)</li><li><code>ADJUST</code> Điều chỉnh (DC)</li><li><code>TRANSFER_OUT</code> Chuyển đi (CK)</li><li><code>TRANSFER_IN</code> Nhận chuyển (CK)</li></ul></div><div class="enum"><h4><code>WhSlipStatus</code></h4><ul><li><code>PENDING</code> Chờ xác nhận</li><li><code>CONFIRMED</code> Đã xác nhận</li><li><code>REJECTED</code> Từ chối</li><li><code>CANCELLED</code> Đã huỷ</li></ul></div><div class="enum"><h4><code>WhWarehouseKind</code></h4><ul><li><code>STOCK</code> quản lý theo số lượng (giấy, vật tư bạt, hàng tồn…)</li><li><code>DIE</code> quản lý từng khuôn</li></ul></div></div>
+    <div class="tbl-wrap"><table><thead><tr><th>Bảng</th><th class="num">Cột</th><th>Dùng để</th></tr></thead><tbody><tr><td><code>WhWarehouse</code></td><td class="num">12</td><td>Kho: của Âu Việt hoặc kho ngoài (xưởng bế, nơi làm khuôn, kho thuê) theo ownership; giữ được cả vật tư lẫn khuôn. Gõ tên mới ở ô chọn kho thì tự thêm (EXTERNAL).</td></tr><tr><td><code>WhMaterial</code></td><td class="num">9</td><td>Vật tư, danh mục chung không gắn kho; code là Mã VT (dùng chung, không duy nhất), group là nhóm.</td></tr><tr><td><code>WhSpec</code></td><td class="num">6</td><td>Quy cách = vật tư + khổ (rộng × dài cm); là đơn vị tồn kho.</td></tr><tr><td><code>WhUnit</code></td><td class="num">6</td><td>Đơn vị tính khác (ram, cuộn); hệ số riêng theo khổ nếu có.</td></tr><tr><td><code>WhWarehouseMaterial</code></td><td class="num">2</td><td>Vật tư nào đã có ở kho nào; tự thêm khi kho lập phiếu đầu tiên cho vật tư đó.</td></tr><tr><td><code>WhStock</code></td><td class="num">7</td><td>Tồn hiện tại của một quy cách tại một kho, kèm mức tối thiểu.</td></tr><tr><td><code>WhDailyStock</code></td><td class="num">5</td><td>Bản chụp tồn cuối ngày, ghi một lần, không đổi về sau.</td></tr><tr><td><code>WhSlip</code></td><td class="num">21</td><td>Phiếu kho, có hiệu lực ngay khi lưu: nhập, xuất, nhập lại, điều chỉnh, chuyển đi / nhận chuyển (hai phiếu chung transferId). supplierName là chữ, không phải kho.</td></tr><tr><td><code>WhSlipLine</code></td><td class="num">8</td><td>Dòng phiếu: quy cách, số lượng theo đơn vị đã chọn và quy về đơn vị cơ sở.</td></tr><tr><td><code>WhCount</code></td><td class="num">9</td><td>Đợt kiểm kê vật tư; duyệt thì sinh phiếu điều chỉnh.</td></tr><tr><td><code>WhCountLine</code></td><td class="num">5</td><td>Số sổ và số đếm của từng quy cách.</td></tr><tr><td><code>WhMonthLock</code></td><td class="num">4</td><td>Tháng đã chốt tồn của một kho: không lập / huỷ phiếu trong tháng đó.</td></tr></tbody></table></div>
+    <div class="enums"><h3>Enum</h3><div class="enum"><h4><code>WhCountStatus</code></h4><ul><li><code>DRAFT</code> Nháp</li><li><code>APPROVED</code> Đã duyệt</li><li><code>CANCELLED</code> Huỷ</li></ul></div><div class="enum"><h4><code>WhOwnership</code></h4><ul><li><code>AU_VIET</code> kho của Âu Việt</li><li><code>EXTERNAL</code> kho ngoài: xưởng bế, nơi làm khuôn, nơi gửi hàng</li></ul></div><div class="enum"><h4><code>WhSlipKind</code></h4><ul><li><code>RECEIPT</code> Nhập kho (NK)</li><li><code>ISSUE</code> Xuất kho (XK)</li><li><code>RETURN</code> Nhập lại (NL)</li><li><code>ADJUST</code> Điều chỉnh (DC)</li><li><code>TRANSFER_OUT</code> Chuyển đi (CK)</li><li><code>TRANSFER_IN</code> Nhận chuyển (CK)</li></ul></div><div class="enum"><h4><code>WhSlipStatus</code></h4><ul><li><code>PENDING</code> Chờ xác nhận</li><li><code>CONFIRMED</code> Đã xác nhận</li><li><code>REJECTED</code> Từ chối</li><li><code>CANCELLED</code> Đã huỷ</li></ul></div><div class="enum"><h4><code>WhWarehouseKind</code></h4><ul><li><code>STOCK</code> quản lý theo số lượng (giấy, vật tư bạt, hàng tồn…)</li><li><code>DIE</code> quản lý từng khuôn</li></ul></div></div>
   </div>
 </section>
 <section id="kho-khuon" class="mod die">
   <header class="mod-head"><span class="sw"></span><h2>Kho khuôn</h2><span class="meta">8 bảng · 8 enum</span></header>
-  <p class="intro">Từng khuôn bế: ký hiệu, kệ, nơi đang ở (kho hoặc đối tác), lịch sử thao tác, lần bế / chuyển kho, kiểm kê khuôn.</p>
+  <p class="intro">Từng khuôn bế: ký hiệu, kệ, kho đang giữ (Âu Việt hoặc kho ngoài), lịch sử thao tác, lần bế / chuyển kho, kiểm kê khuôn.</p>
   <div class="diagram"><pre class="mermaid">
 erDiagram
   WhDie {
@@ -837,9 +822,8 @@ erDiagram
     string makerId FK
     WhDieOwner owner
     WhDieStatus status
-    string warehouseId FK &quot;kho quản lý; khuôn ở kho này khi holderId null&quot;
+    string warehouseId FK &quot;kho đang giữ khuôn (Âu Việt hoặc kho ngoài)&quot;
     string locationId FK &quot;kệ trong kho&quot;
-    string holderId FK &quot;xưởng ngoài đang giữ; null = ở kho&quot;
     string pendingBatchId FK &quot;cũ, không còn dùng&quot;
     datetime expectedBackOn &quot;cũ, không còn dùng&quot;
     bigint costVnd
@@ -874,7 +858,7 @@ erDiagram
     WhDieStatus toStatus
     string fromPlace &quot;nơi trước thao tác&quot;
     string place &quot;nơi sau thao tác, dạng chữ để lịch sử không đ…&quot;
-    string partnerId FK
+    string warehouseId FK &quot;kho khuôn tới (hoặc đang ở)&quot;
     string locationId FK
     string reference &quot;số lệnh / đơn tham chiếu&quot;
     datetime expectedBackOn &quot;cũ, không còn dùng&quot;
@@ -888,11 +872,8 @@ erDiagram
     string code UK &quot;GN-YYMM-NNNN&quot;
     WhBatchKind kind &quot;cũ, không còn dùng&quot;
     datetime date
-    string partnerId FK &quot;cũ, không còn dùng&quot;
     string fromWarehouseId FK
-    string fromPartnerId FK
     string toWarehouseId FK
-    string toPartnerId FK
     string toLocationId FK &quot;kệ đề xuất khi nhận&quot;
     string controlWarehouseId FK &quot;kho có thủ kho xác nhận xuất&quot;
     WhDieBatchStatus status
@@ -932,22 +913,18 @@ erDiagram
     bool extra &quot;thấy ở đây nhưng phần mềm ghi ở nơi khác&quot;
   }
   WhDieSymbol ||--o{ WhDie : &quot;symbol&quot;
-  WhPartner |o--o{ WhDie : &quot;maker&quot;
-  WhPartner |o--o{ WhDie : &quot;holder&quot;
+  WhWarehouse |o--o{ WhDie : &quot;maker&quot;
   WhWarehouse ||--o{ WhDie : &quot;warehouse&quot;
   WhDieBatch |o--o{ WhDie : &quot;pendingBatch&quot;
   WhLocation |o--o{ WhDie : &quot;location&quot;
   WhWarehouse ||--o{ WhLocation : &quot;warehouse&quot;
   WhDie ||--o{ WhDieMove : &quot;die&quot;
-  WhPartner |o--o{ WhDieMove : &quot;partner&quot;
+  WhWarehouse |o--o{ WhDieMove : &quot;warehouse&quot;
   WhLocation |o--o{ WhDieMove : &quot;location&quot;
   WhDieBatch |o--o{ WhDieMove : &quot;batch&quot;
   User |o--o{ WhDieMove : &quot;user&quot;
-  WhPartner |o--o{ WhDieBatch : &quot;partner&quot;
   WhWarehouse |o--o{ WhDieBatch : &quot;fromWarehouse&quot;
-  WhPartner |o--o{ WhDieBatch : &quot;fromPartner&quot;
   WhWarehouse |o--o{ WhDieBatch : &quot;toWarehouse&quot;
-  WhPartner |o--o{ WhDieBatch : &quot;toPartner&quot;
   WhLocation |o--o{ WhDieBatch : &quot;toLocation&quot;
   WhWarehouse |o--o{ WhDieBatch : &quot;control&quot;
   User |o--o{ WhDieBatch : &quot;outBy&quot;
@@ -961,12 +938,12 @@ erDiagram
   WhDieCount ||--o{ WhDieCountLine : &quot;count&quot;
   WhDie ||--o{ WhDieCountLine : &quot;die&quot;
   </pre></div>
-  <p class="ext">Bảng ở phân hệ khác, chỉ hiện tên: <code>User</code>, <code>WhPartner</code>, <code>WhWarehouse</code>.</p>
+  <p class="ext">Bảng ở phân hệ khác, chỉ hiện tên: <code>User</code>, <code>WhWarehouse</code>.</p>
   <div class="cols">
-    <div class="tbl-wrap"><table><thead><tr><th>Bảng</th><th class="num">Cột</th><th>Dùng để</th></tr></thead><tbody><tr><td><code>WhDie</code></td><td class="num">30</td><td>Một khuôn: mã cố định, kích thước, trạng thái; ở kho (holderId null) hoặc ở đối tác (holderId).</td></tr><tr><td><code>WhDieSymbol</code></td><td class="num">4</td><td>Ký hiệu nhóm khuôn (TUI, HOP, KEF) và số đã cấp tới đâu.</td></tr><tr><td><code>WhLocation</code></td><td class="num">6</td><td>Kệ / vị trí; bắt buộc thuộc một kho (kho nào cũng được).</td></tr><tr><td><code>WhDieMove</code></td><td class="num">16</td><td>Lịch sử thao tác của khuôn: tạo, kiểm tra, chuyển, thanh lý; từ đâu tới đâu, ai làm.</td></tr><tr><td><code>WhDieBatch</code></td><td class="num">25</td><td>Một lần bế khuôn / chuyển kho (số GN-…). Từ v0.16 tạo ở trạng thái DONE ngay.</td></tr><tr><td><code>WhDieBatchItem</code></td><td class="num">3</td><td>Khuôn trong một lần chuyển.</td></tr><tr><td><code>WhDieCount</code></td><td class="num">7</td><td>Kiểm kê khuôn theo một kệ hoặc một xưởng.</td></tr><tr><td><code>WhDieCountLine</code></td><td class="num">5</td><td>Khuôn có / không thấy khi kiểm kê.</td></tr></tbody></table></div>
+    <div class="tbl-wrap"><table><thead><tr><th>Bảng</th><th class="num">Cột</th><th>Dùng để</th></tr></thead><tbody><tr><td><code>WhDie</code></td><td class="num">29</td><td>Một khuôn: mã cố định, kích thước, trạng thái; luôn ở một kho (warehouseId), nơi làm khuôn là một kho (makerId).</td></tr><tr><td><code>WhDieSymbol</code></td><td class="num">4</td><td>Ký hiệu nhóm khuôn (TUI, HOP, KEF) và số đã cấp tới đâu.</td></tr><tr><td><code>WhLocation</code></td><td class="num">6</td><td>Kệ / vị trí; bắt buộc thuộc một kho (kho nào cũng được).</td></tr><tr><td><code>WhDieMove</code></td><td class="num">16</td><td>Lịch sử thao tác của khuôn: tạo, kiểm tra, chuyển, thanh lý; từ đâu tới đâu, ai làm.</td></tr><tr><td><code>WhDieBatch</code></td><td class="num">22</td><td>Một lần bế khuôn / chuyển kho (số GN-…). Từ v0.16 tạo ở trạng thái DONE ngay.</td></tr><tr><td><code>WhDieBatchItem</code></td><td class="num">3</td><td>Khuôn trong một lần chuyển.</td></tr><tr><td><code>WhDieCount</code></td><td class="num">7</td><td>Kiểm kê khuôn theo một kệ hoặc một xưởng.</td></tr><tr><td><code>WhDieCountLine</code></td><td class="num">5</td><td>Khuôn có / không thấy khi kiểm kê.</td></tr></tbody></table></div>
     <div class="enums"><h3>Enum</h3><div class="enum"><h4><code>WhBatchKind</code></h4><ul><li><code>OUT</code> Ra khỏi kho</li><li><code>IN</code> Về kho</li></ul></div><div class="enum"><h4><code>WhConfirmState</code></h4><ul><li><code>PENDING</code> Chờ</li><li><code>OK</code> Đã xác nhận</li><li><code>NONE</code> Không có bước này</li></ul></div><div class="enum"><h4><code>WhDieAction</code></h4><ul><li><code>CREATE</code> Tạo khuôn</li><li class="old"><code>ISSUE</code> Xuất khuôn <em>cũ</em></li><li class="old"><code>KEEP</code> Gửi giữ <em>cũ</em></li><li class="old"><code>RETURN</code> Trả về <em>cũ</em></li><li><code>PASS</code> Kiểm tra: đạt</li><li><code>DEFECT</code> Kiểm tra: không đạt / báo lỗi</li><li class="old"><code>SEND_REPAIR</code> Gửi sửa <em>cũ</em></li><li class="old"><code>BACK_REPAIR</code> Sửa xong <em>cũ</em></li><li><code>DISPOSE</code> Thanh lý</li><li><code>MOVE</code> Đổi kệ</li><li><code>EDIT</code> Sửa thông tin</li><li><code>IMPORT</code> Nạp từ Excel</li><li class="old"><code>REQUEST</code> Lập phiếu <em>cũ</em></li><li class="old"><code>SEND</code> Xác nhận xuất <em>cũ</em></li><li class="old"><code>RECEIVE</code> Xác nhận nhận <em>cũ</em></li><li class="old"><code>REJECT</code> Từ chối <em>cũ</em></li><li class="old"><code>REUSE</code> Bế lại tại xưởng <em>cũ</em></li><li><code>COUNT</code> Kiểm kê</li><li><code>TRANSFER</code> Bế khuôn / chuyển kho / gửi sửa</li></ul></div><div class="enum"><h4><code>WhDieBatchStatus</code></h4><ul><li class="old"><code>OPEN</code> Chờ xác nhận <em>cũ</em></li><li><code>DONE</code> Xong</li><li><code>REJECTED</code> Từ chối</li><li><code>CANCELLED</code> Huỷ</li></ul></div><div class="enum"><h4><code>WhDieKind</code></h4><ul><li><code>CUT</code> khuôn bế</li><li><code>FOIL</code> ép kim</li><li><code>EMBOSS</code> ép nổi</li></ul></div><div class="enum"><h4><code>WhDieOwner</code></h4><ul><li><code>AU_VIET</code></li><li><code>CUSTOMER</code></li><li><code>PARTNER</code></li></ul></div><div class="enum"><h4><code>WhDieStatus</code></h4><ul><li><code>READY</code> Đạt, sẵn sàng</li><li><code>IN_USE</code> Đang bế</li><li class="old"><code>CHECKING</code> Chờ kiểm <em>cũ</em></li><li><code>REPAIRING</code> Đang sửa</li><li><code>DEFECT</code> Không đạt</li><li><code>BROKEN</code> Hỏng</li><li><code>DISPOSED</code> Đã thanh lý</li><li class="old"><code>TRANSIT</code> Đang chuyển <em>cũ</em></li><li class="old"><code>INCOMING</code> Chờ nhận <em>cũ</em></li><li><code>MAKING</code> Đang làm khuôn</li></ul></div><div class="enum"><h4><code>WhOrientation</code></h4><ul><li><code>PORTRAIT</code> dọc</li><li><code>LANDSCAPE</code> ngang</li></ul></div></div>
   </div>
 </section>
-    <p class="note">Cột ghi “cũ, không còn dùng” và giá trị enum đánh dấu <b>cũ</b> vẫn còn trong cơ sở dữ liệu để giữ lịch sử từ trước v0.16 (quy trình khuôn cũ có bước thủ kho xác nhận và hạn trả). Code hiện tại không ghi mới vào đó.</p>
+    <p class="note">Cột ghi “cũ, không còn dùng” và giá trị enum đánh dấu <b>cũ</b> vẫn còn trong cơ sở dữ liệu để giữ lịch sử từ trước v0.16 và trước v0.17.2 (bước thủ kho xác nhận phiếu, hạn trả khuôn). Code hiện tại không ghi mới vào đó.</p>
   </main>
 </div>
